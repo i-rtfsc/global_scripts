@@ -1,0 +1,10 @@
+# ignore files and paths.
+.idea/
+.DS_Store
+venv/*
+
+/__pycache__/*
+*/__pycache__/*
+*/*/__pycache__/*
+*/*/*/__pycache__/*
+*/*/*/*/__pycache__/*
