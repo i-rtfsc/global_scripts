@@ -41,3 +41,4 @@ alias dock-uninstall='adb uninstall com.blackshark.gamedock'
 #alias adb-imei='adb shell "service call iphonesubinfo 1 | cut -c 52-66 | tr -d '.[:space:]'"'
 
 export PATH="/Users/solo/code/github/global_scripts/:$PATH"
+export GOPATH="/Users/solo/go"
