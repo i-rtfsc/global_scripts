@@ -9,4 +9,10 @@ venv/*
 */*/*/__pycache__/*
 */*/*/*/__pycache__/*
 
+*.pyc
+*/*.pyc
+*/*/*.pyc
+*/*/*/*.pyc
+*/*/*/*/*.pyc
+
 *.json
