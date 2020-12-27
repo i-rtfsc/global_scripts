@@ -1,40 +1,36 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 # -*- encoding: utf-8 -*-
 #
-#  Copyright (c) 2020 anqi.huang@outlook.com
+# Copyright (c) 2020 anqi.huang@outlook.com
 #
-#  Licensed under the Apache License, Version 2.0 (the "License");
-#  you may not use this file except in compliance with the License.
-#  You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
-#      http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
-#  Unless required by applicable law or agreed to in writing, software
-#  distributed under the License is distributed on an "AS IS" BASIS,
-#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  See the License for the specific language governing permissions and
-#  limitations under the License.
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import datetime
-import json
 import os
 import optparse
-
+import sys
 import threading
 import time
-
 import schedule
 
+sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 
-class Config(object):
-    def __init__(self, _dict, branch):
-        self.project = _dict['project']
-        self.branch = branch
-        self.source_origin = _dict['source_origin']
-        self.target_origin = _dict['target_origin']
-        self.copy = _dict['copy']
+from base.smart_log import smart_log
 
+from config.sync_code_config import SyncCodeConfig
 
-config = Config({'project': 'x', 'source_origin': 'x', 'target_origin': 'x', 'copy': 'x'}, 'x')
+config = SyncCodeConfig({'project': 'x', 'branch': 'x', 'source_origin': 'x', 'target_origin': 'x', 'copy': 'x'})
 
 
 def parseargs():
@@ -46,8 +42,6 @@ def parseargs():
     option_group.add_option("-p", "--project", dest="project",
                             help="which project",
                             default="")
-    option_group.add_option("-b", "--branch", dest="branch",
-                            help="which branch", default="")
 
     parser.add_option_group(option_group)
 
@@ -56,20 +50,16 @@ def parseargs():
     return (options, args)
 
 
-def log(message):
-    print("%s -> %s" % (datetime.datetime.now(), message))
-
-
 def exec_cmd(command):
     # process = subprocess.Popen(args=command, stdout=subprocess.PIPE, stderr=None, shell=True)
     # # Launch the shell command:
     # output = process.communicate()
     # return output[0]
-    os.system(command)
-    # log(command)
+    # os.system(command)
+    smart_log(command)
 
 
-def work(config):
+def work_impl(config, branch):
     git_remove_origin = 'git remote remove origin'
     git_checkout = 'git checkout '
     git_pull = 'git pull origin '
@@ -78,12 +68,17 @@ def work(config):
     exec_cmd(git_remove_origin)
     exec_cmd(config.source_origin)
     exec_cmd(config.copy)
-    exec_cmd(git_checkout + config.branch)
-    exec_cmd(git_pull + config.branch)
+    exec_cmd(git_checkout + branch)
+    exec_cmd(git_pull + branch)
 
     exec_cmd(git_remove_origin)
     exec_cmd(config.target_origin)
-    exec_cmd(git_push + config.branch)
+    exec_cmd(git_push + branch)
+
+
+def work(config):
+    for branch in config.branchs:
+        work_impl(config, branch)
 
 
 def work_job():
@@ -95,24 +90,20 @@ def run_threaded(job_func):
     job_thread.start()
 
 
-schedule.every(5).minutes.do(run_threaded, work_job)
+schedule.every(5).seconds.do(run_threaded, work_job)
 
 
 def main():
-    print(os.path.abspath(__file__))
+    smart_log(os.path.abspath(__file__))
     (options, args) = parseargs()
     project = options.project.strip()
-    branch = options.branch.strip()
-    print("sync project = %s , branch = %s " % (project, branch))
+    smart_log("sync project = %s " % (project))
 
-    with open(".sync_code_configs.json") as json_data:
-        dicts = json.loads(json_data.read(), object_hook=dict)
-        for _dict in dicts:
-            _config = Config(_dict, branch)
-            if project == _config.project:
-                global config
-                config = _config
-                work(config)
+    for _config in SyncCodeConfig.get_configs():
+        if project == _config.project:
+            global config
+            config = _config
+            work(config)
 
     return 0
 

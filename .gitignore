@@ -15,4 +15,8 @@ venv/*
 */*/*/*.pyc
 */*/*/*/*.pyc
 
-*.json
+config/*.json
+config/bot-issue.db
+
+demo.py
+ignore_bot_schedule.py
