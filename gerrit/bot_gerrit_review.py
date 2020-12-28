@@ -18,7 +18,6 @@
 
 
 import os
-
 import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
@@ -48,7 +47,7 @@ review_message = "# [{}]({})\n" \
                  "\n\n"
 
 
-class BotGerritReview:
+class BotGerritReview(object):
 
     def send_review(self, config, who):
         jira_server = JiraServerConfig.get_configs()
@@ -59,33 +58,34 @@ class BotGerritReview:
             smart_log("send patch error")
             return 0
 
-        for botPatch in bot_patches:
+        for bot_patch in bot_patches:
             flags = False
-            result = bot_database.table_issue.find_one(issue=botPatch.number)
+            result = bot_database.table_issue.find_one(issue=bot_patch.number)
             if result is not None:
                 if result["dock_team"] == 1:
-                    smart_log("dock team %s has been saved\n" % (botPatch.number))
+                    smart_log("dock team %s has been saved\n" % bot_patch.number)
                 else:
                     flags = True
-                    self.tableIssue.update(dict(issue=botPatch.number, dock_team=1, game_team=result["game_team"]),
+                    self.tableIssue.update(dict(issue=bot_patch.number, dock_team=1, game_team=result["game_team"]),
                                            ["issue"])
-                    smart_log("dock team %s need save(update)\n" % (botPatch.number))
+                    smart_log("dock team %s need save(update)\n" % bot_patch.number)
             else:
                 flags = True
-                bot_database.table_issue.insert(dict(issue=botPatch.number, dock_team=1, game_team=0))
-                smart_log("dock team %s need save\n" % (botPatch.number))
+                bot_database.table_issue.insert(dict(issue=bot_patch.number, dock_team=1, game_team=0))
+                smart_log("dock team %s need save\n" % bot_patch.number)
 
-            if (flags):
+            if flags:
                 issue = "Patch未填单号"
                 link = "botPatch.url"
 
-                if botPatch.issue != "null":
-                    bot_issue = bot_jira.searchIssue(botPatch.issue)
+                if bot_patch.issue != "null":
+                    bot_issue = bot_jira.search_issue(bot_patch.issue)
                     if bot_issue is not None:
                         issue = bot_issue.issue
                         link = bot_issue.link
 
-                message = review_message.format(issue, link, botPatch.owner_name, botPatch.url, botPatch.commitMessage)
+                message = review_message.format(issue, link, bot_patch.owner_name, bot_patch.url,
+                                                bot_patch.commitMessage)
                 smart_log(message)
                 bot = Bot(UserConfig.get_configs().__getitem__(who))
                 bot.set_text(message, type='markdown').send()
@@ -98,7 +98,6 @@ class BotGerritReview:
                 self.send_review(config, who)
             elif project == config.project:
                 self.send_review(config, who)
-
 
 # if __name__ == "__main__":
 #     gerrit_review = BotGerritReview()

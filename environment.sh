@@ -42,8 +42,8 @@ alias dock-uninstall='adb uninstall com.blackshark.gamedock'
 
 export GOPATH="/Users/solo/go"
 export PATH="/Users/solo/code/github/global_scripts/:$PATH"
-export PATH="/Users/solo/code/github/global_scripts/base/:$PATH"
-export PATH="/Users/solo/code/github/global_scripts/config/:$PATH"
+#export PATH="/Users/solo/code/github/global_scripts/base/:$PATH"
+#export PATH="/Users/solo/code/github/global_scripts/config/:$PATH"
 export PATH="/Users/solo/code/github/global_scripts/issues/:$PATH"
 export PATH="/Users/solo/code/github/global_scripts/gerrit/:$PATH"
 export PATH="/Users/solo/code/github/global_scripts/im/:$PATH"

@@ -16,14 +16,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import datetime
+
 import optparse
 import os
-
 import sys
 import threading
 import time
-
 import schedule
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
@@ -37,11 +35,12 @@ auto = False
 
 gerrit_review = BotGerritReview()
 
+
 def parseargs():
     usage = "usage: %prog [options] arg1 arg2"
     parser = optparse.OptionParser(usage=usage)
 
-    option_group = optparse.OptionGroup(parser, "auto send review message options")
+    option_group = optparse.OptionGroup(parser, "auto gerrit review message options")
 
     option_group.add_option("-p", "--project", dest="project", default="all", help="which project")
     option_group.add_option("-w", "--who", dest="who", default="bot_owner", help="send to who")

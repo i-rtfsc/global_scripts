@@ -16,7 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import datetime
+
 import os
 import sys
 
@@ -27,7 +27,6 @@ from config.bot_database import BotDatabase
 from config.jira_review_config import JiraReviewConfig
 from config.jira_server_config import JiraServerConfig
 from config.user_config import UserConfig
-
 from im.we_chat import Bot
 from issues.bot_jira import BotJira
 
@@ -43,7 +42,7 @@ review_message = "# [{}]({})\n" \
                  "\n\n"
 
 
-class BotJiraReview:
+class BotJiraReview(object):
 
     def send_review(self, who):
         jira_server = JiraServerConfig.get_configs()

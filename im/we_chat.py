@@ -26,6 +26,8 @@ import base64
 import hashlib
 from threading import Thread
 
+sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
+
 DEBUG = sys.flags.debug or 'pydevd' in sys.modules
 TEST = 'PYTEST_CURRENT_TEST' in os.environ
 

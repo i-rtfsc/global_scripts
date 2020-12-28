@@ -68,12 +68,12 @@ def main():
         build_threads = options.threads.strip()
         cmd = "%s %s --daemon --configure-on-demand --parallel --max-workers=%s" % (
             build_gradle, build_type, build_threads)
-        print(cmd)
+        _smart_log(cmd)
         start_time = datetime.datetime.now()
         os.system(cmd)
         end_time = datetime.datetime.now()
         total_time = elapsed_interval(start_time, end_time)
-        _smart_log("---> build time\n---> %s" % total_time)
+        _smart_log("build time = %s" % total_time)
     else:
         return 1
 

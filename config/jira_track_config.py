@@ -24,11 +24,9 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 
 
-class GerritReviewConfig(object):
-    def __init__(self, _dict):
-        self.project = _dict['project']
-        self.base_sql = _dict['base_sql']
-        self.comment_sql = _dict['comment_sql']
+class JiraTrackConfig(object):
+    def __init__(self, json_config):
+        self.jira_track = json_config['jira_track']
 
     def __getitem__(self, key):
         return getattr(self, key)
@@ -38,12 +36,9 @@ class GerritReviewConfig(object):
 
     @staticmethod
     def get_configs():
-        configs = list()
-        path = os.path.join(os.path.dirname(__file__), ".gerrit_review.json")
-        with open(path, 'r') as json_data:
-            dicts = json.loads(json_data.read(), object_hook=dict)
-            for _dict in dicts:
-                config = GerritReviewConfig(_dict)
-                configs.append(config)
+        path = os.path.join(os.path.dirname(__file__), ".jira_track.json")
+        with open(path, 'r') as f:
+            json_config = json.loads(f.read())
+            config = JiraTrackConfig(json_config)
 
-        return configs
+        return config

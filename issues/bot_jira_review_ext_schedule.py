@@ -16,38 +16,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import datetime
+
 import optparse
 import os
-import sys
 import threading
 import time
 import schedule
+import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 
 from base.smart_log import smart_log
-from gerrit.bot_gerrit_merged import BotGerritMerged
+from issues.bot_jira_review_ext import BotJiraReviewExt
 
-project = "all"
-branch = "all"
 who = "bot_owner"
 auto = False
 
-bot_gerrit_merged = BotGerritMerged()
+jira_review_ext = BotJiraReviewExt()
 
 
 def parseargs():
     usage = "usage: %prog [options] arg1 arg2"
     parser = optparse.OptionParser(usage=usage)
 
-    option_group = optparse.OptionGroup(parser, "auto gerrit merged message options")
+    option_group = optparse.OptionGroup(parser, "auto send jira review message options")
 
-    option_group.add_option("-p", "--project", dest="project", default="all", help="which project")
-    option_group.add_option("-b", "--branch", dest="branch", default="all", help="which branch")
     option_group.add_option("-w", "--who", dest="who", default="bot_owner", help="send to who")
     option_group.add_option("-a", "--auto", dest="auto", default=False, action="store_true",
-                            help="auto send review message")
+                            help="auto send jira review message")
 
     parser.add_option_group(option_group)
 
@@ -61,26 +57,22 @@ def run_threaded(job_func):
     job_thread.start()
 
 
-def gerrit_merged_job():
-    bot_gerrit_merged.fetch_merged(project, branch, who)
+def jira_review_ext_job():
+    jira_review_ext.send_review_ext(who, False)
 
 
 def main():
-    print(os.path.abspath(__file__))
+    smart_log(os.path.abspath(__file__))
     (options, args) = parseargs()
-    global project
-    project = options.project.strip()
-    global branch
-    branch = options.branch.strip()
     global who
     who = options.who.strip()
     global auto
     auto = options.auto
-    smart_log("bot project = %s, who = %s, auto = %d " % (project, who, auto))
-    gerrit_merged_job()
+    smart_log("bot who = %s, auto = %d " % (who, auto))
+    jira_review_ext_job()
 
     if auto:
-        schedule.every(5).seconds.do(run_threaded, gerrit_merged_job)
+        schedule.every(5).minutes.do(run_threaded, jira_review_ext_job)
 
     return 0
 

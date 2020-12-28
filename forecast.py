@@ -18,8 +18,6 @@
 
 import os
 import optparse
-import commands
-import re
 
 
 def parseargs():

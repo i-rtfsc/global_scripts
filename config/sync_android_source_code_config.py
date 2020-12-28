@@ -24,11 +24,10 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 
 
-class GerritReviewConfig(object):
+class SyncAndroidSourceCodeConfig(object):
     def __init__(self, _dict):
         self.project = _dict['project']
-        self.base_sql = _dict['base_sql']
-        self.comment_sql = _dict['comment_sql']
+        self.repo_init = _dict['repo_init']
 
     def __getitem__(self, key):
         return getattr(self, key)
@@ -39,11 +38,11 @@ class GerritReviewConfig(object):
     @staticmethod
     def get_configs():
         configs = list()
-        path = os.path.join(os.path.dirname(__file__), ".gerrit_review.json")
+        path = os.path.join(os.path.dirname(__file__), ".sync_android_source_code_configs.json")
         with open(path, 'r') as json_data:
             dicts = json.loads(json_data.read(), object_hook=dict)
             for _dict in dicts:
-                config = GerritReviewConfig(_dict)
+                config = SyncAndroidSourceCodeConfig(_dict)
                 configs.append(config)
 
         return configs

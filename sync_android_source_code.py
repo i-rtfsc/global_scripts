@@ -16,21 +16,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import datetime
 import os
 import optparse
 import sys
-import threading
-import time
-import schedule
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 
 from base.smart_log import smart_log
 
-from config.sync_code_config import SyncCodeConfig
-
-config = SyncCodeConfig({'project': 'x', 'branch': 'x', 'source_origin': 'x', 'target_origin': 'x', 'copy': 'x'})
+from config.sync_android_source_code_config import SyncAndroidSourceCodeConfig
 
 
 def parseargs():
@@ -42,6 +36,9 @@ def parseargs():
     option_group.add_option("-p", "--project", dest="project",
                             help="which project",
                             default="")
+    option_group.add_option("-j", "--thread", dest="thread",
+                            help="max thread",
+                            default="32")
 
     parser.add_option_group(option_group)
 
@@ -59,57 +56,31 @@ def exec_cmd(command):
     # smart_log(command)
 
 
-def work_impl(config, branch):
-    git_remove_origin = 'git remote remove origin'
-    git_checkout = 'git checkout '
-    git_pull = 'git pull origin '
-    git_push = 'git push --set-upstream origin '
+def work(config, max_thread):
+    cmd_repo_ini = config.repo_init
+    cmd_rm_out = 'rm -rf out'
+    cmd_repo_sync = 'repo sync -j%s' % max_thread
+    cmd_repo_sync_no_tags = 'repo sync -cdj %s --no-tags ' % max_thread
 
-    exec_cmd(git_remove_origin)
-    exec_cmd(config.source_origin)
-    exec_cmd(config.copy)
-    exec_cmd(git_checkout + branch)
-    exec_cmd(git_pull + branch)
-
-    exec_cmd(git_remove_origin)
-    exec_cmd(config.target_origin)
-    exec_cmd(git_push + branch)
-
-
-def work(config):
-    for branch in config.branchs:
-        work_impl(config, branch)
-
-
-def work_job():
-    work(config)
-
-
-def run_threaded(job_func):
-    job_thread = threading.Thread(target=job_func)
-    job_thread.start()
-
-
-schedule.every(5).minutes.do(run_threaded, work_job)
+    exec_cmd(cmd_repo_ini)
+    exec_cmd(cmd_rm_out)
+    exec_cmd(cmd_repo_sync)
+    exec_cmd(cmd_repo_sync_no_tags)
 
 
 def main():
     smart_log(os.path.abspath(__file__))
     (options, args) = parseargs()
     project = options.project.strip()
-    smart_log("sync project = %s " % (project))
+    max_thread = options.thread.strip()
+    smart_log("sync project = %s , max thread = %s" % (project, max_thread))
 
-    for _config in SyncCodeConfig.get_configs():
-        if project == _config.project:
-            global config
-            config = _config
-            work(config)
+    for config in SyncAndroidSourceCodeConfig.get_configs():
+        if project == config.project:
+            work(config, max_thread)
 
     return 0
 
 
 if __name__ == "__main__":
     main()
-    while True:
-        schedule.run_pending()
-        time.sleep(5)

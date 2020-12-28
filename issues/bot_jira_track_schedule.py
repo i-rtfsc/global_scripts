@@ -16,38 +16,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import datetime
+
 import optparse
 import os
-import sys
 import threading
 import time
 import schedule
+import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 
 from base.smart_log import smart_log
-from gerrit.bot_gerrit_merged import BotGerritMerged
+from issues.bot_jira_track import BotJiraTrack
 
-project = "all"
-branch = "all"
 who = "bot_owner"
 auto = False
 
-bot_gerrit_merged = BotGerritMerged()
+jira_track = BotJiraTrack()
 
 
 def parseargs():
     usage = "usage: %prog [options] arg1 arg2"
     parser = optparse.OptionParser(usage=usage)
 
-    option_group = optparse.OptionGroup(parser, "auto gerrit merged message options")
+    option_group = optparse.OptionGroup(parser, "auto send jira track message options")
 
-    option_group.add_option("-p", "--project", dest="project", default="all", help="which project")
-    option_group.add_option("-b", "--branch", dest="branch", default="all", help="which branch")
     option_group.add_option("-w", "--who", dest="who", default="bot_owner", help="send to who")
     option_group.add_option("-a", "--auto", dest="auto", default=False, action="store_true",
-                            help="auto send review message")
+                            help="auto send jira track message")
 
     parser.add_option_group(option_group)
 
@@ -61,26 +57,22 @@ def run_threaded(job_func):
     job_thread.start()
 
 
-def gerrit_merged_job():
-    bot_gerrit_merged.fetch_merged(project, branch, who)
+def jira_track_job():
+    jira_track.send_review(who)
 
 
 def main():
-    print(os.path.abspath(__file__))
+    smart_log(os.path.abspath(__file__))
     (options, args) = parseargs()
-    global project
-    project = options.project.strip()
-    global branch
-    branch = options.branch.strip()
     global who
     who = options.who.strip()
     global auto
     auto = options.auto
-    smart_log("bot project = %s, who = %s, auto = %d " % (project, who, auto))
-    gerrit_merged_job()
+    smart_log("bot who = %s, auto = %d " % (who, auto))
+    jira_track_job()
 
     if auto:
-        schedule.every(5).seconds.do(run_threaded, gerrit_merged_job)
+        schedule.every(5).hours.do(run_threaded, jira_track_job)
 
     return 0
 

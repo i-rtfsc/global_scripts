@@ -16,10 +16,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
+import os
 import re
+import sys
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 
 
-class BotPatch:
+class BotPatch(object):
 
     def __init__(self, result):
         try:
