@@ -16,9 +16,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import datetime
+
 import os
-import optparse
 import sys
 import threading
 import time
@@ -29,12 +28,18 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "./"))
 from base.smart_log import smart_log
 from issues.bot_jira_di import BotJiraDI
 from issues.bot_jira_review import BotJiraReview
+from issues.bot_jira_review_ext import BotJiraReviewExt
+from issues.bot_jira_track import BotJiraTrack
 from gerrit.bot_gerrit_review import BotGerritReview
 from gerrit.bot_gerrit_merged import BotGerritMerged
 
 bot_jira_dI = BotJiraDI()
 
 jira_review = BotJiraReview()
+
+jira_review_ext = BotJiraReviewExt()
+
+jira_track = BotJiraTrack()
 
 gerrit_review = BotGerritReview()
 
@@ -57,6 +62,14 @@ def jira_review_job():
     jira_review.send_review("bot_owner")
 
 
+def jira_review_ext_job():
+    jira_review_ext.send_review_ext("bot_owner", False)
+
+
+def jira_track_job():
+    jira_track.send_track("bot_owner")
+
+
 def gerrit_review_job():
     # bot_owner / bot_team
     gerrit_review.fetch_review("all", "bot_owner")
@@ -73,6 +86,7 @@ def main():
 
     di_job()
     jira_review_job()
+    jira_track_job()
     gerrit_review_job()
     gerrit_merged_job()
 
@@ -84,7 +98,16 @@ def main():
         schedule.every().thursday.at(i).do(run_threaded, di_job)
         schedule.every().friday.at(i).do(run_threaded, di_job)
 
+    for i in ["10:00", "14:00", "17:00"]:
+        schedule.every().monday.at(i).do(run_threaded, jira_track_job)
+        schedule.every().tuesday.at(i).do(run_threaded, jira_track_job)
+        schedule.every().wednesday.at(i).do(run_threaded, jira_track_job)
+        schedule.every().thursday.at(i).do(run_threaded, jira_track_job)
+        schedule.every().friday.at(i).do(run_threaded, jira_track_job)
+
     schedule.every(5).minutes.do(run_threaded, jira_review_job)
+
+    schedule.every(5).minutes.do(run_threaded, jira_review_ext_job)
 
     schedule.every(5).minutes.do(run_threaded, gerrit_review_job)
 

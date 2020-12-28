@@ -16,7 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import datetime
+
 import optparse
 import os
 import threading
@@ -39,11 +39,11 @@ def parseargs():
     usage = "usage: %prog [options] arg1 arg2"
     parser = optparse.OptionParser(usage=usage)
 
-    option_group = optparse.OptionGroup(parser, "auto send di message options")
+    option_group = optparse.OptionGroup(parser, "auto send jira view options")
 
     option_group.add_option("-w", "--who", dest="who", default="bot_owner", help="send to who")
     option_group.add_option("-a", "--auto", dest="auto", default=False, action="store_true",
-                            help="auto send di message")
+                            help="auto send jira review message")
 
     parser.add_option_group(option_group)
 

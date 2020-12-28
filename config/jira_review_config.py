@@ -19,11 +19,15 @@
 
 import json
 import os
+import sys
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 
 
 class JiraReviewConfig(object):
     def __init__(self, json_config):
         self.jira_jql_review = json_config["jira_jql_review"]
+        self.jira_jql_review_ext = json_config["jira_jql_review_ext"]
 
     def __getitem__(self, key):
         return getattr(self, key)

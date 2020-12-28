@@ -37,7 +37,7 @@ merged_message = "{issue}: {title} \n" \
                  "---> Gerrit地址: {patch_link}\n\n"
 
 
-class BotGerritMerged:
+class BotGerritMerged(object):
 
     def send_merged(self, config, who):
         jira_server = JiraServerConfig.get_configs()

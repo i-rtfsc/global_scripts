@@ -16,12 +16,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
+import os
 import sys
 import json
 import time
 import hmac
 import hashlib
 import base64
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 
 if sys.version_info > (3, 0):
     from urllib.request import urlopen, Request

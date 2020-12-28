@@ -19,14 +19,13 @@
 import datetime
 import optparse
 import os
-
 import sys
 import threading
 import time
-
 import schedule
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
+
 from base.smart_log import smart_log
 from gerrit.bot_gerrit_merged import BotGerritMerged
 
@@ -37,11 +36,12 @@ auto = False
 
 bot_gerrit_merged = BotGerritMerged()
 
+
 def parseargs():
     usage = "usage: %prog [options] arg1 arg2"
     parser = optparse.OptionParser(usage=usage)
 
-    option_group = optparse.OptionGroup(parser, "auto send review message options")
+    option_group = optparse.OptionGroup(parser, "auto gerrit merged message options")
 
     option_group.add_option("-p", "--project", dest="project", default="all", help="which project")
     option_group.add_option("-b", "--branch", dest="branch", default="all", help="which branch")

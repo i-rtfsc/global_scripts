@@ -55,8 +55,8 @@ def exec_cmd(command):
     # # Launch the shell command:
     # output = process.communicate()
     # return output[0]
-    # os.system(command)
-    smart_log(command)
+    os.system(command)
+    # smart_log(command)
 
 
 def work_impl(config, branch):
@@ -90,7 +90,7 @@ def run_threaded(job_func):
     job_thread.start()
 
 
-schedule.every(5).seconds.do(run_threaded, work_job)
+schedule.every(5).minutes.do(run_threaded, work_job)
 
 
 def main():

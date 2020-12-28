@@ -16,9 +16,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import datetime
-import os
 
+import os
 import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
@@ -45,7 +44,7 @@ message_format = "# {who}问题总数 = <font color=\"warning\">{total}</font>\n
                  "> 总DI = <font color=\"warning\">{di}</font>\n\n"
 
 
-class BotJiraDI:
+class BotJiraDI(object):
 
     def fetch_issues(self, config):
         if config.project != "x":
