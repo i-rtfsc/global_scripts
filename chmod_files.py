@@ -17,28 +17,35 @@
 # limitations under the License.
 
 
-import json
 import os
 import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 
 
-class JiraTrackConfig(object):
-    def __init__(self, json_config):
-        self.jira_track = json_config['jira_track']
+def exec_cmd(command):
+    os.system(command)
+    # print(command)
 
-    def __getitem__(self, key):
-        return getattr(self, key)
 
-    def __str__(self):
-        print(['%s:%s' % item for item in self.__dict__.items()])
+class ScanFile(object):
+    def __init__(self, directory="./", postfix=None):
+        self.directory = directory
+        self.postfix = postfix
 
-    @staticmethod
-    def get_configs():
-        path = os.path.join(os.path.dirname(__file__), ".jira_track.json")
-        with open(path, 'r') as f:
-            json_config = json.loads(f.read())
-            config = JiraTrackConfig(json_config)
+    def scan_files(self):
+        files_list = []
 
-        return config
+        for root, dirs, files in os.walk(self.directory):
+            for file in files:
+                if file.endswith(self.postfix):
+                    files_list.append(os.path.join(root, file))
+
+        return files_list
+
+
+if __name__ == "__main__":
+    scan = ScanFile(os.getcwd(), postfix=".py")
+    files = scan.scan_files()
+    for file in files:
+        exec_cmd("chmod 777 %s" % file)

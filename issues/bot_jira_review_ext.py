@@ -97,7 +97,7 @@ class BotJiraReviewExt(object):
             count=str(issue_count)) + total_author_message
 
         if flags:
-            smart_log("game team has been notify\n")
+            smart_log("game team has been notify")
         else:
             smart_log(total_message)
             if issue_count > 0:

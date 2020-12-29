@@ -58,7 +58,7 @@ class BotGerritMerged(object):
                           config.project, yesterday, config.branch, len(bot_patches))
 
             for bot_patch in bot_patches:
-                bot_issue = bot_jira.searchIssue(bot_patch.issue)
+                bot_issue = bot_jira.search_issue(bot_patch.issue)
                 message += merged_message.format(issue=bot_patch.issue,
                                                  issue_link=bot_patch.issue_link,
                                                  owner=bot_patch.owner_name,
