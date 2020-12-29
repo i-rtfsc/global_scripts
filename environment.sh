@@ -33,6 +33,7 @@ alias dock-guide='adb shell dumpsys activity service com.blackshark.gamedock/.Ga
 alias dock-version='adb shell dumpsys package com.blackshark.gamedock | grep -i version'
 alias dock-log-tag='adb logcat -v threadtime | grep -iE'
 alias dock-log-pid='adb logcat --pid=`adb shell pidof com.blackshark.gamedock`'
+alias dock-log-enable='adb shell dumpsys activity service com.blackshark.gamedock/.GameDockService put gamedocksp game_dock_debug bool true'
 alias dock-dump='adb shell dumpsys activity service com.blackshark.gamedock/.GameDockService'
 alias dock-pull-db='rm -rf databases ; adb pull /data/data/com.blackshark.gamedock/databases/ .'
 alias dock-install='adb install -r -d ~/vm/blackshark/BsGameDock/build/out_product_branch/ZsGameDock_unsigned.apk'

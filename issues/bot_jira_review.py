@@ -55,17 +55,17 @@ class BotJiraReview(object):
                 result = bot_database.table_issue.find_one(issue=botIssue.issue)
                 if result is not None:
                     if result["dock_team"] == 1:
-                        smart_log("dock team %s has been saved" % (botIssue.issue))
+                        smart_log("dock team %s has been saved" % botIssue.issue)
                     else:
                         flags = True
                         bot_database.table_issue.update(
                             dict(issue=botIssue.issue, dock_team=1, game_team=result["game_team"]),
                             ["issue"])
-                        smart_log("dock team %s need save(update)" % (botIssue.issue))
+                        smart_log("dock team %s need save(update)" % botIssue.issue)
                 else:
                     flags = True
                     bot_database.table_issue.insert(dict(issue=botIssue.issue, dock_team=1, game_team=0))
-                    smart_log("dock team %s need save" % (botIssue.issue))
+                    smart_log("dock team %s need save" % botIssue.issue)
 
                 if (flags):
                     message = review_message.format(botIssue.issue, botIssue.link,

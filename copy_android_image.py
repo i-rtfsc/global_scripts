@@ -33,11 +33,16 @@ def parseargs():
     usage = "usage: %prog [options] arg1 arg2"
     parser = optparse.OptionParser(usage=usage)
 
+    build_time = str(datetime.datetime.now().date())
+
     option_group = optparse.OptionGroup(parser, "copy android image options")
 
     option_group.add_option("-p", "--project", dest="project",
                             help="which project",
                             default="mobius_user_dev")
+    option_group.add_option("-t", "--time", dest="time",
+                            help="build time",
+                            default=build_time)
 
     parser.add_option_group(option_group)
 
@@ -46,9 +51,8 @@ def parseargs():
     return (options, args)
 
 
-def work(image):
+def work(image, build_time):
     f = ftpretty(image.ftp_server, image.user, image.pwd)
-    build_time = datetime.datetime.now().date()
     source = image.source.format(day=build_time)
     destination = image.destination.format(day=build_time)
     smart_log("copy daily build time = %s, destination = %s" % (build_time, destination))
@@ -59,12 +63,13 @@ def main():
     smart_log(os.path.abspath(__file__))
     (options, args) = parseargs()
     project = options.project.strip()
-    smart_log("copy android image project = %s" % project)
+    time = options.time.strip()
+    smart_log("copy android image project = %s, build time = %s " % (project, time))
 
     images = AndroidImageConfig.get_configs()
     for image in images:
         if project == image.project:
-            work(image)
+            work(image, time)
 
     return 0
 

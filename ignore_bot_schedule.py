@@ -54,7 +54,7 @@ def run_threaded(job_func):
 def di_job():
     # kaiser/penrose / all
     # bot_owner / bot_team
-    bot_jira_dI.send_di("all", "bot_owner")
+    bot_jira_dI.send_di("all", "bot_team")
 
 
 def jira_review_job():
@@ -77,18 +77,19 @@ def gerrit_review_job():
 
 def gerrit_merged_job():
     # bot_owner / bot_team
-    bot_gerrit_merged.fetch_merged("GameDock", "all", "bot_owner")
-    bot_gerrit_merged.fetch_merged("GameDockEngine", "bsui_q", "bot_owner")
+    bot_gerrit_merged.fetch_merged("GameDock", "all", "bot_test")
+    bot_gerrit_merged.fetch_merged("GameDockEngine", "bsui_q", "bot_test")
 
 
 def main():
     smart_log(os.path.abspath(__file__))
 
-    di_job()
+    # di_job()
+    # gerrit_merged_job()
+
     jira_review_job()
     jira_track_job()
     gerrit_review_job()
-    gerrit_merged_job()
 
     # schedule.every(5).minutes.do(run_threaded, di_job)
     for i in ["10:00", "17:30"]:
