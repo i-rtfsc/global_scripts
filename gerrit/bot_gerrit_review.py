@@ -37,6 +37,7 @@ auto = False
 bot_database = BotDatabase()
 
 review_message = "# [{}]({})\n" \
+                 "### [{}]({})\n" \
                  " \n" \
                  "> <font color=\"comment\">处理人：{}</font>\n\n" \
                  "> <font color=\"comment\">请帮忙review，有问题-1，没有问题+1</font>\n\n" \
@@ -84,7 +85,9 @@ class BotGerritReview(object):
                         issue = bot_issue.issue
                         link = bot_issue.link
 
-                message = review_message.format(issue, link, bot_patch.owner_name, bot_patch.url,
+                message = review_message.format(issue, link,
+                                                bot_patch.url, bot_patch.url,
+                                                bot_patch.owner_name, bot_patch.url,
                                                 bot_patch.commitMessage)
                 smart_log(message)
                 bot = Bot(UserConfig.get_configs().__getitem__(who))
