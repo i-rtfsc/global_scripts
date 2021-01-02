@@ -20,6 +20,8 @@
 import os
 import sys
 
+from base.url_extract import find_urls
+
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 
 from base.smart_log import smart_log
@@ -33,6 +35,7 @@ from issues.bot_jira import BotJira
 bot_database = BotDatabase()
 
 review_message = "# [{}]({})\n" \
+                 "### [{}]({})\n" \
                  " \n" \
                  "> <font color=\"comment\">处理人：{}</font>\n\n" \
                  "> <font color=\"comment\">请帮忙review，有问题-1，没有问题+1</font>\n\n" \
@@ -68,7 +71,16 @@ class BotJiraReview(object):
                     smart_log("dock team %s need save" % botIssue.issue)
 
                 if (flags):
+                    urls = find_urls(botIssue.comment)
+                    if len(urls):
+                        try:
+                            gerrit_url = urls[0]
+                            # gerrit_name = gerrit_url.split(".")[0].split("/")[-1] + "-" + gerrit_url.split("/")[-1]
+                        except:
+                            pass
+
                     message = review_message.format(botIssue.issue, botIssue.link,
+                                                    gerrit_url, gerrit_url,
                                                     botIssue.commentAuthor, botIssue.comment, "")
                     smart_log(message)
                     bot = Bot(UserConfig.get_configs().__getitem__(who))
