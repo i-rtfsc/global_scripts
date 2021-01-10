@@ -20,7 +20,7 @@
 import os
 import sys
 
-from base.url_extract import find_urls
+from urlextract import URLExtract
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 
@@ -71,14 +71,13 @@ class BotJiraReview(object):
                     smart_log("dock team %s need save" % botIssue.issue)
 
                 if (flags):
-                    urls = find_urls(botIssue.comment)
+                    urls = URLExtract().find_urls(botIssue.comment)
                     if len(urls):
                         try:
                             gerrit_url = urls[0]
                             # gerrit_name = gerrit_url.split(".")[0].split("/")[-1] + "-" + gerrit_url.split("/")[-1]
                         except:
                             pass
-
                     message = review_message.format(botIssue.issue, botIssue.link,
                                                     gerrit_url, gerrit_url,
                                                     botIssue.commentAuthor, botIssue.comment, "")
@@ -86,6 +85,7 @@ class BotJiraReview(object):
                     bot = Bot(UserConfig.get_configs().__getitem__(who))
                     bot.set_text(message, type='markdown').send()
                     # bot.set_text('', type='text').set_mentioned_list(["@all"]).send()
+
 
 # if __name__ == "__main__":
 #     jira_review = BotJiraReview()
