@@ -39,6 +39,13 @@ alias dock-pull-db='rm -rf databases ; adb pull /data/data/com.blackshark.gamedo
 alias dock-install='adb install -r -d ~/vm/blackshark/BsGameDock/build/out_product_branch/ZsGameDock_unsigned.apk'
 alias dock-uninstall='adb uninstall com.blackshark.gamedock'
 
+alias i19t-version='adb shell dumpsys package com.blackshark.i19tservice | grep -i version'
+alias i19t-install-htp='adb install -r -d ~/vm/blackshark/I19tService/build/out_product_branch/I19tService_htp_unsigned.apk'
+alias i19t-install-hta='adb install -r -d ~/vm/blackshark/I19tService/build/out_product_branch/I19tService_hta_unsigned.apk'
+alias i19t-uninstall='adb uninstall com.blackshark.i19tservice'
+alias i19t-clear='adb shell pm clear com.blackshark.i19tservice'
+alias i19t-log-pid='adb logcat --pid=`adb shell pidof com.blackshark.i19tservice`'
+
 #alias adb-imei='adb shell "service call iphonesubinfo 1 | cut -c 52-66 | tr -d '.[:space:]'"'
 
 export GOPATH="/Users/solo/go"

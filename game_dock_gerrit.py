@@ -29,7 +29,7 @@ def parseargs():
     buildoptiongroup = optparse.OptionGroup(parser, "git push to gerrit options")
 
     buildoptiongroup.add_option("-b", "--branch", dest="branch",
-                                help="what remote branch want to push", default="bsui_q")
+                                help="what remote branch want to push", default="bsui_stable5.0_20210105")
     buildoptiongroup.add_option("-r", "--reviewer", dest="reviewer",
                                 help="reivew email address", default="wayne.xiong@blackshark.com,"
                                                                      "solo.huang@blackshark.com,"
