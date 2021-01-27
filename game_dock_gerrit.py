@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # -*- encoding: utf-8 -*-
 #
@@ -18,7 +18,7 @@
 
 import os
 import optparse
-import commands
+import subprocess
 import re
 
 
@@ -26,20 +26,20 @@ def parseargs():
     usage = "usage: %prog [options] arg1 arg2"
     parser = optparse.OptionParser(usage=usage)
 
-    buildoptiongroup = optparse.OptionGroup(parser, "git push to gerrit options")
+    option = optparse.OptionGroup(parser, "git push to gerrit options")
 
-    buildoptiongroup.add_option("-b", "--branch", dest="branch",
+    option.add_option("-b", "--branch", dest="branch",
                                 help="what remote branch want to push", default="bsui_stable5.0_20210105")
-    buildoptiongroup.add_option("-r", "--reviewer", dest="reviewer",
+    option.add_option("-r", "--reviewer", dest="reviewer",
                                 help="reivew email address", default="wayne.xiong@blackshark.com,"
                                                                      "solo.huang@blackshark.com,"
                                                                      "lucy.zeng@blackshark.com,"
                                                                      "rick.hu@blackshark.com,"
                                                                      "lyng.li@blackshark.com")
-    buildoptiongroup.add_option("-d", "--drafts", action="store_true", dest="drafts",
+    option.add_option("-d", "--drafts", action="store_true", dest="drafts",
                                 help="push to gerrit as drafts", default=False)
 
-    parser.add_option_group(buildoptiongroup)
+    parser.add_option_group(option)
 
     (options, args) = parser.parse_args()
 
@@ -54,7 +54,7 @@ def main():
     drafts = options.drafts
 
     cmd = "git log -n 1"
-    ret, output = commands.getstatusoutput(cmd)
+    ret, output = subprocess.getstatusoutput(cmd)
     if ret != 0:
         print("git cmd fail:\n %s" % (output))
     elif "Change-Id" not in output:
@@ -64,14 +64,14 @@ def main():
         return 1
 
     cmd = "git config --get user.name"
-    ret, output = commands.getstatusoutput(cmd)
+    ret, output = subprocess.getstatusoutput(cmd)
     if ret != 0:
         print("")
     elif not output:
         print("No git user name, add your git email by \"git config --global user.name [your name]\".")
         return 1
     cmd = "git config --get user.email"
-    ret, output = commands.getstatusoutput(cmd)
+    ret, output = subprocess.getstatusoutput(cmd)
     if ret != 0:
         print("")
     elif not output:
@@ -79,7 +79,7 @@ def main():
         return 1
 
     cmd = "git remote -v"
-    ret, output = commands.getstatusoutput(cmd)
+    ret, output = subprocess.getstatusoutput(cmd)
     if ret != 0:
         print("git cmd fail:\n %s" % (output))
     else:

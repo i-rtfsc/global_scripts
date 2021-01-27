@@ -1,5 +1,8 @@
 alias update-environment='cp /Users/solo/code/github/global_scripts/environment.sh /Users/solo/.zsh_aliases && source /Users/solo/.zsh_aliases'
 
+alias chang-python3.8='brew link --overwrite python@3.8'
+alias chang-python3.9='brew link --overwrite python@3.9'
+
 alias findc='find ${PWD} -name'
 alias grep='grep --color=auto'
 alias egrep='egrep --color=auto'
@@ -45,6 +48,7 @@ alias i19t-install-hta='adb install -r -d ~/vm/blackshark/I19tService/build/out_
 alias i19t-uninstall='adb uninstall com.blackshark.i19tservice'
 alias i19t-clear='adb shell pm clear com.blackshark.i19tservice'
 alias i19t-log-pid='adb logcat --pid=`adb shell pidof com.blackshark.i19tservice`'
+alias i19t-kill='adb shell kill -9 `adb shell pidof com.blackshark.i19tservice`'
 
 #alias adb-imei='adb shell "service call iphonesubinfo 1 | cut -c 52-66 | tr -d '.[:space:]'"'
 

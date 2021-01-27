@@ -18,7 +18,7 @@
 
 import os
 import optparse
-import commands
+import subprocess
 import re
 
 
@@ -50,7 +50,7 @@ def main():
     drafts = options.drafts
 
     cmd = "git log -n 1"
-    ret, output = commands.getstatusoutput(cmd)
+    ret, output = subprocess.getstatusoutput(cmd)
     if ret != 0:
         print("git cmd fail:\n %s" % (output))
     elif "Change-Id" not in output:
@@ -60,14 +60,14 @@ def main():
         return 1
 
     cmd = "git config --get user.name"
-    ret, output = commands.getstatusoutput(cmd)
+    ret, output = subprocess.getstatusoutput(cmd)
     if ret != 0:
         print("")
     elif not output:
         print("No git user name, add your git email by \"git config --global user.name [your name]\".")
         return 1
     cmd = "git config --get user.email"
-    ret, output = commands.getstatusoutput(cmd)
+    ret, output = subprocess.getstatusoutput(cmd)
     if ret != 0:
         print("")
     elif not output:
@@ -75,7 +75,7 @@ def main():
         return 1
 
     cmd = "git remote -v"
-    ret, output = commands.getstatusoutput(cmd)
+    ret, output = subprocess.getstatusoutput(cmd)
     if ret != 0:
         print("git cmd fail:\n %s" % (output))
     else:
