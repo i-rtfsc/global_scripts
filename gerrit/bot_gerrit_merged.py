@@ -54,7 +54,7 @@ class BotGerritMerged(object):
 
         if len(bot_patches) > 0:
             message = "%s %s 模块合入%s分支问题数 = %d \n" \
-                      "👇 👇 👇 👇 👇 👇 👇 👇 👇 👇 👇 👇 👇 👇 \n" % (
+                      "👇 👇 👇 👇 👇 👇 👇 👇 👇 👇 👇 👇 👇 \n" % (
                           config.project, yesterday, config.branch, len(bot_patches))
 
             for bot_patch in bot_patches:
