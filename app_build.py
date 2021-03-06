@@ -82,7 +82,7 @@ def main_impl(linux):
     build_gradle = options.gradle.strip()
     build_type = options.type.strip()
     build_threads = options.threads.strip()
-    cmd = "%s %s --daemon --configure-on-demand --parallel --max-workers=%s" % (
+    cmd = "%s --no-build-cache %s --daemon --configure-on-demand --parallel --max-workers=%s" % (
         build_gradle, build_type, build_threads)
     _smart_log(cmd)
     start_time = datetime.datetime.now()
