@@ -154,6 +154,6 @@ class BotJiraDI(object):
             elif config.project == project:
                 self.send_impl(config=config, who=who)
 
-# if __name__ == "__main__":
-#     botJiraDI = BotJiraDI()
-#     botJiraDI.send_di("all", "bot_owner")
+if __name__ == "__main__":
+    botJiraDI = BotJiraDI()
+    botJiraDI.send_di("all", "bot_team")

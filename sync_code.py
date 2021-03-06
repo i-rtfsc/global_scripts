@@ -62,12 +62,14 @@ def exec_cmd(command):
 def work_impl(config, branch):
     git_remove_origin = 'git remote remove origin'
     git_checkout = 'git checkout '
+    _git_pull = 'git pull '
     git_pull = 'git pull origin '
     git_push = 'git push --set-upstream origin '
 
     exec_cmd(git_remove_origin)
     exec_cmd(config.source_origin)
     exec_cmd(config.copy)
+    exec_cmd(_git_pull)
     exec_cmd(git_checkout + branch)
     exec_cmd(git_pull + branch)
 
