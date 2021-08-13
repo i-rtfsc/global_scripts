@@ -44,3 +44,13 @@ class UserConfig(object):
             config = UserConfig(json_config)
 
         return config
+
+    @staticmethod
+    def get_user():
+        path = os.path.join(os.path.dirname(__file__), ".user.json")
+        with open(path, 'r') as f:
+            json_config = json.loads(f.read())
+            user = json_config["auth"]["user"]
+            pwd = json_config["auth"]["pwd"]
+
+        return user, pwd
