@@ -27,7 +27,7 @@ def parseargs():
     buildoptiongroup = optparse.OptionGroup(parser, "git push to gerrit options")
 
     buildoptiongroup.add_option("-y", "--language", dest="language",
-                                help="supported languages", default="en")
+                                help="supported languages", default="zh")
     buildoptiongroup.add_option("-l", "--location", dest="location",
                                 help="supported location types", default="shanghai+pudong")
 
