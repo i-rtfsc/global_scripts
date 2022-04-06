@@ -1,116 +1,254 @@
-alias update-environment='cp /Users/solo/code/github/global_scripts/environment.sh /Users/solo/.zsh_aliases && source /Users/solo/.zsh_aliases'
+machine="$(uname -s)"
+case "${machine}" in
+    Linux*)     isMac=false;;
+    Darwin*)    isMac=true;;
+    *)          isMac=false;;
+esac
 
-#alias chang-python3.9='brew link --overwrite python@3.9'
+# update-environment
+if $isMac ; then
+    ENV_PATH="$HOME/code/github/global_scripts/environment.sh"
+else
+    ENV_PATH="$HOME/ext-data/code/github/global_scripts/environment.sh"
+fi
+function update-environment() {
+    cp $ENV_PATH $HOME/.zsh_aliases
+    source $HOME/.zsh_aliases
+}
 
-alias findc='find ${PWD} -name'
-alias grep='grep --color=auto'
-alias egrep='egrep --color=auto'
-alias fgrep='fgrep --color=auto'
-
-alias adb='/Users/solo/Library/Android/sdk/platform-tools/adb'
-alias fastboot='/Users/solo/Library/Android/sdk/platform-tools/fastboot'
-
-alias dump-screencap='adb shell screencap -p /sdcard/screenshot.png ; adb pull /sdcard/screenshot.png'
-alias dump-systrace='python ~/Library/Android/sdk/platform-tools/systrace/systrace.py'
-alias dump-dispaysync='adb shell dumpsys SurfaceFlinger --dispsync | grep mPeriod'
-alias dump-log-tag='adb logcat -v threadtime | grep -iE'
-
+# ls & grep colored
+if $isMac ; then
+    alias ls='ls -G'
+    alias ll='ls -G -la'
+    alias lh='ls -G -lh'
+    alias  l='ls -G'
+else
+    alias ls='ls --color=auto'
+    alias ll='ls --color=auto -la'
+    alias lh='ls --color=auto -lh'
+    alias  l='ls --color=auto'
+    alias grep='grep --color=auto'
+fi
 
 # 启动pd vm
-alias start-ubuntu='prlctl start ubuntu'
-alias start-deepin='prlctl start deepin'
+if $isMac ; then
+    alias start-ubuntu='prlctl start ubuntu'
+    alias start-deepin='prlctl start deepin'
 
-alias pd-ssh='ssh solo@10.211.55.13'
-alias pd-mount='sshfs solo@10.211.55.13:/home/solo/code/ /Users/solo/pd/'
-alias pd-umount='sudo diskutil umount force /Users/solo/pd ; rm -rf /Users/solo/pd'
+    alias pd-ssh='ssh solo@10.211.55.13'
+    alias pd-mount='sshfs solo@10.211.55.13:$HOME/code/ $HOME/pd/'
+    alias pd-umount='sudo diskutil umount force $HOME/pd ; rm -rf $HOME/pd'
+fi
 
-##########################################################bs##########################################################
-# alias r-ssh='ssh -R 22222:localhost:22 solo@'
-# alias vm-ssh='ssh -p 22222 solo.huang@localhost'
-# alias vm-mount='sudo sshfs -o allow_other,port=22222 solo.huang@localhost:/work/solohuang/ /Users/solo/vm/'
-# alias vm-umount='sudo diskutil umount force /Users/solo/vm ; rm -rf /Users/solo/vm'
-# alias vm-mount-all='sudo sshfs -o allow_other,port=21213 solo@localhost:/work/ /Users/solo/vm-all/'
-#alias vm-umount='sudo umount -f /Users/solo/vm'
+# global aosp grep
+case `uname -s` in
+    Darwin)
+        function sgrep()
+        {
+            find -E . -name .repo -prune -o -name .git -prune -o  -type f -iregex '.*\.(c|h|cc|cpp|hpp|S|java|kt|xml|sh|mk|aidl|vts|proto)' \
+                -exec grep --color -n "$@" {} +
+        }
 
-# alias vm-ai='ssh -p 21212 localhost'
-# alias vm-ai-mount='sudo sshfs -o allow_other,port=21212 solo@localhost:/home/solo/ /Users/solo/vm-ai/'
-# alias vm-ai-umount='sudo umount -f /Users/solo/vm-ai'
-# alias vm-ai-mount-work='sudo sshfs -o allow_other,port=21212 solo@localhost:/work/ /Users/solo/vm-ai-work/'
-# alias vm-ai-umount-work='sudo diskutil umount force /Users/solo/vm-ai-work ; rm -rf /Users/solo/vm-ai-work'
-# alias vm-ai-mount-data='sudo sshfs -o allow_other,port=21212 solo@localhost:/data/ /Users/solo/vm-ai-data/'
-# alias vm-ai-umount-data='sudo diskutil umount force /Users/solo/vm-ai-data ; rm -rf /Users/solo/vm-ai-data'
+        ;;
+    *)
+        function sgrep()
+        {
+            find . -name .repo -prune -o -name .git -prune -o  -type f -iregex '.*\.\(c\|h\|cc\|cpp\|hpp\|S\|java\|kt\|xml\|sh\|mk\|aidl\|vts\|proto\)' \
+                -exec grep --color -n "$@" {} +
+        }
+        ;;
+esac
 
-#tmux new-session -s sshr
-#ssh -R 23232:localhost:22 solo@10.0.60.36
-# alias vm-100='ssh -p 23232 localhost'
-# alias vm-100-mount='sudo sshfs -o allow_other,port=23232 solo@localhost:/home/solo/ /Users/solo/vm-100/'
-# alias vm-100-umount='sudo umount -f /Users/solo/vm-100'
+function ggrep()
+{
+    find . -name .repo -prune -o -name .git -prune -o -name out -prune -o -type f -name "*\.gradle" \
+        -exec grep --color -n "$@" {} +
+}
 
-# alias ssh-gitlab='ssh root@10.0.12.179'
-# alias ssh-gitlab-mount='sudo sshfs -o allow_other,port=33333 solo@localhost:/home/solo/work/ /Users/solo/vm-gitlab/'
-# alias ssh-bot='ssh -l bot raspberrypi.local'
-# alias ssh-bot-mount='sudo sshfs -o allow_other,port=33335 bot@localhost:/ /Users/solo/bot/'
+function gogrep()
+{
+    find . -name .repo -prune -o -name .git -prune -o -name out -prune -o -type f -name "*\.go" \
+        -exec grep --color -n "$@" {} +
+}
 
-# alias dock-show-up='adb shell dumpsys activity service com.blackshark.gamedock/.GameDockService show game_dock_view 3'
-# alias dock-show-left='adb shell dumpsys activity service com.blackshark.gamedock/.GameDockService show game_dock_view 1'
-# alias dock-show-right='adb shell dumpsys activity service com.blackshark.gamedock/.GameDockService show game_dock_view 2'
-# alias dock-clear='adb shell pm clear com.blackshark.gamedock'
-# alias dock-kill='adb shell kill -9 `adb shell pidof com.blackshark.gamedock`'
-# alias dock-guide='adb shell dumpsys activity service com.blackshark.gamedock/.GameDockService put gamedocksp first_guide bool false'
-# alias dock-version='adb shell dumpsys package com.blackshark.gamedock | grep -i version'
-# alias dock-log-pid='adb logcat --pid=`adb shell pidof com.blackshark.gamedock`'
-# alias dock-log-enable='adb shell dumpsys activity service com.blackshark.gamedock/.GameDockService put gamedocksp game_dock_debug bool true'
-# alias dock-dump='adb shell dumpsys activity service com.blackshark.gamedock/.GameDockService'
-# alias dock-pull-db='rm -rf databases ; adb pull /data/data/com.blackshark.gamedock/databases/ .'
-# alias dock-install='adb install -r -d ~/vm/blackshark/BsGameDock/build/out_product_branch/ZsGameDock_unsigned.apk'
-# alias dock-uninstall='adb uninstall com.blackshark.gamedock'
+function jgrep()
+{
+    find . -name .repo -prune -o -name .git -prune -o -name out -prune -o -type f -name "*\.java" \
+        -exec grep --color -n "$@" {} +
+}
 
-# alias i19t-install-htp='adb install -r -d ~/vm/blackshark/I19tService/build/out_product_branch/I19tService_htp_unsigned.apk'
-# alias i19t-install-hta='adb install -r -d ~/vm/blackshark/I19tService/build/out_product_branch/I19tService_hta_unsigned.apk'
-# alias ai-version='adb shell dumpsys package com.blackshark.i19tservice | grep -i version'
-# alias ai-install='adb install -r -d /Users/solo/vm-ai-work/solo/code/I19tService/build/out_product_branch/I19tService_release_unsigned.apk'
-# alias ai-install-htp='adb install -r -d ~/vm-ai-work/solo/code/I19tService/build/out_product_branch/I19tService_htp_unsigned.apk'
-# alias ai-install-hta='adb install -r -d ~/vm-ai-work/solo/code/I19tService/build/out_product_branch/I19tService_hta_unsigned.apk'
-# alias ai-uninstall='adb uninstall com.blackshark.i19tservice'
-# alias ai-clear='adb shell pm clear com.blackshark.i19tservice'
-# alias ai-log-pid='adb logcat --pid=`adb shell pidof com.blackshark.i19tservice`'
-# alias ai-kill='adb shell kill -9 `adb shell pidof com.blackshark.i19tservice`'
-# alias ai-models='adb shell ls -alh /storage/emulated/0/Android/data/com.blackshark.i19tservice/files/models'
-# alias ai-config='adb shell ls -alh /storage/emulated/0/Android/data/com.blackshark.i19tservice/files/config/'
-# alias adb-video-recorder='adb shell ls -alh /sdcard/DCIM/ScreenRecorder'
-# #alias adb-imei='adb shell "service call iphonesubinfo 1 | cut -c 52-66 | tr -d '.[:space:]'"'
-##########################################################bs##########################################################
+function rsgrep()
+{
+    find . -name .repo -prune -o -name .git -prune -o -name out -prune -o -type f -name "*\.rs" \
+        -exec grep --color -n "$@" {} +
+}
 
-export GOPATH="/Users/solo/go"
-export PATH="/Users/solo/code/github/global_scripts/:$PATH"
-#export PATH="/Users/solo/code/github/global_scripts/base/:$PATH"
-#export PATH="/Users/solo/code/github/global_scripts/config/:$PATH"
-export PATH="/Users/solo/code/github/global_scripts/issues/:$PATH"
-export PATH="/Users/solo/code/github/global_scripts/gerrit/:$PATH"
-export PATH="/Users/solo/code/github/global_scripts/im/:$PATH"
-export PATH="/Users/solo/code/github/global_scripts/digiccy/:$PATH"
-#export PATH="/Users/solo/bin/"
+function ktgrep()
+{
+    find . -name .repo -prune -o -name .git -prune -o -name out -prune -o -type f -name "*\.kt" \
+        -exec grep --color -n "$@" {} +
+}
+
+function cgrep()
+{
+    find . -name .repo -prune -o -name .git -prune -o -name out -prune -o -type f \( -name '*.c' -o -name '*.cc' -o -name '*.cpp' -o -name '*.h' -o -name '*.hpp' \) \
+        -exec grep --color -n "$@" {} +
+}
+
+function resgrep()
+{
+    local dir
+    for dir in `find . -name .repo -prune -o -name .git -prune -o -name out -prune -o -name res -type d`; do
+        find $dir -type f -name '*\.xml' -exec grep --color -n "$@" {} +
+    done
+}
+
+function mangrep()
+{
+    find . -name .repo -prune -o -name .git -prune -o -path ./out -prune -o -type f -name 'AndroidManifest.xml' \
+        -exec grep --color -n "$@" {} +
+}
+
+function owngrep()
+{
+    find . -name .repo -prune -o -name .git -prune -o -path ./out -prune -o -type f -name 'OWNERS' \
+        -exec grep --color -n "$@" {} +
+}
+
+function sepgrep()
+{
+    find . -name .repo -prune -o -name .git -prune -o -path ./out -prune -o -name sepolicy -type d \
+        -exec grep --color -n -r --exclude-dir=\.git "$@" {} +
+}
+
+function rcgrep()
+{
+    find . -name .repo -prune -o -name .git -prune -o -name out -prune -o -type f -name "*\.rc*" \
+        -exec grep --color -n "$@" {} +
+}
+
+case `uname -s` in
+    Darwin)
+        function mgrep()
+        {
+            find -E . -name .repo -prune -o -name .git -prune -o -path ./out -prune -o \( -iregex '.*/(Makefile|Makefile\..*|.*\.make|.*\.mak|.*\.mk|.*\.bp)' -o -regex '(.*/)?(build|soong)/.*[^/]*\.go' \) -type f \
+                -exec grep --color -n "$@" {} +
+        }
+
+        function treegrep()
+        {
+            find -E . -name .repo -prune -o -name .git -prune -o -type f -iregex '.*\.(c|h|cpp|hpp|S|java|kt|xml)' \
+                -exec grep --color -n -i "$@" {} +
+        }
+
+        ;;
+    *)
+        function mgrep()
+        {
+            find . -name .repo -prune -o -name .git -prune -o -path ./out -prune -o \( -regextype posix-egrep -iregex '(.*\/Makefile|.*\/Makefile\..*|.*\.make|.*\.mak|.*\.mk|.*\.bp)' -o -regextype posix-extended -regex '(.*/)?(build|soong)/.*[^/]*\.go' \) -type f \
+                -exec grep --color -n "$@" {} +
+        }
+
+        function treegrep()
+        {
+            find . -name .repo -prune -o -name .git -prune -o -regextype posix-egrep -iregex '.*\.(c|h|cpp|hpp|S|java|kt|xml)' -type f \
+                -exec grep --color -n -i "$@" {} +
+        }
+
+        ;;
+esac
+
+function android-ps-grep {
+    adb shell ps | grep -v "$1:" | grep "$1"
+}
+
+function android-kill-grep {
+    adb shell kill $(adb shell ps | grep $1 | awk '{print $2}')
+}
+
+function android-log-grep {
+    # TODO
+    #adb logcat -v time | grep $(adb shell ps | grep -v "$1:" |grep $1 | awk '{print $2}')
+    adb logcat -v threadtime | grep -iE "$1"
+}
+
+function android-screencap {
+    # alias dump-screencap='adb shell screencap -p /sdcard/screenshot.png ; adb pull /sdcard/screenshot.png'
+    adb shell screencap -p /sdcard/"$1".png ; adb pull /sdcard/"$1".png
+}
+
+function android-dispaysync {
+    adb shell dumpsys SurfaceFlinger --dispsync | grep mPeriod
+}
+
+if $isMac ; then
+    function android-systrace {
+        python2 ~/Library/Android/sdk/platform-tools/systrace/systrace.py
+    }
+else
+    function android-systrace {
+        # TODO
+        python2 ~/Library/Android/sdk/platform-tools/systrace/systrace.py
+    }
+fi
+
+function android-imei {
+    adb shell "service call iphonesubinfo 1 | cut -c 52-66 | tr -d '.[:space:]'"
+}
+
+function android-key-home()
+{
+    adb shell input keyevent 3
+}
+
+function android-key-back()
+{
+    adb shell input keyevent 4
+}
+
+function android-key-menu()
+{
+    adb shell input keyevent 82
+}
+
+# global python env
+if $isMac ; then
+    ROOT_PATH="$HOME/code/github/global_scripts"
+else
+   ROOT_PATH="$HOME/ext-data/code/github/global_scripts/"
+fi
+export PATH="$ROOT_PATH:$PATH"
 
 
-##########################################################jl##########################################################
-alias jl-ssh='ssh solo@10.44.67.112'
-alias jl-mount='sshfs solo@10.44.67.112:/home/solo/ /Users/solo/jl/'
-alias jl-umount='sudo diskutil umount force /Users/solo/jl ; rm -rf /Users/solo/jl'
+# boxing
+alias update-git-global-name-upuphone='git config --global user.email anqi.huang@upuphone.com;git config --global user.name anqi.huang'
+alias jumpserver-ssh-all='ssh anqi.huang@jumpserver.upuphone.com -p 2222'
+alias jumpserver-ssh='ssh solo@10.164.118.252'
+alias jumpserver-mount='sshfs jenkins@10.164.118.252:/data/lineage-19.0-solo/ $HOME/jumpserver'
+alias jumpserver-umount='sudo diskutil umount force $HOME/jumpserver ; rm -rf $HOME/jumpserver'
 
-alias xota-uninstall='adb uninstall com.xxx.ota'
-alias xota-clear='adb shell pm clear com.xxx.ota'
-alias xota-cat-update='adb shell cat /data/data/com.xxx.ota/cache/updates.json'
-alias xota-clear-update='adb shell rm -rf /data/data/com.xxx.ota/cache/updates.json'
-alias ota-push-update='adb push /home/solo/data/work/ota/config/updates.json /data/data/com.xxx.ota/cache/updates.json'
-alias xota-log-pid='adb logcat --pid=`adb shell pidof com.xxx.ota`'
-alias xota-kill='adb shell kill -9 `adb shell pidof com.xxx.ota`'
+alias bx-service-log-pid='adb logcat --pid=`adb shell pidof com.upuphone.bxservice`'
+alias bx-service-kill='adb shell kill -9 `adb shell pidof com.upuphone.bxservice`'
+alias bx-service-version='adb shell dumpsys package com.upuphone.bxservice | grep -i version'
 
-alias ota-uninstall='adb uninstall org.lineageos.updater; adb reboot'
-alias ota-clear='adb shell pm clear org.lineageos.updater'
-alias ota-clear-update='adb shell rm -rf /data/data/org.lineageos.updater/cache/updates.json'
-alias ota-cat-update='adb shell cat /data/data/org.lineageos.updater/cache/updates.json'
-alias ota-push-update='adb push /home/solo/data/work/ota/config/updates.json /data/data/org.lineageos.updater/cache/updates.json'
-alias ota-log-pid='adb logcat --pid=`adb shell pidof org.lineageos.updater`'
-alias ota-kill='adb shell kill -9 `adb shell pidof org.lineageos.updater`'
+##########################################################solo##########################################################
+alias update-git-global-name-private='git config --global user.email anqi.huang@outlook.com; git config --global user.name Solo'
 
-##########################################################jl##########################################################
+alias J007Engine-log-pid='adb logcat --pid=`com.journeyOS.J007engine.hidl@1.0-service`'
+alias J007Engine-kill='adb shell killall com.journeyOS.J007engine.hidl@1.0-service'
+alias J007Service-log-pid='adb logcat --pid=`adb shell pidof com.journeyOS.J007engine`'
+alias J007Service-kill='adb shell killall com.journeyOS.J007engine'
+alias J007Service-clear='adb shell pm clear com.journeyOS.J007engine'
+alias J007Service-dump='adb shell dumpsys activity service com.journeyOS.J007engine/com.journeyOS.J007engine.service.J007EngineService'
+
+alias J007Test-log-pid='adb logcat --pid=`adb shell pidof com.journeyOS.J007enginetest`'
+alias J007Test-kill='adb shell killall com.journeyOS.J007enginetest'
+alias J007Test-clear='adb shell pm clear com.journeyOS.J007enginetest'
+##########################################################solo##########################################################
+
+#if [ -f ~/global_scripts/environment.sh ]
+#then
+#    . ~/global_scripts/environment.sh
+#fi
+#[ -f ~/.vimrc ] || ln -s ~/global_scripts/.vimrc ~/
+#[ -f ~/.gitconfig ] || ln -s ~/global_scripts/.gitconfig ~/
