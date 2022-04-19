@@ -5,14 +5,14 @@ case "${machine}" in
     *)          isMac=false;;
 esac
 
+# global python env
+ROOT_PATH="$HOME/code/github/global_scripts"
+export PATH="$ROOT_PATH:$PATH"
+
 # update-environment
-if $isMac ; then
-    ENV_PATH="$HOME/code/github/global_scripts/environment.sh"
-else
-    ENV_PATH="$HOME/ext-data/code/github/global_scripts/environment.sh"
-fi
 function update-environment() {
-    cp $ENV_PATH $HOME/.zsh_aliases
+    local env_path="$HOME/code/github/global_scripts/environment.sh"
+    cp $env_path $HOME/.zsh_aliases
     source $HOME/.zsh_aliases
 }
 
@@ -158,78 +158,273 @@ case `uname -s` in
         ;;
 esac
 
-function android-ps-grep {
+function android_hidden_api_enable {
+    adb shell settings put global hidden_api_policy_pre_p_apps 1
+    adb shell settings put global hidden_api_policy_p_apps 1
+}
+
+function android_hidden_api_disable {
+    adb shell settings delete global hidden_api_policy_pre_p_apps
+    adb shell settings delete global hidden_api_policy_p_apps
+}
+
+function android_ps_grep {
     adb shell ps | grep -v "$1:" | grep "$1"
 }
 
-function android-kill-grep {
+function android_kill_grep {
     adb shell kill $(adb shell ps | grep $1 | awk '{print $2}')
 }
 
-function android-log-grep {
+function android_log_grep {
     # TODO
     #adb logcat -v time | grep $(adb shell ps | grep -v "$1:" |grep $1 | awk '{print $2}')
     adb logcat -v threadtime | grep -iE "$1"
 }
 
-function android-screencap {
+function android_screencap {
     # alias dump-screencap='adb shell screencap -p /sdcard/screenshot.png ; adb pull /sdcard/screenshot.png'
-    adb shell screencap -p /sdcard/"$1".png ; adb pull /sdcard/"$1".png
+    adb shell screencap -p /sdcard/"$1".png
+    adb pull /sdcard/"$1".png
 }
 
-function android-dispaysync {
+function android_dispaysync {
     adb shell dumpsys SurfaceFlinger --dispsync | grep mPeriod
 }
 
 if $isMac ; then
-    function android-systrace {
+    function android_systrace {
         python2 ~/Library/Android/sdk/platform-tools/systrace/systrace.py
     }
 else
-    function android-systrace {
+    function android_systrace {
         # TODO
         python2 ~/Library/Android/sdk/platform-tools/systrace/systrace.py
     }
 fi
 
-function android-imei {
+function android_imei {
     adb shell "service call iphonesubinfo 1 | cut -c 52-66 | tr -d '.[:space:]'"
 }
 
-function android-key-home()
+function android_key_home()
 {
     adb shell input keyevent 3
 }
 
-function android-key-back()
+function android_key_back()
 {
     adb shell input keyevent 4
 }
 
-function android-key-menu()
+function android_key_menu()
 {
     adb shell input keyevent 82
 }
 
-# global python env
-if $isMac ; then
-    ROOT_PATH="$HOME/code/github/global_scripts"
-else
-   ROOT_PATH="$HOME/ext-data/code/github/global_scripts/"
-fi
-export PATH="$ROOT_PATH:$PATH"
+function _android_build_with_ccache() {
+    export USE_CCACHE=1
+    export CCACHE_EXEC=/usr/bin/ccache
+    #set ccache dir
+    export CCACHE_DIR=/home/solo/ext-data/.ccache
+    ccache -M 50G
+}
 
+function _android_build_lunch() {
+    TOP=`pwd`
+    local building_log_dir=$TOP/build_log
+    # check if the building log dir exists
+    if [ ! -d ${building_log_dir} ]; then
+        mkdir ${building_log_dir}
+    fi
+    export _BUILD_LOG_DIR=${building_log_dir}
+
+    local LOCAL_TARGET_PRODUCT=${TARGET_PRODUCT}
+    if [ -z ${LOCAL_TARGET_PRODUCT} ]; then
+        LOCAL_TARGET_PRODUCT=$1
+    fi
+
+    if [ -z ${LOCAL_TARGET_PRODUCT} ]; then
+        LOCAL_TARGET_PRODUCT="lineage_lemonadep-userdebug"
+    fi
+
+    source build/envsetup.sh
+    lunch ${LOCAL_TARGET_PRODUCT}
+}
+
+function android_build() {
+    #_android_build_with_ccache
+
+    # lunch target
+    _android_build_lunch
+
+    # log file
+    local building_time=$(date "+%Y-%m-%d-%H-%M-%S")
+    local building_log=${_BUILD_LOG_DIR}/build_full_${building_time}.log
+
+    # full build
+    m -j $(nproc) 2>&1 | tee ${building_log}
+}
+
+function android_build_ota() {
+    #_android_build_with_ccache
+
+    # lunch target
+    _android_build_lunch
+
+    # log file
+    local building_time=$(date "+%Y-%m-%d-%H-%M-%S")
+    local building_log=${_BUILD_LOG_DIR}/build_full_${building_time}.log
+    local building_ota_log=${_BUILD_LOG_DIR}/build_ota_${building_time}.log
+
+    # full build
+    m -j $(nproc) 2>&1 | tee ${building_log}
+    # make ota
+    make otapackage -j $(nproc) 2>&1 | tee ${building_ota_log}
+}
+
+function lineage_build() {
+    #_android_build_with_ccache
+
+    local LOCAL_TARGET_PRODUCT=
+    if [ -z ${LOCAL_TARGET_PRODUCT} ]; then
+        LOCAL_TARGET_PRODUCT=$1
+    fi
+
+    if [ -z ${LOCAL_TARGET_PRODUCT} ]; then
+        LOCAL_TARGET_PRODUCT="lemonadep"
+    fi
+
+    source build/envsetup.sh
+    breakfast ${LOCAL_TARGET_PRODUCT}
+
+    TOP=`pwd`
+    local building_log_dir=$TOP/build_log
+    # check if the building log dir exists
+    if [ ! -d ${building_log_dir} ]; then
+        mkdir ${building_log_dir}
+    fi
+
+    # log file
+    local building_time=$(date "+%Y-%m-%d-%H-%M-%S")
+    local building_log=${building_log_dir}/build_lineage_${building_time}.log
+
+    # lineage build
+    brunch ${LOCAL_TARGET_PRODUCT} 2>&1 | tee ${building_log}
+}
+
+function _show_and_choose_combo() {
+    unset _BUILD_COMBO
+    local choices=(
+                  "bx-framework"
+                  "framework"
+                  "services"
+                  "UMS"
+                  "UMSTest"
+                  )
+    local index=1
+    local default_index=1
+    local answer=${choices[default_index]}
+    local selection=${choices[default_index]}
+
+    local title="modules menu(select options):"
+
+    if [ "$1" ] ; then
+        answer=$1
+    else
+        # print combo menu,
+        for item in ${choices[@]}; do
+            echo $index.  ${item}
+            index=$(($index+1))
+        done
+        printf "Which would you like? [ %s ] " ${answer}
+        read answer
+
+        if [ -z "$answer" ]; then
+            answer=${selection}
+        fi
+    fi
+
+    if [ -z "$answer" ] ; then
+        echo "error: get null answer."
+    elif (echo -n $answer | grep -q -e "^[0-9][0-9]*$") ; then
+        selection=${choices[answer]}
+    else
+        selection=${answer}
+    fi
+    printf "\n    selected: %s\n\n" ${selection}
+    export _BUILD_COMBO=${selection}
+}
+
+function android_build_ninja() {
+    # lunch target
+    _android_build_lunch
+
+    # select module
+    _show_and_choose_combo
+    selection=${_BUILD_COMBO}
+
+    # log file
+    local building_time=$(date "+%Y-%m-%d-%H-%M-%S")
+    building_log=${_BUILD_LOG_DIR}/ninja_build_${selection}_${building_time}.log
+    echo "selection = "${selection} ", building log =" ${building_log}
+
+    # ninja build
+    time prebuilts/build-tools/linux-x86/bin/ninja -f out/combined-${TARGET_PRODUCT}.ninja ${selection} -j $(nproc) | tee ${building_log}
+}
+
+function android_build_make() {
+    # lunch target
+    _android_build_lunch
+
+    # select module
+    _show_and_choose_combo
+    selection=${_BUILD_COMBO}
+
+    # log file
+    local building_time=$(date "+%Y-%m-%d-%H-%M-%S")
+    building_log=${_BUILD_LOG_DIR}/make_build_${selection}_${building_time}.log
+    echo "selection = "${selection} ", building log =" ${building_log}
+
+    # make build
+    make ${selection} -j $(nproc) | tee ${building_log}
+}
+
+function android_push_bx-framework {
+    adb push out/target/product/${TARGET_PRODUCT}/system/framework/arm/boot-bx-framework.art /system/framework/arm/
+    adb push out/target/product/${TARGET_PRODUCT}/system/framework/arm/boot-bx-framework.oat /system/framework/arm/
+    adb push out/target/product/${TARGET_PRODUCT}/system/framework/arm/boot-bx-framework.vdex /system/framework/arm/
+
+    adb push out/target/product/${TARGET_PRODUCT}/system/framework/arm64/boot-bx-framework.art /system/framework/arm64/
+    adb push out/target/product/${TARGET_PRODUCT}/system/framework/arm64/boot-bx-framework.oat /system/framework/arm64/
+    adb push out/target/product/${TARGET_PRODUCT}/system/framework/arm64/boot-bx-framework.vdex /system/framework/arm64/
+
+    adb push out/target/product/${TARGET_PRODUCT}/system/framework/bx-framework.jar /system/framework/
+}
+
+function android_push_framework {
+    adb push out/target/product/${TARGET_PRODUCT}/system/framework/arm/boot-framework.art /system/framework/arm/
+    adb push out/target/product/${TARGET_PRODUCT}/system/framework/arm/boot-framework.oat /system/framework/arm/
+    adb push out/target/product/${TARGET_PRODUCT}/system/framework/arm/boot-framework.vdex /system/framework/arm/
+
+    adb push out/target/product/${TARGET_PRODUCT}/system/framework/arm64/boot-framework.art /system/framework/arm64/
+    adb push out/target/product/${TARGET_PRODUCT}/system/framework/arm64/boot-framework.oat /system/framework/arm64/
+    adb push out/target/product/${TARGET_PRODUCT}/system/framework/arm64/boot-framework.vdex /system/framework/arm64/
+
+    adb push out/target/product/${TARGET_PRODUCT}/system/framework/framework.jar /system/framework/
+}
 
 # boxing
 alias update-git-global-name-upuphone='git config --global user.email anqi.huang@upuphone.com;git config --global user.name anqi.huang'
 alias jumpserver-ssh-all='ssh anqi.huang@jumpserver.upuphone.com -p 2222'
 alias jumpserver-ssh='ssh solo@10.164.118.252'
-alias jumpserver-mount='sshfs jenkins@10.164.118.252:/data/lineage-19.0-solo/ $HOME/jumpserver'
+alias jumpserver-mount='sshfs solo@10.164.118.252:/data/lineage/ $HOME/jumpserver'
 alias jumpserver-umount='sudo diskutil umount force $HOME/jumpserver ; rm -rf $HOME/jumpserver'
 
 alias bx-service-log-pid='adb logcat --pid=`adb shell pidof com.upuphone.bxservice`'
 alias bx-service-kill='adb shell kill -9 `adb shell pidof com.upuphone.bxservice`'
 alias bx-service-version='adb shell dumpsys package com.upuphone.bxservice | grep -i version'
+alias bx-service-version-test='adb shell dumpsys package com.upuphone.bxservicetest | grep -i version'
 
 ##########################################################solo##########################################################
 alias update-git-global-name-private='git config --global user.email anqi.huang@outlook.com; git config --global user.name Solo'
