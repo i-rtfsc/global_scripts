@@ -9,8 +9,8 @@ esac
 ROOT_PATH="$HOME/code/github/global_scripts"
 export PATH="$ROOT_PATH:$PATH"
 
-# update-environment
-function update-environment() {
+# update_environment
+function update_environment() {
     local env_path="$HOME/code/github/global_scripts/environment.sh"
     cp $env_path $HOME/.zsh_aliases
     source $HOME/.zsh_aliases
@@ -43,114 +43,97 @@ fi
 # global aosp grep
 case `uname -s` in
     Darwin)
-        function sgrep()
-        {
+        function sgrep() {
             find -E . -name .repo -prune -o -name .git -prune -o  -type f -iregex '.*\.(c|h|cc|cpp|hpp|S|java|kt|xml|sh|mk|aidl|vts|proto)' \
                 -exec grep --color -n "$@" {} +
         }
 
         ;;
     *)
-        function sgrep()
-        {
+        function sgrep() {
             find . -name .repo -prune -o -name .git -prune -o  -type f -iregex '.*\.\(c\|h\|cc\|cpp\|hpp\|S\|java\|kt\|xml\|sh\|mk\|aidl\|vts\|proto\)' \
                 -exec grep --color -n "$@" {} +
         }
         ;;
 esac
 
-function ggrep()
-{
+function ggrep() {
     find . -name .repo -prune -o -name .git -prune -o -name out -prune -o -type f -name "*\.gradle" \
         -exec grep --color -n "$@" {} +
 }
 
-function gogrep()
-{
+function gogrep() {
     find . -name .repo -prune -o -name .git -prune -o -name out -prune -o -type f -name "*\.go" \
         -exec grep --color -n "$@" {} +
 }
 
-function jgrep()
-{
+function jgrep() {
     find . -name .repo -prune -o -name .git -prune -o -name out -prune -o -type f -name "*\.java" \
         -exec grep --color -n "$@" {} +
 }
 
-function rsgrep()
-{
+function rsgrep() {
     find . -name .repo -prune -o -name .git -prune -o -name out -prune -o -type f -name "*\.rs" \
         -exec grep --color -n "$@" {} +
 }
 
-function ktgrep()
-{
+function ktgrep() {
     find . -name .repo -prune -o -name .git -prune -o -name out -prune -o -type f -name "*\.kt" \
         -exec grep --color -n "$@" {} +
 }
 
-function cgrep()
-{
+function cgrep() {
     find . -name .repo -prune -o -name .git -prune -o -name out -prune -o -type f \( -name '*.c' -o -name '*.cc' -o -name '*.cpp' -o -name '*.h' -o -name '*.hpp' \) \
         -exec grep --color -n "$@" {} +
 }
 
-function resgrep()
-{
+function resgrep() {
     local dir
     for dir in `find . -name .repo -prune -o -name .git -prune -o -name out -prune -o -name res -type d`; do
         find $dir -type f -name '*\.xml' -exec grep --color -n "$@" {} +
     done
 }
 
-function mangrep()
-{
+function mangrep() {
     find . -name .repo -prune -o -name .git -prune -o -path ./out -prune -o -type f -name 'AndroidManifest.xml' \
         -exec grep --color -n "$@" {} +
 }
 
-function owngrep()
-{
+function owngrep() {
     find . -name .repo -prune -o -name .git -prune -o -path ./out -prune -o -type f -name 'OWNERS' \
         -exec grep --color -n "$@" {} +
 }
 
-function sepgrep()
-{
+function sepgrep() {
     find . -name .repo -prune -o -name .git -prune -o -path ./out -prune -o -name sepolicy -type d \
         -exec grep --color -n -r --exclude-dir=\.git "$@" {} +
 }
 
-function rcgrep()
-{
+function rcgrep() {
     find . -name .repo -prune -o -name .git -prune -o -name out -prune -o -type f -name "*\.rc*" \
         -exec grep --color -n "$@" {} +
 }
 
 case `uname -s` in
     Darwin)
-        function mgrep()
-        {
+        function mgrep() {
             find -E . -name .repo -prune -o -name .git -prune -o -path ./out -prune -o \( -iregex '.*/(Makefile|Makefile\..*|.*\.make|.*\.mak|.*\.mk|.*\.bp)' -o -regex '(.*/)?(build|soong)/.*[^/]*\.go' \) -type f \
                 -exec grep --color -n "$@" {} +
         }
 
-        function treegrep()
-        {
+        function treegrep() {
             find -E . -name .repo -prune -o -name .git -prune -o -type f -iregex '.*\.(c|h|cpp|hpp|S|java|kt|xml)' \
                 -exec grep --color -n -i "$@" {} +
         }
 
         ;;
     *)
-        function mgrep()
-        {
+        function mgrep() {
             find . -name .repo -prune -o -name .git -prune -o -path ./out -prune -o \( -regextype posix-egrep -iregex '(.*\/Makefile|.*\/Makefile\..*|.*\.make|.*\.mak|.*\.mk|.*\.bp)' -o -regextype posix-extended -regex '(.*/)?(build|soong)/.*[^/]*\.go' \) -type f \
                 -exec grep --color -n "$@" {} +
         }
 
-        function treegrep()
-        {
+        function treegrep() {
             find . -name .repo -prune -o -name .git -prune -o -regextype posix-egrep -iregex '.*\.(c|h|cpp|hpp|S|java|kt|xml)' -type f \
                 -exec grep --color -n -i "$@" {} +
         }
@@ -207,18 +190,19 @@ function android_imei {
     adb shell "service call iphonesubinfo 1 | cut -c 52-66 | tr -d '.[:space:]'"
 }
 
-function android_key_home()
-{
+function android_key() {
+    adb shell input keyevent "$1"
+}
+
+function android_key_home() {
     adb shell input keyevent 3
 }
 
-function android_key_back()
-{
+function android_key_back() {
     adb shell input keyevent 4
 }
 
-function android_key_menu()
-{
+function android_key_menu() {
     adb shell input keyevent 82
 }
 
@@ -283,6 +267,35 @@ function android_build_ota() {
     make otapackage -j $(nproc) 2>&1 | tee ${building_ota_log}
 }
 
+function _android_build_system() {
+    #_android_build_with_ccache
+
+    # lunch target
+    _android_build_lunch
+
+    local goals=$1
+
+    # log file
+    local building_time=$(date "+%Y-%m-%d-%H-%M-%S")
+    local building_log=${_BUILD_LOG_DIR}/build_${goals}_${building_time}.log
+    local building_ota_log=${_BUILD_LOG_DIR}/build_ota_${building_time}.log
+
+    # build
+    m -j $(nproc) ${goals} 2>&1 | tee ${building_log}
+}
+
+function android_build_system() {
+    _android_build_system "snod"
+}
+
+function android_build_system_ext() {
+    _android_build_system "senod"
+}
+
+function android_build_vendor() {
+    _android_build_system "vnod"
+}
+
 function lineage_build() {
     #_android_build_with_ccache
 
@@ -315,22 +328,23 @@ function lineage_build() {
 
 function _show_and_choose_combo() {
     unset _BUILD_COMBO
-    local choices=(
-                  "bx-framework"
-                  "framework"
-                  "services"
-                  "UMS"
-                  "UMSTest"
-                  )
+
+    local user_input=$1
+    local title=$2
+    local choices=(`echo $3 | tr ',' ' '` )
+
     local index=1
     local default_index=1
-    local answer=${choices[default_index]}
-    local selection=${choices[default_index]}
 
-    local title="modules menu(select options):"
+    if [ -z ${_LAST_BUILD_COMBO} ]; then
+        _LAST_BUILD_COMBO=${choices[default_index]}
+    fi
 
-    if [ "$1" ] ; then
-        answer=$1
+    local answer=${_LAST_BUILD_COMBO}
+    local selection=${_LAST_BUILD_COMBO}
+
+    if [ "${user_input}" ] ; then
+        answer=${user_input}
     else
         # print combo menu,
         for item in ${choices[@]}; do
@@ -354,14 +368,28 @@ function _show_and_choose_combo() {
     fi
     printf "\n    selected: %s\n\n" ${selection}
     export _BUILD_COMBO=${selection}
+    export _LAST_BUILD_COMBO=${_BUILD_COMBO}
 }
 
 function android_build_ninja() {
+    local title="select modules(ninja)"
+    local modules=(
+                  "bx-framework"
+                  "framework"
+                  "services"
+                  "UMS"
+                  "UMSTest"
+                  "surfaceflinger"
+                  "android.hardware.power-service"
+                  "SystemUI"
+                  "Settings"
+                  )
+
     # lunch target
     _android_build_lunch
 
     # select module
-    _show_and_choose_combo
+    _show_and_choose_combo  "$1" "${title}" "${modules}"
     selection=${_BUILD_COMBO}
 
     # log file
@@ -374,11 +402,24 @@ function android_build_ninja() {
 }
 
 function android_build_make() {
+    local title="select modules(make)"
+    local modules=(
+                  "bx-framework"
+                  "framework"
+                  "services"
+                  "UMS"
+                  "UMSTest"
+                  "surfaceflinger"
+                  "android.hardware.power-service"
+                  "SystemUI"
+                  "Settings"
+                  )
+
     # lunch target
     _android_build_lunch
 
     # select module
-    _show_and_choose_combo
+    _show_and_choose_combo "$1" "${title}" "${modules}"
     selection=${_BUILD_COMBO}
 
     # log file
@@ -421,10 +462,10 @@ alias jumpserver-ssh='ssh solo@10.164.118.252'
 alias jumpserver-mount='sshfs solo@10.164.118.252:/data/lineage/ $HOME/jumpserver'
 alias jumpserver-umount='sudo diskutil umount force $HOME/jumpserver ; rm -rf $HOME/jumpserver'
 
-alias bx-service-log-pid='adb logcat --pid=`adb shell pidof com.upuphone.bxservice`'
-alias bx-service-kill='adb shell kill -9 `adb shell pidof com.upuphone.bxservice`'
-alias bx-service-version='adb shell dumpsys package com.upuphone.bxservice | grep -i version'
-alias bx-service-version-test='adb shell dumpsys package com.upuphone.bxservicetest | grep -i version'
+alias ums-log-pid='adb logcat --pid=`adb shell pidof com.upuphone.bxservice`'
+alias ums-kill='adb shell kill -9 `adb shell pidof com.upuphone.bxservice`'
+alias ums-version='adb shell dumpsys package com.upuphone.bxservice | grep -i version'
+alias ums-version-test='adb shell dumpsys package com.upuphone.bxservicetest | grep -i version'
 
 ##########################################################solo##########################################################
 alias update-git-global-name-private='git config --global user.email anqi.huang@outlook.com; git config --global user.name Solo'
