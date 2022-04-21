@@ -1,4 +1,152 @@
 # global scripts
 
-分支 bs / jl 是为了在公司方便review代码等用的一些脚本
-目前把main分支代码删干净，后续这个分支只保留通用行的代码。
+# 依赖zsh、oyz
+如果不想用zsh，也可以使用该工程。但建议配合zsh使用更佳。
+## 安装zsh
+```bash
+sudo apt insall zsh
+or
+brew install zsh
+```
+## 安装oyz
+```bash
+sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+```
+> https://github.com/ohmyzsh/ohmyzsh
+
+## 配置
+在.zshrc里source env.sh文件即可，比如我的工程目录在/Users/solo/code/github/global_scripts
+```bash
+source $HOME/code/github/global_scripts/env.sh
+```
+> 若没安装zsh，在需要改成在.bashrc中source env.sh。注释掉env.sh中source zsh_theme.sh这一行。
+
+# 脚本能力
+## android_build.sh
+android源码编译快捷键命令，如全编、ninja单编等。
+> 暂时用到这些命令，后续有常用的再补充
+```bash
+(py39tf2.x) ┌─[solo@10.0.12.14] -> [/Users/solo/code/github/global_scripts] -> [2022-04-21 15:00:28]
+└─[$] <git:(main*)> gs_android_build
+gs_android_build             gs_android_build_make        gs_android_build_ninja       gs_android_build_ota         gs_android_build_system      gs_android_build_system_ext  gs_android_build_vendor
+```
+```bash
+┌─[solo@10.164.118.252] -> [/home/solo/code/lineage] -> [2022-04-21 15:05:56]
+└─[$] <> gs_android_build_ninja
+Trying dependencies-only mode on a non-existing device tree?
+
+1. bx-framework
+2. framework
+3. services
+4. UMS
+5. UMSTest
+6. surfaceflinger
+7. android.hardware.power-service
+8. SystemUI
+9. Settings
+Which would you like? [ UMS ]
+```
+
+## android_grep.sh
+android源码目录下grep快速查找代码
+```bash
+(py39tf2.x) ┌─[solo@10.0.12.14] -> [/Users/solo/code/github/global_scripts] -> [2022-04-21 15:13:46]
+└─[$] <git:(main*)> gs_aosp_help
+- gs_aosp_cgrep:      Greps on all local C/C++ files.
+- gs_aosp_ggrep:      Greps on all local Gradle files.
+- gs_aosp_gogrep:     Greps on all local Go files.
+- gs_aosp_jgrep:      Greps on all local Java files.
+- gs_aosp_ktgrep:     Greps on all local Kotlin files.
+- gs_aosp_resgrep:    Greps on all local res/*.xml files.
+- gs_aosp_mangrep:    Greps on all local AndroidManifest.xml files.
+- gs_aosp_mgrep:      Greps on all local Makefiles and *.bp files.
+- gs_aosp_owngrep:    Greps on all local OWNERS files.
+- gs_aosp_rsgrep:     Greps on all local Rust files.
+- gs_aosp_sepgrep:    Greps on all local sepolicy files.
+- gs_aosp_sgrep:      Greps on all local source files.
+```
+
+
+## adb.sh
+adb快捷键命令
+> 暂时用到这些命令，后续有常用的再补充
+```bash
+(py39tf2.x) ┌─[solo@10.0.12.14] -> [/Users/solo/code/github/global_scripts] -> [2022-04-21 15:00:28]
+└─[$] <git:(main*)> gs_adb_
+gs_adb_dispaysync          gs_adb_hidden_api_enable   gs_adb_key                 gs_adb_key_home            gs_adb_kill_grep           gs_adb_ps_grep             gs_adb_systrace
+gs_adb_hidden_api_disable  gs_adb_imei                gs_adb_key_back            gs_adb_key_menu            gs_adb_log_grep            gs_adb_screencap
+```
+
+## android_push.sh
+push一些常用模块
+
+## zsh自定义主题
+用户名、ip地址、当前目录绝对路径、当前时间
+git信息（分支、是否修改等）
+如果在conda环境中，还显示conda信息。
+> 主题是有一些颜色的，这里文本显示不出来。
+```bash
+┌─[solo@10.164.118.252] -> [/home/solo/code/lineage] -> [2022-04-21 15:15:43]
+└─[$] <>
+```
+
+已经安装conda时的主题：
+```bash
+(py39tf2.x) ┌─[solo@10.0.12.14] -> [/Users/solo/code/github/global_scripts] -> [2022-04-21 15:15:56]
+└─[$] <git:(main*)>
+```
+
+## gerrit提交脚本
+如果是提交代码到gerrit，在终端执行gerrit.py -b branch。不输入分支信息则默认master分支。
+
+## 查询天气脚本
+```bash
+(py39tf2.x) ┌─[solo@10.0.12.14] -> [/Users/solo/code/github/global_scripts] -> [2022-04-21 15:19:26]
+└─[$] <git:(main*)> forecast.py
+/Users/solo/code/github/global_scripts/forecast.py
+curl -H "Accept-Language: zh" wttr.in/shanghai+pudong
+天气预报： shanghai+pudong
+
+      \   /     晴天
+       .-.      +25(26) °C
+    ― (   ) ―   ↑ 11 km/h
+       `-’      10 km
+      /   \     0.0 mm
+                                                       ┌─────────────┐
+┌──────────────────────────────┬───────────────────────┤4月21日星期四├───────────────────────┬──────────────────────────────┐
+│             早上             │             中午      └──────┬──────┘       傍晚            │             夜间             │
+├──────────────────────────────┼──────────────────────────────┼──────────────────────────────┼──────────────────────────────┤
+│               多云           │    \  /       局部多云       │     \   /     晴天           │     \   /     晴朗           │
+│      .--.     18 °C          │  _ /"".-.     +23(25) °C     │      .-.      +22(25) °C     │      .-.      17 °C          │
+│   .-(    ).   ↑ 11-13 km/h   │    \_(   ).   ↑ 10-12 km/h   │   ― (   ) ―   ↖ 15-17 km/h   │   ― (   ) ―   ↖ 14-22 km/h   │
+│  (___.__)__)  10 km          │    /(___(__)  10 km          │      `-’      10 km          │      `-’      10 km          │
+│               0.0 mm | 0%    │               0.0 mm | 0%    │     /   \     0.0 mm | 0%    │     /   \     0.0 mm | 0%    │
+└──────────────────────────────┴──────────────────────────────┴──────────────────────────────┴──────────────────────────────┘
+                                                       ┌─────────────┐
+┌──────────────────────────────┬───────────────────────┤4月22日星期五├───────────────────────┬──────────────────────────────┐
+│             早上             │             中午      └──────┬──────┘       傍晚            │             夜间             │
+├──────────────────────────────┼──────────────────────────────┼──────────────────────────────┼──────────────────────────────┤
+│     \   /     晴天           │    \  /       局部多云       │               阴天           │    \  /       局部多云       │
+│      .-.      22 °C          │  _ /"".-.     +28(29) °C     │      .--.     +24(25) °C     │  _ /"".-.     21 °C          │
+│   ― (   ) ―   ↑ 10-12 km/h   │    \_(   ).   ↑ 6-7 km/h     │   .-(    ).   ↖ 8-12 km/h    │    \_(   ).   ↖ 8-13 km/h    │
+│      `-’      10 km          │    /(___(__)  10 km          │  (___.__)__)  10 km          │    /(___(__)  10 km          │
+│     /   \     0.0 mm | 0%    │               0.0 mm | 0%    │               0.0 mm | 0%    │               0.0 mm | 0%    │
+└──────────────────────────────┴──────────────────────────────┴──────────────────────────────┴──────────────────────────────┘
+                                                       ┌─────────────┐
+┌──────────────────────────────┬───────────────────────┤4月23日星期六├───────────────────────┬──────────────────────────────┐
+│             早上             │             中午      └──────┬──────┘       傍晚            │             夜间             │
+├──────────────────────────────┼──────────────────────────────┼──────────────────────────────┼──────────────────────────────┤
+│    \  /       局部多云       │    \  /       局部多云       │    \  /       局部多云       │    \  /       局部多云       │
+│  _ /"".-.     +23(25) °C     │  _ /"".-.     +24(26) °C     │  _ /"".-.     22 °C          │  _ /"".-.     18 °C          │
+│    \_(   ).   ↘ 2 km/h       │    \_(   ).   ← 9-11 km/h    │    \_(   ).   ↖ 11-13 km/h   │    \_(   ).   ↖ 12-17 km/h   │
+│    /(___(__)  10 km          │    /(___(__)  10 km          │    /(___(__)  10 km          │    /(___(__)  10 km          │
+│               0.0 mm | 0%    │               0.0 mm | 0%    │               0.0 mm | 0%    │               0.0 mm | 0%    │
+└──────────────────────────────┴──────────────────────────────┴──────────────────────────────┴──────────────────────────────┘
+地点: 浦东新区, 上海市, 中国 [31.1173327,121.6904884]
+
+关注 @igor_chubin 获取 wttr.in 动态
+```
+
+## other
+- common_alias.sh : 常用的alias
+- private_alias.sh : 私人的一些alias
