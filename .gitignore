@@ -14,9 +14,3 @@ venv/*
 */*/*.pyc
 */*/*/*.pyc
 */*/*/*/*.pyc
-
-config/*.json
-config/bot-issue.db
-
-demo.py
-bot_schedule.py
