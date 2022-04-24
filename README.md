@@ -19,7 +19,7 @@ sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.
 ```bash
 source $HOME/code/github/global_scripts/env.sh
 ```
-> 若没安装zsh，在需要改成在.bashrc中source env.sh。注释掉env.sh中source zsh_theme.sh这一行。
+> 若没安装zsh，则需要改成在.bashrc中source env.sh。注释掉env.sh中source zsh_theme.sh这一行。
 
 # 脚本能力
 ## android_build.sh

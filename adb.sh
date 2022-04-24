@@ -15,6 +15,14 @@ function gs_adb_hidden_api_disable {
     adb shell settings delete global hidden_api_policy_p_apps
 }
 
+function gs_adb_show_3rd_app {
+    adb shell pm list packages -f -3
+}
+
+function gs_adb_show_system_app {
+    adb shell pm list packages -f -s
+}
+
 function gs_adb_ps_grep {
     adb shell ps | grep -v "$1:" | grep "$1"
 }
