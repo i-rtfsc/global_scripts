@@ -8,11 +8,11 @@ export LANG=en_US.UTF-8
 function gs_conda_initialize() {
     # <<< conda initialize <<<
     _GS_CONDA_ROOT_DIR="$HOME/anaconda3"
-    if [ -z ${_GS_CONDA_ROOT_DIR} ]; then
+    if [ ! -d ${_GS_CONDA_ROOT_DIR} ]; then
         _GS_CONDA_ROOT_DIR="$HOME/miniconda"
     fi
 
-    if [ -z ${_GS_CONDA_ROOT_DIR} ]; then
+    if [ ! -d ${_GS_CONDA_ROOT_DIR} ]; then
         return 0
     fi
 
