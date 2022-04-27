@@ -1,3 +1,5 @@
+#!/bin/bash
+
 function android_push_bx-framework {
     adb push out/target/product/${TARGET_PRODUCT}/system/framework/arm/boot-bx-framework.art /system/framework/arm/
     adb push out/target/product/${TARGET_PRODUCT}/system/framework/arm/boot-bx-framework.oat /system/framework/arm/

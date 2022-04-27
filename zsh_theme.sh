@@ -1,3 +1,5 @@
+#!/bin/bash
+
 machine="$(uname -s)"
 case "${machine}" in
     Linux*)     isMac=false;;
@@ -5,18 +7,13 @@ case "${machine}" in
     *)          isMac=false;;
 esac
 
-function _get_arrows() {
+function _gs_arrows() {
     local arrows=' %B%F{yellow}>%B%F{magenta}>%B%F{yellow}> '
     echo $arrows
 }
 
-function _get_big_arrows() {
+function _gs_big_arrows() {
     local arrows=' %B%F{magenta}❯%B%F{yellow}❯%F{cyan}❯%B%F{magenta}❯%B%F{yellow}❯%F{cyan}❯ '
-    echo $arrows
-}
-
-function _get_star() {
-    local arrows='%B%F{magenta}◆'
     echo $arrows
 }
 
@@ -46,7 +43,7 @@ function _gs_get_time() {
 }
 
 # python version info
-function _ge_conda_or_py_info() {
+function _gs_conda_or_py_info() {
     if command -v python > /dev/null 2>&1; then
         python_version="$(python -V 2>&1)"
         python_version=${python_version/Python /Python}
@@ -64,11 +61,10 @@ function _ge_conda_or_py_info() {
 }
 
 function _gs_right_display() {
-    local real_dir=$(git_prompt_info)
-    local dir='%B%F{magenta}[%{$reset_color%}$(git_prompt_info)%B%F{magenta}]'
-    echo $dir
+    local _right_display='%B%F{magenta}$(git_prompt_info)'
+    echo $_right_display
 }
 
-PROMPT=$'%B%F{magenta}╭─%B%F{magenta}$(_gs_get_machine_info)$(_get_arrows)$(_gs_get_current_dir)$(_get_arrows)$(_gs_get_time)
-%B%F{magenta}╰─$(_ge_conda_or_py_info)$(_get_big_arrows)%{$reset_color%}'
+PROMPT=$'%B%F{magenta}╭─%B%F{magenta}$(_gs_get_machine_info)$(_gs_arrows)$(_gs_get_current_dir)$(_gs_arrows)$(_gs_get_time)
+%B%F{magenta}╰─$(_gs_conda_or_py_info)$(_gs_big_arrows)%{$reset_color%}'
 RPROMPT=$(_gs_right_display)
