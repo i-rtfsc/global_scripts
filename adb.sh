@@ -1,3 +1,5 @@
+#!/bin/bash
+
 machine="$(uname -s)"
 case "${machine}" in
     Linux*)     isMac=false;;

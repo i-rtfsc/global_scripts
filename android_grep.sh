@@ -1,3 +1,5 @@
+#!/bin/bash
+
 function gs_aosp_help() {
 cat <<EOF
 - gs_aosp_cgrep:      Greps on all local C/C++ files.

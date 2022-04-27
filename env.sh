@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # global python env
 ROOT_PATH="$HOME/code/github/global_scripts"
 export PATH="$ROOT_PATH:$PATH"
@@ -45,6 +47,7 @@ function gs_conda_initialize() {
 # gs update environment
 function gs_update_env() {
 #    source ${ROOT_PATH}/env.sh
+    source ${ROOT_PATH}/system.sh
     source ${ROOT_PATH}/adb.sh
     source ${ROOT_PATH}/android_build.sh
     source ${ROOT_PATH}/android_grep.sh
