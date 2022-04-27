@@ -5,6 +5,21 @@ case "${machine}" in
     *)          isMac=false;;
 esac
 
+function _get_arrows() {
+    local arrows=' %B%F{yellow}>%B%F{magenta}>%B%F{yellow}> '
+    echo $arrows
+}
+
+function _get_big_arrows() {
+    local arrows=' %B%F{magenta}❯%B%F{yellow}❯%F{cyan}❯%B%F{magenta}❯%B%F{yellow}❯%F{cyan}❯ '
+    echo $arrows
+}
+
+function _get_star() {
+    local arrows='%B%F{magenta}◆'
+    echo $arrows
+}
+
 function _gs_get_machine_info() {
     local name="%n"
     if [[ "$USER" == 'root' ]]; then
@@ -15,20 +30,45 @@ function _gs_get_machine_info() {
     else
         local ip=$(ip a | grep " `route | grep default | awk 'NR==1{print $NF}'`:" -A2 | tail -n1 | awk '{print $2}' | cut -f1 -d '/')
     fi
-    local machine_info=%{$fg[white]%}[%{$fg[magenta]%}$name%{$fg[yellow]%}@%{$fg[red]%}$ip%{$fg[white]%}]
+    local machine_info=%B%F{magenta}[%B%F{red}$name%B%F{yellow}@%B%F{red}$ip%B%F{magenta}]
     echo $machine_info
 }
 
 function _gs_get_current_dir() {
-    local dir=%{$fg[blue]%}[%{$fg[white]%}${PWD/#$HOME/~}%{$fg[blue]%}]
+    local real_dir=${PWD/#$HOME/~}
+    local dir=%B%F{magenta}[%B%F{cyan}$real_dir%B%F{magenta}]
     echo $dir
 }
 
 function _gs_get_time() {
-    local time=%{$fg[blue]%}[%{$fg[yellow]%}$(date "+%Y-%m-%d %H:%M:%S")%{$fg[blue]%}]
+    local time=%B%F{magenta}[%B%F{blue}$(date "+%Y-%m-%d %H:%M:%S")%B%F{magenta}]
     echo $time
 }
 
-PROMPT=$'%{$fg[blue]%}┌─$(_gs_get_machine_info) %{$fg[white]%}-> $(_gs_get_current_dir) %{$fg[white]%}-> $(_gs_get_time)
-%{$fg[blue]%}└─%B[%{\e[1;35m%}$%{\e[0;34m%}%B] <$(git_prompt_info)> %{$reset_color%}'
-PS2=$' \e[0;34m%}%B>%{\e[0m%}%b '
+# python version info
+function _ge_conda_or_py_info() {
+    if command -v python > /dev/null 2>&1; then
+        python_version="$(python -V 2>&1)"
+        python_version=${python_version/Python /Python}
+        python_version=${python_version/ */}
+        conda_or_py_name=''
+        if [ -n "$CONDA_DEFAULT_ENV" ]; then
+            conda_or_py_name="$CONDA_DEFAULT_ENV"
+        else
+            conda_or_py_name="$python_version"
+        fi
+
+        echo -n "%B%F{magenta}(%B%F{red}${conda_or_py_name}%B%F{magenta})"
+
+    fi
+}
+
+function _gs_right_display() {
+    local real_dir=$(git_prompt_info)
+    local dir='%B%F{magenta}[%{$reset_color%}$(git_prompt_info)%B%F{magenta}]'
+    echo $dir
+}
+
+PROMPT=$'%B%F{magenta}╭─%B%F{magenta}$(_gs_get_machine_info)$(_get_arrows)$(_gs_get_current_dir)$(_get_arrows)$(_gs_get_time)
+%B%F{magenta}╰─$(_ge_conda_or_py_info)$(_get_big_arrows)%{$reset_color%}'
+RPROMPT=$(_gs_right_display)
