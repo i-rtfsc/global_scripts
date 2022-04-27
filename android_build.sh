@@ -117,6 +117,28 @@ function gs_lineage_build() {
     brunch ${LOCAL_TARGET_PRODUCT} 2>&1 | tee ${building_log}
 }
 
+function _gs_modules() {
+    local modules=(
+                  "bx-framework"
+                  "framework"
+                  "services"
+                  "J007Service"
+                  "com.journeyOS.J007engine.hidl@1.0-service"
+                  "UMS"
+                  "UMSTest"
+                  "AiService"
+                  "update_engine"
+                  "surfaceflinger"
+                  "android.hardware.power-service"
+                  "SystemUI"
+                  "Settings"
+                  )
+#    echo $modules
+    for item in ${modules[@]}; do
+        echo ${item}
+    done
+}
+
 function _gs_show_and_choose_combo() {
     unset _GS_BUILD_COMBO
 
@@ -164,23 +186,13 @@ function _gs_show_and_choose_combo() {
 
 function gs_android_build_ninja() {
     local title="select modules(ninja)"
-    local modules=(
-                  "bx-framework"
-                  "framework"
-                  "services"
-                  "UMS"
-                  "UMSTest"
-                  "surfaceflinger"
-                  "android.hardware.power-service"
-                  "SystemUI"
-                  "Settings"
-                  )
+    local modules=$(_gs_modules)
 
     # lunch target
     _gs_android_build_lunch
 
     # select module
-    _gs_show_and_choose_combo  "$1" "${title}" "${modules}"
+    _gs_show_and_choose_combo "$1" "${title}" "${modules}"
     selection=${_GS_BUILD_COMBO}
 
     # log file
@@ -194,17 +206,7 @@ function gs_android_build_ninja() {
 
 function gs_android_build_make() {
     local title="select modules(make)"
-    local modules=(
-                  "bx-framework"
-                  "framework"
-                  "services"
-                  "UMS"
-                  "UMSTest"
-                  "surfaceflinger"
-                  "android.hardware.power-service"
-                  "SystemUI"
-                  "Settings"
-                  )
+    local modules=$(_gs_modules)
 
     # lunch target
     _gs_android_build_lunch
