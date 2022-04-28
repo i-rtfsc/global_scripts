@@ -1,11 +1,30 @@
 #!/bin/bash
+# -*- coding: utf-8 -*-
+# -*- encoding: utf-8 -*-
+#
+# Copyright (c) 2022 anqi.huang@outlook.com
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+GS_ROOT_PATH="$HOME/code/github/global_scripts"
 
 # global python env
-ROOT_PATH="$HOME/code/github/global_scripts"
-export PATH="$ROOT_PATH:$PATH"
+function gs_init_env() {
+    export PATH="$GS_ROOT_PATH:$PATH"
 
-export LC_ALL=en_US.UTF-8
-export LANG=en_US.UTF-8
+    export LC_ALL=en_US.UTF-8
+    export LANG=en_US.UTF-8
+}
 
 function gs_conda_initialize() {
     # <<< conda initialize <<<
@@ -46,16 +65,16 @@ function gs_conda_initialize() {
 
 # gs update environment
 function gs_update_env() {
-#    source ${ROOT_PATH}/env.sh
-    source ${ROOT_PATH}/system.sh
-    source ${ROOT_PATH}/adb.sh
-    source ${ROOT_PATH}/android_build.sh
-    source ${ROOT_PATH}/android_grep.sh
-    source ${ROOT_PATH}/android_push.sh
-    source ${ROOT_PATH}/common_alias.sh
-    source ${ROOT_PATH}/private_alias.sh
-    source ${ROOT_PATH}/zsh_theme.sh
+    source ${GS_ROOT_PATH}/system.sh
+    source ${GS_ROOT_PATH}/adb.sh
+    source ${GS_ROOT_PATH}/android_build.sh
+    source ${GS_ROOT_PATH}/android_grep.sh
+    source ${GS_ROOT_PATH}/android_push.sh
+    source ${GS_ROOT_PATH}/common_alias.sh
+    source ${GS_ROOT_PATH}/private_alias.sh
+    source ${GS_ROOT_PATH}/zsh_theme.sh
 }
 
+gs_init_env
 gs_conda_initialize
 gs_update_env
