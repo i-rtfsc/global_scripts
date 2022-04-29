@@ -29,7 +29,7 @@ function _gs_android_build_lunch() {
     local building_log_dir=$TOP/out/build_log
     # check if the building log dir exists
     if [ ! -d ${building_log_dir} ]; then
-        mkdir ${building_log_dir}
+        mkdir -p ${building_log_dir}
     fi
     export _GS_BUILD_LOG_DIR=${building_log_dir}
 
@@ -124,7 +124,7 @@ function gs_lineage_build() {
     local building_log_dir=$TOP/out/build_log
     # check if the building log dir exists
     if [ ! -d ${building_log_dir} ]; then
-        mkdir ${building_log_dir}
+        mkdir -p ${building_log_dir}
     fi
 
     # log file
