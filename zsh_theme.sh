@@ -82,14 +82,14 @@ function _gs_right_display() {
     echo '${ZSH_COLOR_PURPLE}$(git_prompt_info)'
 }
 
-function gs_prompt_start_line1() {
+function _gs_prompt_start_line1() {
     echo "${ZSH_COLOR_PURPLE}╭─"
 }
 
-function gs_prompt_start_line2() {
+function _gs_prompt_start_line2() {
     echo "${ZSH_COLOR_PURPLE}╰─"
 }
 
-PROMPT=$'$(gs_prompt_start_line1)$(_gs_get_machine_info)$(_gs_spilt_icon)$(_gs_get_current_dir)$(_gs_spilt_icon)$(_gs_get_time)
-$(gs_prompt_start_line2)$(_gs_conda_or_py_info)$(_gs_big_arrows)${ZSH_COLOR_WHITE}'
+PROMPT=$'$(_gs_prompt_start_line1)$(_gs_get_machine_info)$(_gs_spilt_icon)$(_gs_get_current_dir)$(_gs_spilt_icon)$(_gs_get_time)
+$(_gs_prompt_start_line2)$(_gs_conda_or_py_info)$(_gs_big_arrows)${ZSH_COLOR_WHITE}'
 RPROMPT=$(_gs_right_display)

@@ -16,17 +16,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-GS_ROOT_PATH="$HOME/code/github/global_scripts"
+_GS_ROOT_PATH="$HOME/code/github/global_scripts"
 
 # global python env
-function gs_init_env() {
-    export PATH="$GS_ROOT_PATH:$PATH"
+function _gs_init_env() {
+    export PATH="$_GS_ROOT_PATH:$PATH"
 
     export LC_ALL=en_US.UTF-8
     export LANG=en_US.UTF-8
 }
 
-function gs_conda_initialize() {
+function _gs_conda_initialize() {
     # <<< conda initialize <<<
     _GS_CONDA_ROOT_DIR="$HOME/anaconda3"
     if [ ! -d ${_GS_CONDA_ROOT_DIR} ]; then
@@ -64,17 +64,17 @@ function gs_conda_initialize() {
 }
 
 # gs update environment
-function gs_update_env() {
-    source ${GS_ROOT_PATH}/system.sh
-    source ${GS_ROOT_PATH}/adb.sh
-    source ${GS_ROOT_PATH}/android_build.sh
-    source ${GS_ROOT_PATH}/android_grep.sh
-    source ${GS_ROOT_PATH}/android_push.sh
-    source ${GS_ROOT_PATH}/common_alias.sh
-    source ${GS_ROOT_PATH}/private_alias.sh
-    source ${GS_ROOT_PATH}/zsh_theme.sh
+function _gs_update_env() {
+    source ${_GS_ROOT_PATH}/system.sh
+    source ${_GS_ROOT_PATH}/adb.sh
+    source ${_GS_ROOT_PATH}/android_build.sh
+    source ${_GS_ROOT_PATH}/android_grep.sh
+    source ${_GS_ROOT_PATH}/android_push.sh
+    source ${_GS_ROOT_PATH}/common_alias.sh
+    source ${_GS_ROOT_PATH}/private_alias.sh
+    source ${_GS_ROOT_PATH}/zsh_theme.sh
 }
 
-gs_init_env
-gs_conda_initialize
-gs_update_env
+_gs_init_env
+_gs_conda_initialize
+_gs_update_env
