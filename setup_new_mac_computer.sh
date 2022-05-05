@@ -48,14 +48,3 @@ function mac_install_for_build_aosp() {
     # sudo ln -sfn $(brew --prefix)/opt/openjdk@11/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk-11.jdk
     brew install bc bison build-essential ccache curl flex g++-multilib gcc-multilib git gnupg gperf imagemagick lib32ncurses5-dev lib32readline-dev lib32z1-dev liblz4-tool libncurses5 libncurses5-dev libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev -y
 }
-
-function mac_copy_config() {
-    local _gs_root_path="$HOME/code/github/global_scripts"
-    cp ${_gs_root_path}/.zshrc $HOME/.zshrc
-    cp ${_gs_root_path}/.gitconfig $HOME/.gitconfig
-    cp ${_gs_root_path}/.gitignore $HOME/.gitignore
-    cp ${_gs_root_path}/.gitattributes $HOME/.gitattributes
-    cp ${_gs_root_path}/.editorconfig $HOME/.editorconfig
-    rm -rf $HOME/.ssh
-    cp -r ${_gs_root_path}/.ssh $HOME/.ssh
-}
