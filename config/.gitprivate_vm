@@ -1,0 +1,7 @@
+[user]
+	name = anqi.huang
+	email = anqi.huang@upuphone.com
+	signingkey = B50E54000866AD314F5D52F84DEB8EB1C5F60CFE
+[commit]
+    gpgsign = false
+    template = /home/solo/.ssh/commit_template.ini

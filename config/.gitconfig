@@ -1,7 +1,3 @@
-[user]
-	name = Solo
-	email = anqi.huang@outlook.com
-	signingkey = B50E54000866AD314F5D52F84DEB8EB1C5F60CFE
 [credential]
 	helper = store
 [core]
@@ -9,4 +5,8 @@
 [color]
 	ui = auto
 [core]
-	excludesFile = ~/.gitignore
+    excludesFile = ~/.gitignore
+[include]
+    path = ~/.gitprivate
+[includeIf "gitdir:$HOME/code/github/"]
+    path = .gituser
