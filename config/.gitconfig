@@ -6,7 +6,9 @@
 	ui = auto
 [core]
     excludesFile = ~/.gitignore
-[include]
-    path = ~/.gitprivate
-[includeIf "gitdir:$HOME/code/github/"]
-    path = .gituser
+#[include]
+#    path = ~/.gitprivate
+[includeIf "gitdir:~/code/work/"]
+    path = .gitwork
+[includeIf "gitdir:~/code/github/"]
+    path = .gitprivate
