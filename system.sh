@@ -20,3 +20,26 @@ function gs_system_cpu_men() {
     cpu_mem=$(ps -A -o %cpu,%mem | awk '{ cpu += $1; mem += $2} END {print "cpu="cpu"%\nmem="mem"%"}')
     echo "${cpu_mem}"
 }
+
+function gs_repo_url_update_google() {
+    unset REPO_URL
+    export REPO_URL='https://gerrit.googlesource.com/git-repo'
+}
+
+function gs_repo_url_update_intel() {
+    unset REPO_URL
+    export REPO_URL='https://gerrit.intel.com/git-repo'
+}
+
+function gs_repo_url_update_tsinghua() {
+    unset REPO_URL
+    export REPO_URL='https://mirrors.tuna.tsinghua.edu.cn/git/git-repo'
+}
+
+function gs_repo_url_update_upuphone() {
+    unset REPO_URL
+    export REPO_URL='http://gerrit.upuphone.com/repo'
+}
+
+# init repo url
+gs_repo_url_update_upuphone
