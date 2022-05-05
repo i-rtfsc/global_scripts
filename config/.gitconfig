@@ -1,0 +1,13 @@
+[user]
+	name = Solo
+	email = anqi.huang@outlook.com
+	signingkey = B50E54000866AD314F5D52F84DEB8EB1C5F60CFE
+[credential]
+	helper = store
+[core]
+	editor = vim
+[color]
+	ui = auto
+[commit]
+	gpgsign = false
+	template = /home/solo/.ssh/commit_template.ini
