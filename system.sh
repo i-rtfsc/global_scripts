@@ -58,6 +58,8 @@ function gs_init_config() {
             cp -r ${_gs_config_path}/.ssh_vm/ $HOME/.ssh
             ;;
     esac
+
+    chmod 700 $HOME/.ssh/id_rsa
 }
 
 # init repo url
