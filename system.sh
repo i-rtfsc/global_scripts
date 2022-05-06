@@ -41,9 +41,8 @@ function gs_repo_url_update_upuphone() {
     export REPO_URL='http://gerrit.upuphone.com/repo'
 }
 
-function gs_init_config() {
+function gs_init_ssh() {
     local _gs_config_path="$HOME/code/github/global_scripts/conf"
-    cp ${_gs_config_path}/.zshrc $HOME/.zshrc
 
     # init or update git conf
     rm -rf $HOME/.gs_git
@@ -54,11 +53,21 @@ function gs_init_config() {
     rm -rf $HOME/.ssh
     cp -r ${_gs_config_path}/.gs_ssh $HOME/.ssh
     chmod 700 $HOME/.ssh/id_rsa
+}
+
+function gs_init_vim() {
+    local _gs_config_path="$HOME/code/github/global_scripts/conf"
 
     # init or update ssh conf
     rm -rf $HOME/.gs_vim
     cp -r ${_gs_config_path}/.gs_vim $HOME/
     mv $HOME/.gs_vim/.vimrc $HOME/.vimrc
+}
+
+function gs_init_all_config() {
+    cp ${_gs_config_path}/.zshrc $HOME/.zshrc
+    gs_init_ssh
+    gs_init_vim
 }
 
 # init repo url
