@@ -1,14 +1,8 @@
 "======================================================================
 "
-" init-theme.vim - 主题相关
+" theme.vim - 主题相关
 "
 "======================================================================
-
-" 语法高亮设置
-if has('syntax')
-	syntax enable
-	syntax on
-endif
 
 " 设置黑色背景
 set background=dark
@@ -27,5 +21,5 @@ if has("termguicolors")
 endif
 
 " 设置颜色主题，会在所有 runtimepaths 的 colors 目录寻找同名配置
-color sublime
+color rakr
 "colorscheme sublime
