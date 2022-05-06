@@ -242,7 +242,7 @@ repodir = '.repo'                # name of repo's private directory
 S_repo = 'repo'                  # special repo repository
 S_manifests = 'manifests'        # special manifest repository
 REPO_MAIN = S_repo + '/main.py'  # main script
-GITC_CONFIG_FILE = '/gitc/.config'
+GITC_CONFIG_FILE = '/gitc/.conf'
 GITC_FS_ROOT_DIR = '/gitc/manifest-rw/'
 
 
@@ -402,7 +402,7 @@ def InitParser(parser, gitc_init=False):
 
   # Other.
   group = parser.add_option_group('Other options')
-  group.add_option('--config-name',
+  group.add_option('--conf-name',
                    action='store_true', default=False,
                    help='Always prompt for name/e-mail')
 
@@ -784,16 +784,16 @@ def SetupGnuPG(quiet):
 def _SetConfig(cwd, name, value):
   """Set a git configuration option to the specified value.
   """
-  run_git('config', name, value, cwd=cwd)
+  run_git('conf', name, value, cwd=cwd)
 
 
 def _GetRepoConfig(name):
   """Read a repo configuration option."""
-  config = os.path.join(home_dot_repo, 'config')
+  config = os.path.join(home_dot_repo, 'conf')
   if not os.path.exists(config):
     return None
 
-  cmd = ['config', '--file', config, '--get', name]
+  cmd = ['conf', '--file', config, '--get', name]
   ret = run_git(*cmd, check=False)
   if ret.returncode == 0:
     return ret.stdout
@@ -850,7 +850,7 @@ def _DownloadBundle(url, cwd, quiet, verbose):
     url += '/'
   url += 'clone.bundle'
 
-  ret = run_git('config', '--get-regexp', 'url.*.insteadof', cwd=cwd,
+  ret = run_git('conf', '--get-regexp', 'url.*.insteadof', cwd=cwd,
                 check=False)
   for line in ret.stdout.splitlines():
     m = re.compile(r'^url\.(.*)\.insteadof (.*)$').match(line)
