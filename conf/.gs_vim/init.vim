@@ -11,33 +11,51 @@ let s:home = fnamemodify(resolve(expand('<sfile>:p')), ':h')
 " 定义一个命令用来加载文件
 command! -nargs=1 LoadScript exec 'so '.s:home.'/'.'<args>'
 
-" 将 gs_vim 目录加入 runtimepath
+" 将 vim-init 目录加入 runtimepath
 exec 'set rtp+='.s:home
 
 " 将 ~/.gs_vim 目录加入 runtimepath (有时候 vim 不会自动帮你加入）
 set rtp+=~/.gs_vim
 
-
 "----------------------------------------------------------------------
 " 模块加载
 "----------------------------------------------------------------------
 
-" 加载基础配置
-LoadScript init/basic.vim
+" 基础设置
+LoadScript conf/tiny/basic.vim
 
-" 加载扩展配置
-LoadScript init/config.vim
+" 代码格式
+LoadScript conf/tiny/codestyle.vim
+
+" 搜索设置
+LoadScript conf/tiny/search.vim
+
+" 其他设置
+LoadScript conf/tiny/other.vim
+
+" tmux配置
+LoadScript conf/tmux.vim
+
+" backup设置
+LoadScript conf/backup.vim
+
+" terminal设置
+LoadScript conf/terminal.vim
+
+" 文件相关配置
+LoadScript conf/fileconfig.vim
 
 " 设定 tabsize
-LoadScript init/tabsize.vim
+LoadScript conf/tabsize.vim
 
 " 界面样式
-LoadScript init/style.vim
+LoadScript conf/style.vim
 
 " 自定义按键
-LoadScript init/keymaps.vim
+LoadScript conf/keymaps.vim
+
 
 if has('mac')
     " 主题
-    LoadScript init/theme.vim
+    LoadScript conf/theme.vim
 endif
