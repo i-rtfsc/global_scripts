@@ -1,8 +1,11 @@
-host boxing  
+host boxing
 Hostname 123.60.102.160
 Port 29418
 User anqi.huang
+
 PubkeyAuthentication yes
 IdentitiesOnly yes
 PasswordAuthentication no
 IdentityFile ~/.ssh/id_rsa
+StrictHostKeyChecking no
+UserKnownHostsFile /dev/null

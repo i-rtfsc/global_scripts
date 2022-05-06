@@ -44,14 +44,15 @@ function gs_repo_url_update_upuphone() {
 function gs_init_config() {
     local _gs_config_path="$HOME/code/github/global_scripts/config"
     cp ${_gs_config_path}/.zshrc $HOME/.zshrc
-    cp ${_gs_config_path}/.editorconfig $HOME/.editorconfig
-    cp ${_gs_config_path}/.gitconfig $HOME/.gitconfig
-    cp ${_gs_config_path}/.gitprivate $HOME/.gitprivate
-    cp ${_gs_config_path}/.gitwork $HOME/.gitwork
-    cp ${_gs_config_path}/.gitignore $HOME/.gitignore
-    cp ${_gs_config_path}/.gitattributes $HOME/.gitattributes
 
-    cp -r ${_gs_config_path}/.ssh $HOME/.ssh
+    # init or update git config
+    rm -rf $HOME/.gs_git
+    cp -r ${_gs_config_path}/.gs_git $HOME/.gs_git
+    mv $HOME/.gs_git/.gitconfig $HOME/.gitconfig
+
+    # init or update ssh config
+    rm -rf $HOME/.ssh
+    cp -r ${_gs_config_path}/.gs_ssh $HOME/.ssh
     chmod 700 $HOME/.ssh/id_rsa
 }
 

@@ -1,0 +1,12 @@
+[include]
+    path =  ~/.gs_git/.gitalias
+    path =  ~/.gs_git/.gitapply
+    path =  ~/.gs_git/.gitbranch
+    path =  ~/.gs_git/.gitcolor
+    path =  ~/.gs_git/.gitcore
+    path =  ~/.gs_git/.gitcredentials
+    path =  ~/.gs_git/.gitdiff
+    path =  ~/.gs_git/.gitpush
+    path =  ~/.gs_git/.gituser
+[includeIf "gitdir:~/code/work/"]
+    path =  ~/.gs_git/.gitwork
