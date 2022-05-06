@@ -42,18 +42,23 @@ function gs_repo_url_update_upuphone() {
 }
 
 function gs_init_config() {
-    local _gs_config_path="$HOME/code/github/global_scripts/config"
+    local _gs_config_path="$HOME/code/github/global_scripts/conf"
     cp ${_gs_config_path}/.zshrc $HOME/.zshrc
 
-    # init or update git config
+    # init or update git conf
     rm -rf $HOME/.gs_git
     cp -r ${_gs_config_path}/.gs_git $HOME/.gs_git
     mv $HOME/.gs_git/.gitconfig $HOME/.gitconfig
 
-    # init or update ssh config
+    # init or update ssh conf
     rm -rf $HOME/.ssh
     cp -r ${_gs_config_path}/.gs_ssh $HOME/.ssh
     chmod 700 $HOME/.ssh/id_rsa
+
+    # init or update ssh conf
+    rm -rf $HOME/.gs_vim
+    cp -r ${_gs_config_path}/.gs_vim $HOME/
+    mv $HOME/.gs_vim/.vimrc $HOME/.vimrc
 }
 
 # init repo url

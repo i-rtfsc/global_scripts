@@ -59,19 +59,19 @@ def main():
         print("git commit --amend again.")
         return 1
 
-    cmd = "git config --get user.name"
+    cmd = "git conf --get user.name"
     ret, output = subprocess.getstatusoutput(cmd)
     if ret != 0:
         print("")
     elif not output:
-        print("No git user name, add your git email by \"git config --global user.name [your name]\".")
+        print("No git user name, add your git email by \"git conf --global user.name [your name]\".")
         return 1
-    cmd = "git config --get user.email"
+    cmd = "git conf --get user.email"
     ret, output = subprocess.getstatusoutput(cmd)
     if ret != 0:
         print("")
     elif not output:
-        print("No git user email, add your git email by \"git config --global user.email xxx@yyyy.com\".")
+        print("No git user email, add your git email by \"git conf --global user.email xxx@yyyy.com\".")
         return 1
 
     cmd = "git remote -v"
