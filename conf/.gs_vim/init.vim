@@ -38,8 +38,6 @@ LoadScript init/style.vim
 LoadScript init/keymaps.vim
 
 if has('mac')
-    " 插件加载
-    LoadScript init/plugins.vim
     " 主题
     LoadScript init/theme.vim
 endif

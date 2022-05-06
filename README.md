@@ -197,10 +197,7 @@ ss = status --short
 - tabsize.vim: 制表符宽度，是否展开空格等，因为个人差异太大，单独一个文件好更改。
 - style.vim: 状态栏，更紧凑的标签栏文字等和显示相关。
 - keymaps.vim: 快捷键定义。
-- plugin.vim: 插件，使用 vim-plug，按照设定的插件分组进行配置 (mac系统下打开此功能)。
 - theme.vim: 色彩主题，高亮优化(mac系统下打开此功能)。
 
 ## 高级配置
-- 颜色配置：在colors目录（都是网上下载的配置）。
-- 自带插件：在plugins和autoload目录（都是网上下载的配置）
-- 安装插件：安装方式：启动vim，在命令行运行 :PlugInstall 安装依赖插件即可。用命令安装的插件依然是保存在plugins目录下。
+颜色配置：在colors目录（都是网上下载的配置），下载后在theme.vim更新主题即可。
