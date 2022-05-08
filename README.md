@@ -192,12 +192,15 @@ ss = status --short
 
 ## 基础配置
 - init.vim: 配置入口，设置 runtimepath 检测脚本路径，加载其他脚本。
-- basic.vim: 所有人都能同意的基础配置，去除任何按键和样式定义，保证能用于 tiny 模式（没有 +eval）。
-- config.vim: 支持 +eval 的非 tiny 配置，初始化 ALT 键支持，功能键键盘码，备份，终端兼容等
-- tabsize.vim: 制表符宽度，是否展开空格等，因为个人差异太大，单独一个文件好更改。
-- style.vim: 状态栏，更紧凑的标签栏文字等和显示相关。
+- tiny文件夹: 所有人都能同意的基础配置（无任何按键和样式定义）。
+- backup.vim: 自动备份配置。
+- fileconfig.vim: 文件相关的配置。
 - keymaps.vim: 快捷键定义。
+- style.vim: 状态栏，更紧凑的标签栏文字等和显示相关。
+- tabsize.vim: 制表符宽度，是否展开空格等，因为个人差异太大，单独一个文件好更改。
+- terminal.vim: 终端相关配置。
 - theme.vim: 色彩主题，高亮优化(mac系统下打开此功能)。
+- tmux.vim: tmux相关配置。
 
-## 高级配置
-颜色配置：在colors目录（都是网上下载的配置），下载后在theme.vim更新主题即可。
+## 色彩配置
+颜色配置：在colors目录（都是网上下载的配置），下载后在theme.vim更新颜色主题即可。

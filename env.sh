@@ -75,6 +75,8 @@ function _gs_update_env() {
     source ${_GS_ROOT_PATH}/common_alias.sh
     source ${_GS_ROOT_PATH}/private_alias.sh
     source ${_GS_ROOT_PATH}/zsh_theme.sh
+    # only for work
+    source ${_GS_ROOT_PATH}/work_config.sh
 }
 
 _gs_init_env
