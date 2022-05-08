@@ -8,9 +8,6 @@ if has('syntax')
 	syntax on
 endif
 
-" 总是显示状态栏
-set laststatus=2
-
 " 总是显示行号
 set number
 
@@ -30,12 +27,24 @@ set showcmd
 " 先注释掉，默认已经为真了，如果这里再设置一遍会影响 echodoc 插件
 " set showmode
 
+" 显示光标当前位置
+set ruler
+
+" 启用鼠标
+set mouse=a
+set selection=exclusive
+set selectmode=mouse,key
+
 " 水平切割窗口时，默认在右边显示新窗口
 set splitright
 
 "----------------------------------------------------------------------
 " 状态栏设置
 "----------------------------------------------------------------------
+
+" 总是显示状态栏
+set laststatus=2
+
 set statusline=                                 " 清空状态了
 set statusline+=\ %F                            " 文件名
 set statusline+=\ [%1*%M%*%n%R%H]               " buffer 编号和状态

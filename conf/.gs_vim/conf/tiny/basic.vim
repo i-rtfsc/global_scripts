@@ -32,3 +32,10 @@ set ruler
 if has('autocmd')
 	filetype plugin indent on
 endif
+
+" 设置粘贴模式
+set paste
+
+" 显示空格和tab键在Vim中通过鼠标右键粘贴时会在行首多出许多缩进和空格，通过set paste可以在插入模式下粘贴内容时不会有任何格式变形、胡乱缩进等问题。
+set listchars=tab:>-,trail:-
+
