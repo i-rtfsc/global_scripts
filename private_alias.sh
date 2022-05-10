@@ -33,21 +33,10 @@ if $isMac ; then
     alias pd-umount='sudo diskutil umount force $HOME/pd ; rm -rf $HOME/pd'
 fi
 
-# boxing
-alias vm-ssh-all='ssh anqi.huang@jumpserver.upuphone.com -p 2222'
-alias vm-ssh='ssh solo@10.164.118.252'
-alias vm-mount='sshfs solo@10.164.118.252:/data/ $HOME/jumpserver'
-alias vm-umount='sudo diskutil umount force $HOME/jumpserver ; rm -rf $HOME/jumpserver'
-
-alias ums-log-pid='adb logcat --pid=`adb shell pidof com.upuphone.bxservice`'
-alias ums-kill='adb shell kill -9 `adb shell pidof com.upuphone.bxservice`'
-alias ums-version='adb shell dumpsys package com.upuphone.bxservice | grep -i version'
-alias ums-version-test='adb shell dumpsys package com.upuphone.bxservicetest | grep -i version'
-
-##########################################################solo##########################################################
-
+####################################################################################################################
 alias J007Engine-log-pid='adb logcat --pid=`com.journeyOS.J007engine.hidl@1.0-service`'
 alias J007Engine-kill='adb shell killall com.journeyOS.J007engine.hidl@1.0-service'
+
 alias J007Service-log-pid='adb logcat --pid=`adb shell pidof com.journeyOS.J007engine`'
 alias J007Service-kill='adb shell killall com.journeyOS.J007engine'
 alias J007Service-clear='adb shell pm clear com.journeyOS.J007engine'
@@ -56,7 +45,7 @@ alias J007Service-dump='adb shell dumpsys activity service com.journeyOS.J007eng
 alias J007Test-log-pid='adb logcat --pid=`adb shell pidof com.journeyOS.J007enginetest`'
 alias J007Test-kill='adb shell killall com.journeyOS.J007enginetest'
 alias J007Test-clear='adb shell pm clear com.journeyOS.J007enginetest'
-##########################################################solo##########################################################
+####################################################################################################################
 
 #if [ -f ~/global_scripts/environment.sh ]
 #then

@@ -65,6 +65,14 @@ function _gs_conda_initialize() {
 
 }
 
+function _gs_cargo_initialize() {
+    # https://www.rust-lang.org/tools/install
+    _GS_CARGO_DIR="$HOME/.cargo/env"
+    if [ ! -d ${_GS_CARGO_DIR} ]; then
+        source ${_GS_CARGO_DIR}
+    fi
+}
+
 # gs update environment
 function _gs_update_env() {
     source ${_GS_ROOT_PATH}/system.sh
@@ -81,4 +89,5 @@ function _gs_update_env() {
 
 _gs_init_env
 _gs_conda_initialize
+_gs_cargo_initialize
 _gs_update_env

@@ -35,6 +35,10 @@ set mouse=a
 set selection=exclusive
 set selectmode=mouse,key
 
+set cursorline    " 高亮显示当前 - 行
+set cursorcolumn  " 高亮显示当前 - 列
+set hlsearch      " 高亮显示搜索结果
+
 " 水平切割窗口时，默认在右边显示新窗口
 set splitright
 
