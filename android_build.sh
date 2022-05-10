@@ -137,17 +137,19 @@ function gs_lineage_build() {
 
 function _gs_modules() {
     local modules=(
-                  "bx-framework"
                   "framework"
                   "services"
+                  "surfaceflinger"
+                  "update_engine"
+                  "android.hardware.power-service"
                   "J007Service"
+                  "jos-framework"
                   "com.journeyOS.J007engine.hidl@1.0-service"
+                  "watermark"
+                  "AiService"
+                  "bx-framework"
                   "UMS"
                   "UMSTest"
-                  "AiService"
-                  "update_engine"
-                  "surfaceflinger"
-                  "android.hardware.power-service"
                   "SystemUI"
                   "Settings"
                   )
@@ -197,7 +199,6 @@ function _gs_show_and_choose_combo() {
     else
         selection=${answer}
     fi
-    printf "\n    selected: %s\n\n" ${selection}
     export _GS_BUILD_COMBO=${selection}
     export _GS_LAST_BUILD_COMBO=${_GS_BUILD_COMBO}
 }
