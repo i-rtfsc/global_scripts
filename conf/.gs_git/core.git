@@ -1,0 +1,4 @@
+[core]
+    editor = vim
+    ui = auto
+    excludesfile = ~/.gs_git/ignore.git
