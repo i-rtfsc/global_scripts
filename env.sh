@@ -23,6 +23,7 @@ function _gs_init_env() {
     export PATH=$PATH:"$_GS_ROOT_PATH"
     export PATH=$PATH:"$_GS_ROOT_PATH/bin"
     export PATH=$PATH:"$_GS_ROOT_PATH/git"
+    export PATH=$PATH:"$_GS_ROOT_PATH/.work"
 
     export LC_ALL=en_US.UTF-8
     export LANG=en_US.UTF-8
@@ -84,7 +85,7 @@ function _gs_update_env() {
     source ${_GS_ROOT_PATH}/private_alias.sh
     source ${_GS_ROOT_PATH}/zsh_theme.sh
     # only for work
-    source ${_GS_ROOT_PATH}/work_config.sh
+    source ${_GS_ROOT_PATH}/.work/work_config.sh
 }
 
 _gs_init_env

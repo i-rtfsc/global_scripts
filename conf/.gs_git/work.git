@@ -4,4 +4,4 @@
 	signingkey = B50E54000866AD314F5D52F84DEB8EB1C5F60CFE
 [commit]
     gpgsign = false
-    template = ~/.ssh/commit_template.ini
+    template = ~/.gs_git/commit_template.git

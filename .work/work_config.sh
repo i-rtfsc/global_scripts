@@ -16,7 +16,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-export BOXING_NOT_DEXPREOPT=true
+
+function gs_init_upuphone_env() {
+    # init repo url
+    unset REPO_URL
+    export REPO_URL='http://gerrit.upuphone.com/repo'
+
+    # init gitlab url
+    unset GITLAB_URL
+    export GITLAB_URL='git@gitlab.upuphone.com'
+
+    # don't dexpreopt
+    export BOXING_NOT_DEXPREOPT=true
+}
 
 alias vm-ssh-all='ssh anqi.huang@jumpserver.upuphone.com -p 2222'
 alias vm-ssh='ssh solo@10.164.118.252'
@@ -40,3 +52,7 @@ alias ai-push='adb push out/target/product/lemonadep/system_ext/priv-app/AiServi
 
 alias watermark-push='adb push out/target/product/lemonadep/system_ext/bin/watermark system_ext/bin/watermark'
 alias watermark-kill='adb shell killall watermark'
+
+
+# init upuphone env
+gs_init_upuphone_env

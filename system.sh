@@ -36,11 +36,6 @@ function gs_repo_url_update_tsinghua() {
     export REPO_URL='https://mirrors.tuna.tsinghua.edu.cn/git/git-repo'
 }
 
-function gs_repo_url_update_upuphone() {
-    unset REPO_URL
-    export REPO_URL='http://gerrit.upuphone.com/repo'
-}
-
 _GS_CONFIG_PATH="$HOME/code/github/global_scripts/conf"
 
 function gs_init_ssh() {
@@ -67,6 +62,3 @@ function gs_init_all_config() {
     gs_init_ssh
     gs_init_vim
 }
-
-# conf repo url
-gs_repo_url_update_upuphone

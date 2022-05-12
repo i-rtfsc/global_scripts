@@ -65,16 +65,14 @@ function gs_adb_dispaysync {
     adb shell dumpsys SurfaceFlinger --dispsync | grep mPeriod
 }
 
-if $isMac ; then
-    function gs_adb_systrace {
+function gs_adb_systrace {
+    if $isMac ; then
         python2 ~/Library/Android/sdk/platform-tools/systrace/systrace.py
-    }
-else
-    function gs_adb_systrace {
+    else
         # TODO
         python2 ~/Library/Android/sdk/platform-tools/systrace/systrace.py
-    }
-fi
+    fi
+}
 
 function gs_adb_imei {
     adb shell "service call iphonesubinfo 1 | cut -c 52-66 | tr -d '.[:space:]'"
