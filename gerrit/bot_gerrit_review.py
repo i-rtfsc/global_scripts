@@ -74,7 +74,7 @@ class BotGerritReview(object):
                                                      commit=bot_patch.commitMessage)
                 print(message)
                 bot = FeiShu(config.bot)
-                # bot.send_text(message)
+                bot.send_text(message)
 
     def fetch_review(self):
         print(self.project)
