@@ -203,6 +203,11 @@ function _gs_show_and_choose_combo() {
     export _GS_LAST_BUILD_COMBO=${_GS_BUILD_COMBO}
 }
 
+
+function gs_android_build_ninja_clean() {
+    time prebuilts/build-tools/linux-x86/bin/ninja -j $(nproc) -f out/combined-${TARGET_PRODUCT}.ninja -t clean
+}
+
 function gs_android_build_ninja() {
     local title="select modules(ninja)"
     local modules=$(_gs_modules)
@@ -220,7 +225,7 @@ function gs_android_build_ninja() {
     echo "selection = "${selection} ", building log =" ${building_log}
 
     # ninja build
-    time prebuilts/build-tools/linux-x86/bin/ninja -f out/combined-${TARGET_PRODUCT}.ninja ${selection} -j $(nproc) | tee ${building_log}
+    time prebuilts/build-tools/linux-x86/bin/ninja -j $(nproc) -f out/combined-${TARGET_PRODUCT}.ninja ${selection} | tee ${building_log}
 }
 
 function gs_android_build_make() {

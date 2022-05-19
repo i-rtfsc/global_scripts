@@ -70,8 +70,10 @@ function _gs_cargo_initialize() {
     # https://www.rust-lang.org/tools/install
     _GS_CARGO_DIR="$HOME/.cargo/env"
     if [ ! -d ${_GS_CARGO_DIR} ]; then
-        source ${_GS_CARGO_DIR}
+        return 0
     fi
+
+    source ${_GS_CARGO_DIR}
 }
 
 # gs update environment

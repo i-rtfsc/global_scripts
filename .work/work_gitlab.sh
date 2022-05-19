@@ -35,6 +35,8 @@ function git_pull_android_app_eco() {
 function git_pull_android_app_sys() {
     local root_dir="gitlab/app/sys"
     local modules=(
+                  "AiService"
+                  "ums"
                   "Alarm"
 #                  "BoxingMover"
                   "Calculator"
