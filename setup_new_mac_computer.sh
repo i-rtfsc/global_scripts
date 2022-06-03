@@ -39,6 +39,7 @@ function mac_install_apps() {
     brew install --cask android-studio
     brew install --cask clion
     brew install --cask pycharm
+    brew install --cask db-browser-for-sqlite
 #    brew install --cask webstorm
 #    brew install --cask visual-studio-code"
 }

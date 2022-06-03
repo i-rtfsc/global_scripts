@@ -242,7 +242,7 @@ repodir = '.repo'                # name of repo's private directory
 S_repo = 'repo'                  # special repo repository
 S_manifests = 'manifests'        # special manifest repository
 REPO_MAIN = S_repo + '/main.py'  # main script
-GITC_CONFIG_FILE = '/gitc/.conf'
+GITC_CONFIG_FILE = '/gitc/.config'
 GITC_FS_ROOT_DIR = '/gitc/manifest-rw/'
 
 
@@ -272,9 +272,9 @@ gpg_dir = os.path.join(home_dot_repo, 'gnupg')
 def GetParser(gitc_init=False):
   """Setup the CLI parser."""
   if gitc_init:
-    usage = 'repo gitc-conf -c client [options] [-u] url'
+    usage = 'repo gitc-init -c client [options] [-u] url'
   else:
-    usage = 'repo conf [options] [-u] url'
+    usage = 'repo init [options] [-u] url'
 
   parser = optparse.OptionParser(usage=usage)
   InitParser(parser, gitc_init=gitc_init)
@@ -321,7 +321,7 @@ def InitParser(parser, gitc_init=False):
   # specified in the manifest itself.
   group = parser.add_option_group('Manifest (only) checkout options')
   cbr_opts = ['--current-branch']
-  # The gitc-conf subcommand allocates -c itself, but a lot of conf users
+  # The gitc-init subcommand allocates -c itself, but a lot of init users
   # want -c, so try to satisfy both as best we can.
   if not gitc_init:
     cbr_opts += ['-c']
@@ -402,11 +402,11 @@ def InitParser(parser, gitc_init=False):
 
   # Other.
   group = parser.add_option_group('Other options')
-  group.add_option('--conf-name',
+  group.add_option('--config-name',
                    action='store_true', default=False,
                    help='Always prompt for name/e-mail')
 
-  # gitc-conf specific settings.
+  # gitc-init specific settings.
   if gitc_init:
     group = parser.add_option_group('GITC options')
     group.add_option('-f', '--manifest-file',
@@ -625,7 +625,7 @@ def _Init(args, gitc_init=False):
   except CloneFailure:
     print('fatal: double check your --repo-rev setting.', file=sys.stderr)
     if opt.quiet:
-      print('fatal: repo conf failed; run without --quiet to see why',
+      print('fatal: repo init failed; run without --quiet to see why',
             file=sys.stderr)
     raise
 
@@ -784,16 +784,16 @@ def SetupGnuPG(quiet):
 def _SetConfig(cwd, name, value):
   """Set a git configuration option to the specified value.
   """
-  run_git('conf', name, value, cwd=cwd)
+  run_git('config', name, value, cwd=cwd)
 
 
 def _GetRepoConfig(name):
   """Read a repo configuration option."""
-  config = os.path.join(home_dot_repo, 'conf')
+  config = os.path.join(home_dot_repo, 'config')
   if not os.path.exists(config):
     return None
 
-  cmd = ['conf', '--file', config, '--get', name]
+  cmd = ['config', '--file', config, '--get', name]
   ret = run_git(*cmd, check=False)
   if ret.returncode == 0:
     return ret.stdout
@@ -850,7 +850,7 @@ def _DownloadBundle(url, cwd, quiet, verbose):
     url += '/'
   url += 'clone.bundle'
 
-  ret = run_git('conf', '--get-regexp', 'url.*.insteadof', cwd=cwd,
+  ret = run_git('config', '--get-regexp', 'url.*.insteadof', cwd=cwd,
                 check=False)
   for line in ret.stdout.splitlines():
     m = re.compile(r'^url\.(.*)\.insteadof (.*)$').match(line)
@@ -912,7 +912,7 @@ def _Clone(url, cwd, clone_bundle, quiet, verbose):
           file=sys.stderr)
     raise CloneFailure()
 
-  run_git('conf', '--quiet', cwd=cwd)
+  run_git('init', '--quiet', cwd=cwd)
 
   _InitHttp()
   _SetConfig(cwd, 'remote.origin.url', url)
@@ -1050,7 +1050,7 @@ class _Options(object):
 def _ExpandAlias(name):
   """Look up user registered aliases."""
   # We don't resolve aliases for existing subcommands.  This matches git.
-  if name in {'gitc-conf', 'help', 'conf'}:
+  if name in {'gitc-init', 'help', 'init'}:
     return name, []
 
   alias = _GetRepoConfig('alias.%s' % (name,))
@@ -1173,20 +1173,20 @@ class Requirements(object):
 def _Usage():
   gitc_usage = ""
   if get_gitc_manifest_dir():
-    gitc_usage = "  gitc-conf Initialize a GITC Client.\n"
+    gitc_usage = "  gitc-init Initialize a GITC Client.\n"
 
   print(
       """usage: repo COMMAND [ARGS]
 
-repo is not yet installed.  Use "repo conf" to install it here.
+repo is not yet installed.  Use "repo init" to install it here.
 
 The most commonly used repo commands are:
 
-  conf      Install repo in the current working directory
+  init      Install repo in the current working directory
 """ + gitc_usage +
       """  help      Display detailed help on a command
 
-For access to the full online help, install repo ("repo conf").
+For access to the full online help, install repo ("repo init").
 """)
   print('Bug reports:', BUG_URL)
   sys.exit(0)
@@ -1194,13 +1194,13 @@ For access to the full online help, install repo ("repo conf").
 
 def _Help(args):
   if args:
-    if args[0] in {'conf', 'gitc-conf'}:
-      parser = GetParser(gitc_init=args[0] == 'gitc-conf')
+    if args[0] in {'init', 'gitc-init'}:
+      parser = GetParser(gitc_init=args[0] == 'gitc-init')
       parser.print_help()
       sys.exit(0)
     else:
       print("error: '%s' is not a bootstrap command.\n"
-            '        For access to online help, install repo ("repo conf").'
+            '        For access to online help, install repo ("repo init").'
             % args[0], file=sys.stderr)
   else:
     _Usage()
@@ -1227,14 +1227,14 @@ def _Version():
 
 
 def _NotInstalled():
-  print('error: repo is not installed.  Use "repo conf" to install it here.',
+  print('error: repo is not installed.  Use "repo init" to install it here.',
         file=sys.stderr)
   sys.exit(1)
 
 
 def _NoCommands(cmd):
   print("""error: command '%s' requires repo to be installed first.
-        Use "repo conf" to install it here.""" % cmd, file=sys.stderr)
+        Use "repo init" to install it here.""" % cmd, file=sys.stderr)
   sys.exit(1)
 
 
@@ -1280,7 +1280,7 @@ def main(orig_args):
 
   repo_main, rel_repo_dir = None, None
   # Don't use the local repo copy, make sure to switch to the gitc client first.
-  if cmd != 'gitc-conf':
+  if cmd != 'gitc-init':
     repo_main, rel_repo_dir = _FindRepo()
 
   wrapper_path = os.path.abspath(__file__)
@@ -1307,11 +1307,11 @@ def main(orig_args):
       _Version()
     if not cmd:
       _NotInstalled()
-    if cmd == 'conf' or cmd == 'gitc-conf':
+    if cmd == 'init' or cmd == 'gitc-init':
       if my_git:
         _SetDefaultsTo(my_git)
       try:
-        _Init(args, gitc_init=(cmd == 'gitc-conf'))
+        _Init(args, gitc_init=(cmd == 'gitc-init'))
       except CloneFailure:
         path = os.path.join(repodir, S_repo)
         print("fatal: cloning the git-repo repository failed, will remove "

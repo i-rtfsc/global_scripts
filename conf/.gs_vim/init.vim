@@ -52,7 +52,7 @@ LoadScript conf/tabsize.vim
 LoadScript conf/style.vim
 
 " 自定义按键
-LoadScript conf/keymaps.vim
+" LoadScript conf/keymaps.vim
 
 if has('mac')
     " 主题

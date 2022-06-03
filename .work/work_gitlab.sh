@@ -24,6 +24,7 @@ function git_pull_android_app_eco() {
                   "Browser"
                   "Cloud"
                   "GameCenter"
+                  "wallet"
                   )
     mkdir -p ${root_dir}
     for item in ${modules[@]}; do
@@ -36,18 +37,20 @@ function git_pull_android_app_sys() {
     local root_dir="gitlab/app/sys"
     local modules=(
                   "AiService"
-                  "ums"
                   "Alarm"
 #                  "BoxingMover"
+                  "bxaod"
                   "Calculator"
                   "Calendar"
                   "Camera"
                   "FeedBack"
                   "FileManager"
+                  "findservice"
                   "FOTA"
                   "Fuyiping"
                   "Gallery"
                   "GameAssistant"
+                  "globalmanager"
                   "Launcher"
                   "LogCenter"
                   "Message"
@@ -61,6 +64,7 @@ function git_pull_android_app_sys() {
                   "StarChat"
                   "SysPermissionController"
                   "Theme"
+                  "ums"
                   "Wallpaper"
                   "Weather"
                   )
@@ -112,9 +116,10 @@ function git_pull_android_core() {
                   "PermissionRequester"
                   "Sentry"
                   "uupimageloader"
+                  "unid"
                   "USkinLoader"
                   "XUI-Lib"
-#                  "XUI-Lib-Compose"
+                  "xui-lib-compose"
                   )
     mkdir -p ${root_dir}
     for item in ${modules[@]}; do
