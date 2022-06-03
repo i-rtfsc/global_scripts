@@ -203,7 +203,6 @@ function _gs_show_and_choose_combo() {
     export _GS_LAST_BUILD_COMBO=${_GS_BUILD_COMBO}
 }
 
-
 function gs_android_build_ninja_clean() {
     time prebuilts/build-tools/linux-x86/bin/ninja -j $(nproc) -f out/combined-${TARGET_PRODUCT}.ninja -t clean
 }

@@ -54,7 +54,7 @@ class BotGerritReview(object):
             return 0
 
         for bot_patch in bot_patches:
-            flags = True
+            flags = False
             result = self.bot_database.table_issue.find_one(issue=bot_patch.number)
             if result is not None:
                 if result["review"] == 1:

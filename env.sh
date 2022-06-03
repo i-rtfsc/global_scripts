@@ -20,10 +20,12 @@ _GS_ROOT_PATH="$HOME/code/github/global_scripts"
 
 # global python env
 function _gs_init_env() {
+    export _GS_ROOT_PATH=$_GS_ROOT_PATH
     export PATH=$PATH:"$_GS_ROOT_PATH"
     export PATH=$PATH:"$_GS_ROOT_PATH/bin/"
     export PATH=$PATH:"$_GS_ROOT_PATH/git/"
     export PATH=$PATH:"$_GS_ROOT_PATH/.work/"
+    export PATH=$PATH:"$_GS_ROOT_PATH/codestyle/"
 
     export LC_ALL=en_US.UTF-8
     export LANG=en_US.UTF-8

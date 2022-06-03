@@ -45,6 +45,16 @@ alias J007Service-dump='adb shell dumpsys activity service com.journeyOS.J007eng
 alias J007Test-log-pid='adb logcat --pid=`adb shell pidof com.journeyOS.J007enginetest`'
 alias J007Test-kill='adb shell killall com.journeyOS.J007enginetest'
 alias J007Test-clear='adb shell pm clear com.journeyOS.J007enginetest'
+
+
+alias I007-service-log-pid='adb logcat --pid=`adb shell pidof com.journeyOS.i007Service`'
+alias I007-service-uninstall='adb uninstall com.journeyOS.i007Service'
+alias I007-service-kill='adb shell killall com.journeyOS.i007Service'
+
+alias I007-test-log-pid='adb logcat --pid=`adb shell pidof com.journeyOS.i007test`'
+alias I007-test-uninstall='adb uninstall com.journeyOS.i007test'
+
+
 ####################################################################################################################
 
 #if [ -f ~/global_scripts/environment.sh ]
