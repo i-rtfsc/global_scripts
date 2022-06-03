@@ -47,5 +47,22 @@ function mac_install_apps() {
 function mac_install_for_build_aosp() {
     brew install openjdk@11
     # sudo ln -sfn $(brew --prefix)/opt/openjdk@11/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk-11.jdk
+    # For the system Java wrappers to find this JDK, symlink it with
+    # sudo ln -sfn /usr/local/opt/openjdk@11/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk-11.jdk
+
+    # openjdk@11 is keg-only, which means it was not symlinked into /usr/local,
+    # because this is an alternate version of another formula.
+
+    # If you need to have openjdk@11 first in your PATH, run:
+    # echo 'export PATH="/usr/local/opt/openjdk@11/bin:$PATH"' >> ~/.zshrc
+
+    # For compilers to find openjdk@11 you may need to set:
+    # export CPPFLAGS="-I/usr/local/opt/openjdk@11/include"
+
+    # ==> Summary
+    # 🍺  /usr/local/Cellar/openjdk@11/11.0.15: 678 files, 299.3MB
+    # ==> Running `brew cleanup openjdk@11`...
+    # Disable this behaviour by setting HOMEBREW_NO_INSTALL_CLEANUP.
+    # Hide these hints with HOMEBREW_NO_ENV_HINTS (see `man brew`).
     brew install bc bison build-essential ccache curl flex g++-multilib gcc-multilib git gnupg gperf imagemagick lib32ncurses5-dev lib32readline-dev lib32z1-dev liblz4-tool libncurses5 libncurses5-dev libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev -y
 }

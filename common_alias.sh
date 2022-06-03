@@ -38,3 +38,5 @@ else
     alias  sl='ls --color=auto'
     alias grep='grep --color=auto'
 fi
+
+alias python=/usr/bin/python3

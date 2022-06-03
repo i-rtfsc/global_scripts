@@ -45,9 +45,9 @@ function gs_init_ssh() {
     mv $HOME/.gs_git/.gitconfig $HOME/.gitconfig
 
     # conf or update ssh conf
-#    rm -rf $HOME/.ssh
-#    cp -r ${_GS_CONFIG_PATH}/.gs_ssh $HOME/.ssh
-#    chmod 700 $HOME/.ssh/id_rsa
+   rm -rf $HOME/.ssh
+   cp -r ${_GS_CONFIG_PATH}/.gs_ssh $HOME/.ssh
+   chmod 700 $HOME/.ssh/id_rsa
 }
 
 function gs_init_vim() {

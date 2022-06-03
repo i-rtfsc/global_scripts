@@ -31,11 +31,17 @@ function _gs_init_env() {
     export LANG=en_US.UTF-8
 }
 
+
 function _gs_conda_initialize() {
     # <<< conda initialize <<<
     _GS_CONDA_ROOT_DIR="$HOME/anaconda3"
+
     if [ ! -d ${_GS_CONDA_ROOT_DIR} ]; then
         _GS_CONDA_ROOT_DIR="$HOME/miniconda"
+    fi
+
+    if [ ! -d ${_GS_CONDA_ROOT_DIR} ]; then
+        _GS_CONDA_ROOT_DIR="$HOME/opt/miniconda3"
     fi
 
     if [ ! -d ${_GS_CONDA_ROOT_DIR} ]; then
