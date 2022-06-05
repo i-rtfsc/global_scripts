@@ -16,28 +16,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-function gs_init_upuphone_env() {
-    # init repo url
-    unset REPO_URL
-    export REPO_URL='http://gerrit.upuphone.com/repo'
-
-    # init gitlab url
-    unset GITLAB_URL
-    export GITLAB_URL='git@gitlab.upuphone.com'
-
-    # don't dexpreopt
-    export BOXING_NOT_DEXPREOPT=true
-}
-
 alias vm-ssh-all='ssh anqi.huang@jumpserver.upuphone.com -p 2222'
 alias vm-ssh='ssh solo@10.164.118.252'
 alias vm-mount='sshfs solo@10.164.118.252:/data/code/ $HOME/vm'
 alias vm-umount='sudo diskutil umount force $HOME/vm'
-
-function android_push_bx-framework {
-    adb push out/target/product/lemonadep/system/framework/bx-framework.jar /system/framework/
-}
 
 alias ums-log-pid='adb logcat --pid=`adb shell pidof com.upuphone.bxservice`'
 alias ums-kill='adb shell kill -9 `adb shell pidof com.upuphone.bxservice`'
@@ -54,5 +36,29 @@ alias watermark-push='adb push out/target/product/lemonadep/system_ext/bin/water
 alias watermark-kill='adb shell killall watermark'
 
 
+function gs_init_upuphone_env() {
+    # init repo url
+    unset REPO_URL
+    export REPO_URL='http://gerrit.upuphone.com/repo'
+
+    # init gitlab url
+    unset GITLAB_URL
+    export GITLAB_URL='git@gitlab.upuphone.com'
+}
 # init upuphone env
 gs_init_upuphone_env
+
+function gs_android_push_bx-framework {
+    adb push out/target/product/lemonadep/system/framework/bx-framework.jar /system/framework/
+}
+
+function gs_work_copy_git() {
+    local source_dir=`pwd`
+    local target_dir="${pwd/work/vm}"
+
+    local modules=$(git ls-files -m)
+    for item in ${modules[@]}; do
+        echo ${source_dir}${item} ${target_dir}${item}
+        cp ${source_dir}${item} ${target_dir}${item}
+    done
+}

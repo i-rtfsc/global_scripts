@@ -62,3 +62,7 @@ function gs_init_all_config() {
     gs_init_ssh
     gs_init_vim
 }
+
+function gs_repo_upload() {
+    git push -u origin HEAD:$1
+}

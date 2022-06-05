@@ -45,8 +45,8 @@ function mac_install_apps() {
 }
 
 function mac_install_for_build_aosp() {
-    brew install openjdk@11
     # sudo ln -sfn $(brew --prefix)/opt/openjdk@11/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk-11.jdk
+    brew install openjdk@11
     # For the system Java wrappers to find this JDK, symlink it with
     # sudo ln -sfn /usr/local/opt/openjdk@11/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk-11.jdk
 

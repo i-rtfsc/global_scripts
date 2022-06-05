@@ -7,4 +7,4 @@ plugins=(git adb tmux)
 source $ZSH/oh-my-zsh.sh
 
 # global scripts env
-source $HOME/code/github/global_scripts/env.sh
+source $HOME/code/github/global_scripts/gs_env.sh
