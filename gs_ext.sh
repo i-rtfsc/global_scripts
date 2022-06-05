@@ -16,14 +16,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-function main() {
-    local source_dir="/Users/solo/code/boxing/gitlab/app/sys/ums/"
-    local target_dir="/Users/solo/vm/app/ums/"
-    local modules=$(git ls-files -m)
-    for item in ${modules[@]}; do
-        echo ${source_dir}${item} ${target_dir}${item}
-        cp ${source_dir}${item} ${target_dir}${item}
+function gs_8350_extract() {
+    for name in  $(ls *.tar.gz)
+    do
+        echo "$name"
+        tar -zxvf "$name"
+        rm -rf "$name"
     done
 }
-
-main

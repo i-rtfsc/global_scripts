@@ -86,16 +86,17 @@ function _gs_cargo_initialize() {
 
 # gs update environment
 function _gs_update_env() {
-    source ${_GS_ROOT_PATH}/system.sh
-    source ${_GS_ROOT_PATH}/adb.sh
-    source ${_GS_ROOT_PATH}/android_build.sh
-    source ${_GS_ROOT_PATH}/android_grep.sh
-    source ${_GS_ROOT_PATH}/android_push.sh
-    source ${_GS_ROOT_PATH}/common_alias.sh
-    source ${_GS_ROOT_PATH}/private_alias.sh
-    source ${_GS_ROOT_PATH}/zsh_theme.sh
+    source ${_GS_ROOT_PATH}/gs_system.sh
+    source ${_GS_ROOT_PATH}/gs_adb.sh
+    source ${_GS_ROOT_PATH}/gs_android_build.sh
+    source ${_GS_ROOT_PATH}/gs_android_grep.sh
+    source ${_GS_ROOT_PATH}/gs_android_push.sh
+    source ${_GS_ROOT_PATH}/gs_common_alias.sh
+    source ${_GS_ROOT_PATH}/gs_private_alias.sh
+    source ${_GS_ROOT_PATH}/gs_ext.sh
+    source ${_GS_ROOT_PATH}/gs_zsh_theme.sh
     # only for work
-    source ${_GS_ROOT_PATH}/.work/work_config.sh
+    source ${_GS_ROOT_PATH}/.work/gs_work.sh
 }
 
 _gs_init_env

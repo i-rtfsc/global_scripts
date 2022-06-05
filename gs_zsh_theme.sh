@@ -46,6 +46,9 @@ function _gs_get_machine_info() {
     local name="%n"
     if $isMac ; then
         local ip=$(ipconfig getifaddr en0)
+        if [ -z ${ip} ]; then
+            ip=$(ipconfig getifaddr en1)
+        fi
     else
         local ip=$(ip a | grep " `route | grep default | awk 'NR==1{print $NF}'`:" -A2 | tail -n1 | awk '{print $2}' | cut -f1 -d '/')
     fi
