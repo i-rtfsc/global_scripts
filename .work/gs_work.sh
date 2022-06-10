@@ -21,6 +21,10 @@ alias vm-ssh='ssh solo@10.164.118.252'
 alias vm-mount='sshfs solo@10.164.118.252:/data/code/ $HOME/vm'
 alias vm-umount='sudo diskutil umount force $HOME/vm'
 
+alias uos-ssh='ssh solo@10.44.66.66'
+alias uos-mount='sshfs solo@10.44.66.66:/home/solo/ext-data/code/ $HOME/uos'
+alias uos-umount='sudo diskutil umount force $HOME/uos'
+
 alias ums-log-pid='adb logcat --pid=`adb shell pidof com.upuphone.bxservice`'
 alias ums-kill='adb shell kill -9 `adb shell pidof com.upuphone.bxservice`'
 alias ums-version='adb shell dumpsys package com.upuphone.bxservice | grep -i version'
@@ -34,7 +38,6 @@ alias ai-push='adb push out/target/product/lemonadep/system_ext/priv-app/AiServi
 
 alias watermark-push='adb push out/target/product/lemonadep/system_ext/bin/watermark system_ext/bin/watermark'
 alias watermark-kill='adb shell killall watermark'
-
 
 function gs_init_upuphone_env() {
     # init repo url
@@ -52,13 +55,26 @@ function gs_android_push_bx-framework {
     adb push out/target/product/lemonadep/system/framework/bx-framework.jar /system/framework/
 }
 
-function gs_work_copy_git() {
+function _gs_work_git_copy() {
+    local target=$1
+    if [ -z ${target} ]; then
+        target="vm"
+    fi
+
     local source_dir=`pwd`
-    local target_dir="${pwd/work/vm}"
+    local target_dir="${${source_dir}/work/${target}}"
 
     local modules=$(git ls-files -m)
     for item in ${modules[@]}; do
-        echo ${source_dir}${item} ${target_dir}${item}
-        cp ${source_dir}${item} ${target_dir}${item}
+        echo ${source_dir}/${item} ${target_dir}/${item}
+        cp ${source_dir}/${item} ${target_dir}/${item}
     done
+}
+
+function gs_work_git_copy_vm() {
+    _gs_work_git_copy "vm"
+}
+
+function gs_work_git_copy_uos() {
+    _gs_work_git_copy "uos"
 }

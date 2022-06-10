@@ -16,6 +16,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# 编译线程数根据机器的核心数决定
+# 可根据需求自行更改
+case `uname -s` in
+    Darwin)
+        _gs_local_build_thread=$(sysctl -n hw.logicalcpu)
+        ;;
+    *)
+        _gs_local_build_thread=$(nproc)
+        ;;
+esac
+
+# target product
+# 这么设置就要求在终端先lunch一次
+# 如果没有lunch就是用默认target
+_gs_local_build_target=${TARGET_PRODUCT}
+# 设置的默认target（lineage_lemonadep-userdebug）
+_gs_local_build_target_default="lineage_lemonadep-userdebug"
+
 function _gs_android_build_with_ccache() {
     export USE_CCACHE=1
     export CCACHE_EXEC=/usr/bin/ccache
@@ -25,6 +43,7 @@ function _gs_android_build_with_ccache() {
 }
 
 function _gs_android_build_lunch() {
+    export BUILD_DISPLAY_ID=$USER-$(date "+%Y-%m-%d-%H-%M-%S")
     TOP=`pwd`
     local building_log_dir=$TOP/out/build_log
     # check if the building log dir exists
@@ -33,17 +52,18 @@ function _gs_android_build_lunch() {
     fi
     export _GS_BUILD_LOG_DIR=${building_log_dir}
 
-    local LOCAL_TARGET_PRODUCT=${TARGET_PRODUCT}
+    local LOCAL_TARGET_PRODUCT=${_gs_local_build_target}
     if [ -z ${LOCAL_TARGET_PRODUCT} ]; then
         LOCAL_TARGET_PRODUCT=$1
     fi
 
     if [ -z ${LOCAL_TARGET_PRODUCT} ]; then
-        LOCAL_TARGET_PRODUCT="lineage_lemonadep-userdebug"
+        LOCAL_TARGET_PRODUCT=${_gs_local_build_target_default}
     fi
 
     source build/envsetup.sh
     lunch ${LOCAL_TARGET_PRODUCT}
+    echo $BUILD_DISPLAY_ID
 }
 
 function gs_android_build() {
@@ -57,7 +77,7 @@ function gs_android_build() {
     local building_log=${_GS_BUILD_LOG_DIR}/build_full_${building_time}.log
 
     # full build
-    m -j $(nproc) 2>&1 | tee ${building_log}
+    m -j ${_gs_local_build_thread} 2>&1 | tee ${building_log}
 }
 
 function gs_android_build_ota() {
@@ -72,9 +92,9 @@ function gs_android_build_ota() {
     local building_ota_log=${_GS_BUILD_LOG_DIR}/build_ota_${building_time}.log
 
     # full build
-    m -j $(nproc) 2>&1 | tee ${building_log}
+    m -j ${_gs_local_build_thread} 2>&1 | tee ${building_log}
     # make ota
-    make otapackage -j $(nproc) 2>&1 | tee ${building_ota_log}
+    make otapackage -j ${_gs_local_build_thread} 2>&1 | tee ${building_ota_log}
 }
 
 function _gs_android_build_system() {
@@ -90,7 +110,7 @@ function _gs_android_build_system() {
     local building_log=${_GS_BUILD_LOG_DIR}/build_${goals}_${building_time}.log
 
     # build
-    m -j $(nproc) ${goals} 2>&1 | tee ${building_log}
+    m -j ${_gs_local_build_thread} ${goals} 2>&1 | tee ${building_log}
 }
 
 function gs_android_build_system() {
@@ -106,6 +126,7 @@ function gs_android_build_vendor() {
 }
 
 function gs_lineage_build() {
+    export BUILD_DISPLAY_ID=$USER-$(date "+%Y-%m-%d-%H-%M-%S")
     #_gs_android_build_with_ccache
 
     local LOCAL_TARGET_PRODUCT=
@@ -149,7 +170,6 @@ function _gs_modules() {
                   "AiService"
                   "bx-framework"
                   "UMS"
-                  "UMSTest"
                   "SystemUI"
                   "Settings"
                   )
@@ -204,7 +224,7 @@ function _gs_show_and_choose_combo() {
 }
 
 function gs_android_build_ninja_clean() {
-    time prebuilts/build-tools/linux-x86/bin/ninja -j $(nproc) -f out/combined-${TARGET_PRODUCT}.ninja -t clean
+    time prebuilts/build-tools/linux-x86/bin/ninja -j ${_gs_local_build_thread} -f out/combined-${TARGET_PRODUCT}.ninja -t clean
 }
 
 function gs_android_build_ninja() {
@@ -224,7 +244,7 @@ function gs_android_build_ninja() {
     echo "selection = "${selection} ", building log =" ${building_log}
 
     # ninja build
-    time prebuilts/build-tools/linux-x86/bin/ninja -j $(nproc) -f out/combined-${TARGET_PRODUCT}.ninja ${selection} | tee ${building_log}
+    time prebuilts/build-tools/linux-x86/bin/ninja -j ${_gs_local_build_thread} -f out/combined-${TARGET_PRODUCT}.ninja ${selection} | tee ${building_log}
 }
 
 function gs_android_build_make() {
@@ -244,5 +264,5 @@ function gs_android_build_make() {
     echo "selection = "${selection} ", building log =" ${building_log}
 
     # make build
-    make ${selection} -j $(nproc) | tee ${building_log}
+    make ${selection} -j ${_gs_local_build_thread} | tee ${building_log}
 }

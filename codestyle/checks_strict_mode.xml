@@ -11,6 +11,13 @@
 -->
 <module name="Checker">
     <property name="severity" value="error"/>
+    <!--连续空行检测-->
+    <module name="RegexpMultiline">
+      <property name="id" value="noConsecutiveLines"/>
+      <property name="format" value="\r?\n[\t ]*\r?\n[\t ]*\r?\n"/>
+      <property name="fileExtensions" value="java"/>
+      <property name="message" value="No more than 1 blank line"/>
+    </module>
     <!--每个java文件当中都有一颗语法树-->
     <module name="TreeWalker">
         <module name="SuppressWarningsHolder"/>
@@ -43,6 +50,7 @@
             <property name="allowUndeclaredRTE" value="true"/>
             <property name="allowThrowsTagsForSubclasses" value="true"/>
             <property name="allowMissingPropertyJavadoc" value="true"/>  -->
+            <property name="accessModifiers" value="public"/>
             <property name="tokens" value="INTERFACE_DEF"/>
         </module>
 
@@ -54,6 +62,10 @@
             <metadata name="net.sf.eclipsecs.core.lastEnabledSeverity" value="inherit"/>
         </module>
 
+        <module name="MissingJavadocType">
+          <property name="scope" value="protected"/>
+          <!-- message key="javadoc.missing" value="类注释：缺少Javadoc注释。"/ -->
+        </module>
 
         <!--<module name="JavadocStyle"/>-->
 
