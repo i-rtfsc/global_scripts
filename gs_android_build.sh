@@ -31,8 +31,12 @@ esac
 # 这么设置就要求在终端先lunch一次
 # 如果没有lunch就是用默认target
 _gs_local_build_target=${TARGET_PRODUCT}
+
 # 设置的默认target（lineage_lemonadep-userdebug）
 _gs_local_build_target_default="lineage_lemonadep-userdebug"
+
+# 机器人地址
+_gs_bot="93c6a139-2a53-44ec-9711-850dd3a1e6f4"
 
 function _gs_android_build_with_ccache() {
     export USE_CCACHE=1
@@ -42,8 +46,14 @@ function _gs_android_build_with_ccache() {
     ccache -M 50G
 }
 
+function _gs_notify_bot() {
+    if [ -z ${_gs_bot} ]; then
+        return 0
+    fi
+    curl -X POST -H "Content-Type: application/json" -d '{"msg_type":"text","content":{"text":"build finish"}}' https://open.feishu.cn/open-apis/bot/v2/hook/${_gs_bot}
+}
+
 function _gs_android_build_lunch() {
-    export BUILD_DISPLAY_ID=$USER-$(date "+%Y-%m-%d-%H-%M-%S")
     TOP=`pwd`
     local building_log_dir=$TOP/out/build_log
     # check if the building log dir exists
@@ -63,7 +73,6 @@ function _gs_android_build_lunch() {
 
     source build/envsetup.sh
     lunch ${LOCAL_TARGET_PRODUCT}
-    echo $BUILD_DISPLAY_ID
 }
 
 function gs_android_build() {
@@ -78,6 +87,7 @@ function gs_android_build() {
 
     # full build
     m -j ${_gs_local_build_thread} 2>&1 | tee ${building_log}
+    _gs_notify_bot
 }
 
 function gs_android_build_ota() {
@@ -95,6 +105,7 @@ function gs_android_build_ota() {
     m -j ${_gs_local_build_thread} 2>&1 | tee ${building_log}
     # make ota
     make otapackage -j ${_gs_local_build_thread} 2>&1 | tee ${building_ota_log}
+    _gs_notify_bot
 }
 
 function _gs_android_build_system() {
@@ -111,6 +122,7 @@ function _gs_android_build_system() {
 
     # build
     m -j ${_gs_local_build_thread} ${goals} 2>&1 | tee ${building_log}
+    _gs_notify_bot
 }
 
 function gs_android_build_system() {
@@ -126,7 +138,6 @@ function gs_android_build_vendor() {
 }
 
 function gs_lineage_build() {
-    export BUILD_DISPLAY_ID=$USER-$(date "+%Y-%m-%d-%H-%M-%S")
     #_gs_android_build_with_ccache
 
     local LOCAL_TARGET_PRODUCT=
@@ -154,6 +165,7 @@ function gs_lineage_build() {
 
     # lineage build
     brunch ${LOCAL_TARGET_PRODUCT} 2>&1 | tee ${building_log}
+    _gs_notify_bot
 }
 
 function _gs_modules() {
@@ -234,7 +246,7 @@ function gs_android_build_ninja() {
     # lunch target
     _gs_android_build_lunch
 
-    # select module
+    # select module++++
     _gs_show_and_choose_combo "$1" "${title}" "${modules}"
     selection=${_GS_BUILD_COMBO}
 

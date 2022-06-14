@@ -39,7 +39,7 @@ alias ai-push='adb push out/target/product/lemonadep/system_ext/priv-app/AiServi
 alias watermark-push='adb push out/target/product/lemonadep/system_ext/bin/watermark system_ext/bin/watermark'
 alias watermark-kill='adb shell killall watermark'
 
-function gs_init_upuphone_env() {
+function gs_work_init_upuphone_env() {
     # init repo url
     unset REPO_URL
     export REPO_URL='http://gerrit.upuphone.com/repo'
@@ -49,9 +49,9 @@ function gs_init_upuphone_env() {
     export GITLAB_URL='git@gitlab.upuphone.com'
 }
 # init upuphone env
-gs_init_upuphone_env
+gs_work_init_upuphone_env
 
-function gs_android_push_bx-framework {
+function gs_work_push_bx-framework {
     adb push out/target/product/lemonadep/system/framework/bx-framework.jar /system/framework/
 }
 
@@ -77,4 +77,9 @@ function gs_work_git_copy_vm() {
 
 function gs_work_git_copy_uos() {
     _gs_work_git_copy "uos"
+}
+
+function gs_work_missing_change_id() {
+    gitdir=$(git rev-parse --git-dir); scp -p -P 29418 anqi.huang@gerrit.upuphone.com:hooks/commit-msg ${gitdir}/hooks/
+    git commit --amend --no-edit
 }

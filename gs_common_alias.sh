@@ -26,13 +26,13 @@ esac
 # ls & grep colored
 if $isMac ; then
     alias ls='ls -G'
-    alias ll='ls -G -la'
+    alias ll='ls -G -lah'
     alias lh='ls -G -lh'
     alias  l='ls -G'
     alias sl='ls -G'
 else
     alias ls='ls --color=auto'
-    alias ll='ls --color=auto -la'
+    alias ll='ls --color=auto -lah'
     alias lh='ls --color=auto -lh'
     alias  l='ls --color=auto'
     alias  sl='ls --color=auto'

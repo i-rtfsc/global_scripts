@@ -36,6 +36,46 @@ function gs_repo_url_update_tsinghua() {
     export REPO_URL='https://mirrors.tuna.tsinghua.edu.cn/git/git-repo'
 }
 
+function gs_brew_remote() {
+    # brew.git镜像源
+    git -C "$(brew --repo)" remote -v
+    # homebrew-core.git镜像源
+    git -C "$(brew --repo homebrew/core)" remote -v
+    # homebrew-cask.git镜像源
+    git -C "$(brew --repo homebrew/cask)" remote -v
+}
+
+function gs_brew_ustc() {
+    git -C "$(brew --repo)" remote set-url origin https://mirrors.ustc.edu.cn/brew.git
+    git -C "$(brew --repo homebrew/core)" remote set-url origin https://mirrors.ustc.edu.cn/homebrew-core.git
+    git -C "$(brew --repo homebrew/cask)" remote set-url origin https://mirrors.ustc.edu.cn/homebrew-cask.git
+    export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.ustc.edu.cn/homebrew-bottles
+    brew update
+}
+
+function gs_brew_tsinghua() {
+    git -C "$(brew --repo)" remote set-url origin https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/brew.git
+    git -C "$(brew --repo homebrew/core)" remote set-url origin https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/homebrew-core.git
+    git -C "$(brew --repo homebrew/cask)" remote set-url origin https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/homebrew-cask.git
+    export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/homebrew-bottles
+    brew update
+}
+
+function gs_brew_aliyun() {
+    git -C "$(brew --repo)" remote set-url origin https://mirrors.aliyun.com/homebrew//brew.git
+    git -C "$(brew --repo homebrew/core)" remote set-url origin https://mirrors.aliyun.com/homebrew//homebrew-core.git
+    git -C "$(brew --repo homebrew/cask)" remote set-url origin https://mirrors.aliyun.com/homebrew//homebrew-cask.git
+    export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.aliyun.com/homebrew/homebrew-bottles
+    brew update
+}
+
+function gs_brew_github() {
+    git -C "$(brew --repo)" remote set-url origin https://github.com/Homebrew/brew.git
+    git -C "$(brew --repo homebrew/core)" remote set-url origin https://github.com/Homebrew/homebrew-core.git
+    git -C "$(brew --repo homebrew/cask)" remote set-url origin https://github.com/Homebrew/homebrew-cask.git
+    brew update
+}
+
 _GS_CONFIG_PATH="$HOME/code/github/global_scripts/conf"
 
 function gs_init_git() {
