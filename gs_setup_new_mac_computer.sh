@@ -27,6 +27,7 @@ function mac_install_utilities() {
     brew install zsh
     brew install zsh-completions
     sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+    brew install scrcpy
 }
 
 # https://formulae.brew.sh/cask/android-studio
