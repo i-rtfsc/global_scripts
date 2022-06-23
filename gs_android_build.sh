@@ -171,6 +171,7 @@ function gs_lineage_build() {
 function _gs_modules() {
     local modules=(
                   "framework"
+                  "framework-minus-apex"
                   "services"
                   "surfaceflinger"
                   "update_engine"

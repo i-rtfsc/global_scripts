@@ -51,6 +51,14 @@ function gs_work_init_upuphone_env() {
 # init upuphone env
 gs_work_init_upuphone_env
 
+function gs_work_push_framework {
+    adb push out/target/product/lemonadep/system/framework/framework.jar /system/framework/
+}
+
+function gs_work_push_services {
+    adb push out/target/product/lemonadep/system/framework/services.jar /system/framework/
+}
+
 function gs_work_push_bx-framework {
     adb push out/target/product/lemonadep/system/framework/bx-framework.jar /system/framework/
 }
@@ -64,11 +72,14 @@ function _gs_work_git_copy() {
     local source_dir=`pwd`
     local target_dir="${${source_dir}/work/${target}}"
 
-    local modules=$(git ls-files -m)
-    for item in ${modules[@]}; do
-        echo ${source_dir}/${item} ${target_dir}/${item}
-        cp ${source_dir}/${item} ${target_dir}/${item}
+    #files=$(git ls-files -m)
+    #要把结果转成arrry
+    files=($(git ls-files -m))
+    for file in ${files}; do
+        echo ${source_dir}/${file} ${target_dir}/${file}
+        cp ${source_dir}/${file} ${target_dir}/${file}
     done
+
 }
 
 function gs_work_git_copy_vm() {

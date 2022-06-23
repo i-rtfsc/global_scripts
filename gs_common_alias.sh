@@ -39,4 +39,4 @@ else
     alias grep='grep --color=auto'
 fi
 
-alias python=/usr/bin/python3
+#alias python=/usr/bin/python3
