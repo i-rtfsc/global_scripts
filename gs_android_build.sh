@@ -34,6 +34,7 @@ _GS_BUILD_TARGET=${TARGET_PRODUCT}
 
 # 设置的默认target（lineage_lemonadep-userdebug）
 _GS_BUILD_TARGET_DEFAULT="lineage_lemonadep-userdebug"
+#_GS_BUILD_TARGET_DEFAULT="aosp_x86_64-eng"
 
 # 机器人地址
 _GS_BOT="93c6a139-2a53-44ec-9711-850dd3a1e6f4"
@@ -59,6 +60,7 @@ function _gs_notify_bot() {
 }
 
 function _gs_print_info() {
+  echo "------------------------------"
   # Android平台的版本号
   echo "Android platform version = $PLATFORM_VERSION"
   echo "build product = $TARGET_PRODUCT"
@@ -72,6 +74,7 @@ function _gs_print_info() {
   echo "build cpu variant = $TARGET_CPU_VARIANT"
   echo "BUILD_ID = $BUILD_ID"
   echo "OUT_DIR = $OUT_DIR"
+  echo "------------------------------"
 }
 
 function _gs_android_build_lunch() {
