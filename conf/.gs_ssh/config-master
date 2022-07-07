@@ -1,5 +1,5 @@
-host boxing
-Hostname gerrit-slave.upuphone.com
+host boxing-master
+Hostname gerrit.upuphone.com
 Port 29418
 User anqi.huang
 
