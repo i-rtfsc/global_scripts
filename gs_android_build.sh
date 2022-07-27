@@ -33,8 +33,8 @@ esac
 _GS_BUILD_TARGET=${TARGET_PRODUCT}
 
 # 设置的默认target（lineage_lemonadep-userdebug）
-_GS_BUILD_TARGET_DEFAULT="lineage_lemonadep-userdebug"
-#_GS_BUILD_TARGET_DEFAULT="aosp_x86_64-eng"
+#_GS_BUILD_TARGET_DEFAULT="lineage_lemonadep-userdebug"
+_GS_BUILD_TARGET_DEFAULT="aosp_x86_64-eng"
 
 # 机器人地址
 _GS_BOT="93c6a139-2a53-44ec-9711-850dd3a1e6f4"
@@ -47,7 +47,12 @@ function _gs_android_build_with_ccache() {
         export USE_CCACHE=1
         export CCACHE_EXEC=/usr/bin/ccache
         #set ccache dir
-        export CCACHE_DIR=$HOME/ext-data/.ccache
+        # check if the ccache dir exists
+        local ccache_dir=$HOME/$_GS_BUILD_TARGET_DEFAULT/.ccache
+        if [ ! -d ${ccache_dir} ]; then
+            mkdir -p ${ccache_dir}
+        fi
+        export CCACHE_DIR=${ccache_dir}
         ccache -M 50G
     fi
 }

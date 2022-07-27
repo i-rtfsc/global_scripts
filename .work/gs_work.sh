@@ -17,17 +17,19 @@
 # limitations under the License.
 
 alias vm-ssh-all='ssh anqi.huang@jumpserver.upuphone.com -p 2222'
-alias vm-ssh='ssh solo@10.164.118.252'
-alias vm-mount='sshfs solo@10.164.118.252:/data/code/ $HOME/vm'
+alias vm-ssh='ssh solo@10.171.53.122'
+alias vm-mount='sshfs solo@10.171.53.122:/home/solo/code/ $HOME/vm'
 alias vm-umount='sudo diskutil umount force $HOME/vm'
 
 alias uos-ssh='ssh solo@10.44.66.66'
 alias uos-mount='sshfs solo@10.44.66.66:/home/solo/ext-data/code/ $HOME/uos'
 alias uos-umount='sudo diskutil umount force $HOME/uos'
 
-alias deepin-ssh='ssh solo@10.44.67.142'
+alias deepin-ssh='ssh solo@10.0.12.11'
 alias deepin-mount='sshfs solo@10.44.67.142:/home/solo/code/ $HOME/deepin'
 alias deepin-umount='sudo diskutil umount force $HOME/deepin'
+
+alias meizu-ssh='ssh x-huanganqi@fort-test.meizu.com'
 
 alias ums-log-pid='adb logcat --pid=`adb shell pidof com.upuphone.bxservice`'
 alias ums-kill='adb shell kill -9 `adb shell pidof com.upuphone.bxservice`'
