@@ -34,7 +34,7 @@ _GS_BUILD_TARGET=${TARGET_PRODUCT}
 
 # 设置的默认target（lineage_lemonadep-userdebug）
 #_GS_BUILD_TARGET_DEFAULT="lineage_lemonadep-userdebug"
-_GS_BUILD_TARGET_DEFAULT="aosp_x86_64-eng"
+_GS_BUILD_TARGET_DEFAULT="sdk_phone_x86_64"
 
 # 机器人地址
 _GS_BOT="93c6a139-2a53-44ec-9711-850dd3a1e6f4"
@@ -65,21 +65,21 @@ function _gs_notify_bot() {
 }
 
 function _gs_print_info() {
-  echo "------------------------------"
-  # Android平台的版本号
-  echo "Android platform version = $PLATFORM_VERSION"
-  echo "build product = $TARGET_PRODUCT"
-  echo "build variant = $TARGET_BUILD_VARIANT"
-  echo "build type = $TARGET_BUILD_TYPE"
-  # 表示编译目标的CPU架构
-  echo "build arch = $TARGET_ARCH"
-  # 表示编译目标的CPU架构版本
-  echo "build arch variant = $TARGET_ARCH_VARIANT"
-  # 表示编译目标的CPU代号
-  echo "build cpu variant = $TARGET_CPU_VARIANT"
-  echo "BUILD_ID = $BUILD_ID"
-  echo "OUT_DIR = $OUT_DIR"
-  echo "------------------------------"
+    echo "------------------------------"
+    # Android平台的版本号
+    echo "Android platform version = $PLATFORM_VERSION"
+    echo "build product = $TARGET_PRODUCT"
+    echo "build variant = $TARGET_BUILD_VARIANT"
+    echo "build type = $TARGET_BUILD_TYPE"
+    # 表示编译目标的CPU架构
+    echo "build arch = $TARGET_ARCH"
+    # 表示编译目标的CPU架构版本
+    echo "build arch variant = $TARGET_ARCH_VARIANT"
+    # 表示编译目标的CPU代号
+    echo "build cpu variant = $TARGET_CPU_VARIANT"
+    echo "BUILD_ID = $BUILD_ID"
+    echo "OUT_DIR = $OUT_DIR"
+    echo "------------------------------"
 }
 
 function _gs_android_build_lunch() {
@@ -91,9 +91,9 @@ function _gs_android_build_lunch() {
     fi
     export _GS_BUILD_LOG_DIR=${gs_build_log_dir}
 
-    local gs_target_product=${_GS_BUILD_TARGET}
-    if [ -z ${LOCAL_TARGET_PRODUCT} ]; then
-        gs_target_product=$1
+    local gs_target_product=$1
+    if [ -z ${gs_target_product} ]; then
+        gs_target_product=${_GS_BUILD_TARGET}
     fi
 
     if [ -z ${target_product} ]; then
@@ -110,7 +110,7 @@ function gs_android_build() {
     _gs_android_build_with_ccache
 
     # lunch target
-    _gs_android_build_lunch
+    _gs_android_build_lunch $1
 
     # log file
     local build_time=$(date "+%Y-%m-%d-%H-%M-%S")
@@ -125,7 +125,7 @@ function gs_android_build_ota() {
     _gs_android_build_with_ccache
 
     # lunch target
-    _gs_android_build_lunch
+    _gs_android_build_lunch $1
 
     # log file
     local build_time=$(date "+%Y-%m-%d-%H-%M-%S")
@@ -208,14 +208,14 @@ function _gs_modules() {
                   "surfaceflinger"
                   "update_engine"
                   "android.hardware.power-service"
-                  "SystemUI"
-                  "Settings"
                   "com.journeyOS.J007engine.hidl@1.0-service"
                   "com.journeyOS.J007engine.hidl@1.0"
                   "J007Service"
+                  "jos-framework"
+                  "jos-services"
                   "watermark"
-                  "u-framework"
-                  "u-services"
+                  "xj-framework"
+                  "xj-services"
                   )
 #    echo $modules
     for item in ${modules[@]}; do

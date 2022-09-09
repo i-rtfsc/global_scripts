@@ -37,7 +37,7 @@ function _gs_conda_initialize() {
     _GS_CONDA_ROOT_DIR="$HOME/anaconda3"
 
     if [ ! -d ${_GS_CONDA_ROOT_DIR} ]; then
-        _GS_CONDA_ROOT_DIR="$HOME/miniconda"
+        _GS_CONDA_ROOT_DIR="$HOME/miniconda3"
     fi
 
     if [ ! -d ${_GS_CONDA_ROOT_DIR} ]; then
@@ -63,15 +63,7 @@ function _gs_conda_initialize() {
 
     conda config --set changeps1 False
 
-    case `uname -s` in
-        Darwin)
-            conda activate py39tf2.x
-            ;;
-        *)
-            conda activate py36tf1.15
-            ;;
-    esac
-
+    conda activate py39tf2.x
 }
 
 function _gs_cargo_initialize() {
@@ -89,6 +81,7 @@ function _gs_update_env() {
     source ${_GS_ROOT_PATH}/gs_system.sh
     source ${_GS_ROOT_PATH}/gs_adb.sh
     source ${_GS_ROOT_PATH}/gs_android_build.sh
+    source ${_GS_ROOT_PATH}/gs_android_command.sh
     source ${_GS_ROOT_PATH}/gs_android_grep.sh
     source ${_GS_ROOT_PATH}/gs_android_push.sh
     source ${_GS_ROOT_PATH}/gs_common_alias.sh

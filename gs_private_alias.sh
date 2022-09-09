@@ -33,30 +33,6 @@ if $isMac ; then
     alias pd-umount='sudo diskutil umount force $HOME/pd ; rm -rf $HOME/pd'
 fi
 
-####################################################################################################################
-alias J007Engine-log-pid='adb logcat --pid=`com.journeyOS.J007engine.hidl@1.0-service`'
-alias J007Engine-kill='adb shell killall com.journeyOS.J007engine.hidl@1.0-service'
-
-alias J007Service-log-pid='adb logcat --pid=`adb shell pidof com.journeyOS.J007engine`'
-alias J007Service-kill='adb shell killall com.journeyOS.J007engine'
-alias J007Service-clear='adb shell pm clear com.journeyOS.J007engine'
-alias J007Service-dump='adb shell dumpsys activity service com.journeyOS.J007engine/com.journeyOS.J007engine.service.J007EngineService'
-
-alias J007Test-log-pid='adb logcat --pid=`adb shell pidof com.journeyOS.J007enginetest`'
-alias J007Test-kill='adb shell killall com.journeyOS.J007enginetest'
-alias J007Test-clear='adb shell pm clear com.journeyOS.J007enginetest'
-
-
-alias I007-service-log-pid='adb logcat --pid=`adb shell pidof com.journeyOS.i007Service`'
-alias I007-service-uninstall='adb uninstall com.journeyOS.i007Service'
-alias I007-service-kill='adb shell killall com.journeyOS.i007Service'
-
-alias I007-test-log-pid='adb logcat --pid=`adb shell pidof com.journeyOS.i007test`'
-alias I007-test-uninstall='adb uninstall com.journeyOS.i007test'
-
-
-####################################################################################################################
-
 #if [ -f ~/global_scripts/environment.sh ]
 #then
 #    . ~/global_scripts/environment.sh
