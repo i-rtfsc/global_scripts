@@ -49,15 +49,15 @@ def main():
     reviewer = options.reviewer.strip()
     drafts = options.drafts
 
-    cmd = "git log -n 1"
-    ret, output = subprocess.getstatusoutput(cmd)
-    if ret != 0:
-        print("git cmd fail:\n %s" % (output))
-    elif "Change-Id" not in output:
-        print("No Change-Id in commit message!")
-        print("Get commit-msg by \"scp -p -P 29418 gerrit host:hooks/commit-msg .git/hooks/\".")
-        print("git commit --amend again.")
-        return 1
+    # cmd = "git log -n 1"
+    # ret, output = subprocess.getstatusoutput(cmd)
+    # if ret != 0:
+    #     print("git cmd fail:\n %s" % (output))
+    # elif "Change-Id" not in output:
+    #     print("No Change-Id in commit message!")
+    #     print("Get commit-msg by \"scp -p -P 29418 gerrit host:hooks/commit-msg .git/hooks/\".")
+    #     print("git commit --amend again.")
+    #     return 1
 
     cmd = "git conf --get user.name"
     ret, output = subprocess.getstatusoutput(cmd)
