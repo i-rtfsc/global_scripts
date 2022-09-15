@@ -32,9 +32,9 @@ esac
 # 如果没有lunch就是用默认target
 _GS_BUILD_TARGET=${TARGET_PRODUCT}
 
-# 设置的默认target（lineage_lemonadep-userdebug）
-#_GS_BUILD_TARGET_DEFAULT="lineage_lemonadep-userdebug"
-_GS_BUILD_TARGET_DEFAULT="sdk_phone_x86_64"
+# 设置的默认target
+_GS_BUILD_TARGET_DEFAULT="qssi-userdebug"
+#_GS_BUILD_TARGET_DEFAULT="sdk_phone_x86_64"
 
 # 机器人地址
 _GS_BOT="93c6a139-2a53-44ec-9711-850dd3a1e6f4"
@@ -168,34 +168,18 @@ function gs_android_build_vendor() {
     _gs_android_build_system "vnod"
 }
 
-function gs_lineage_build() {
-    #_gs_android_build_with_ccache
+function gs_qssi_build() {
+    _gs_android_build_with_ccache
 
-    local LOCAL_TARGET_PRODUCT=
-    if [ -z ${LOCAL_TARGET_PRODUCT} ]; then
-        LOCAL_TARGET_PRODUCT=$1
-    fi
-
-    if [ -z ${LOCAL_TARGET_PRODUCT} ]; then
-        LOCAL_TARGET_PRODUCT="lemonadep"
-    fi
-
-    source build/envsetup.sh
-    breakfast ${LOCAL_TARGET_PRODUCT}
-
-    TOP=`pwd`
-    local build_log_dir=$TOP/out/build_log
-    # check if the building log dir exists
-    if [ ! -d ${build_log_dir} ]; then
-        mkdir -p ${build_log_dir}
-    fi
+    # lunch target
+    _gs_android_build_lunch $1
 
     # log file
     local build_time=$(date "+%Y-%m-%d-%H-%M-%S")
-    local build_log=${build_log_dir}/build_lineage_${build_time}.log
+    local build_log=${_GS_BUILD_LOG_DIR}/build_full_${build_time}.log
 
-    # lineage build
-    brunch ${LOCAL_TARGET_PRODUCT} 2>&1 | tee ${build_log}
+    # full build
+    bash build.sh -j ${_GS_BUILD_THREAD} dist --qssi_only 2>&1 | tee ${build_log}
     _gs_notify_bot
 }
 
@@ -208,6 +192,9 @@ function _gs_modules() {
                   "surfaceflinger"
                   "update_engine"
                   "android.hardware.power-service"
+                  "libresourcemanagerservice"
+                  "libaudioflinger"
+                  "libcameraservice"
                   "com.journeyOS.J007engine.hidl@1.0-service"
                   "com.journeyOS.J007engine.hidl@1.0"
                   "J007Service"

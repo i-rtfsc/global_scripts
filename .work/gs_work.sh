@@ -109,9 +109,12 @@ function _gs_code_git_copy() {
     local target_dir="${${source_dir}/code/${target}}"
     echo $target_dir
 
-    #files=$(git ls-files -m)
-    #要把结果转成arrry
-    files=($(git ls-files -m))
+    if [ -z $1 ]; then
+        files=($(git status --short --no-renames | awk '{print $(NF)}'))
+    else
+        files=($(git ls-files -m))
+    fi
+
     for file in ${files}; do
         echo ${source_dir}/${file} ${target_dir}/${file}
         cp ${source_dir}/${file} ${target_dir}/${file}
@@ -128,9 +131,12 @@ function _gs_work_git_copy() {
     local target_dir="${${source_dir}/work/${target}}"
     echo $target_dir
 
-    #files=$(git ls-files -m)
-    #要把结果转成arrry
-    files=($(git ls-files -m))
+    if [ -z $1 ]; then
+        files=($(git status --short --no-renames | awk '{print $(NF)}'))
+    else
+        files=($(git ls-files -m))
+    fi
+
     for file in ${files}; do
         echo ${source_dir}/${file} ${target_dir}/${file}
         cp ${source_dir}/${file} ${target_dir}/${file}
@@ -145,11 +151,41 @@ function gs_work_git_copy_uos() {
     _gs_work_git_copy "uos"
 }
 
-function gs_work_missing_change_id() {
-    gitdir=$(git rev-parse --git-dir); scp -p -P 29418 anqi.huang@gerrit.upuphone.com:hooks/commit-msg ${gitdir}/hooks/
-    git commit --amend --no-edit
+function gs_work_git_copy_mz() {
+    _gs_code_git_copy "share"
 }
 
-function gs_work_test() {
-    _gs_code_git_copy "share"
+function gs_work_qssi_git_copy() {
+    local source_dir=`pwd`
+    local remote='solo@10.171.53.122:'
+
+    if [ -z $1 ]; then
+        files=($(git status --short --no-renames | awk '{print $(NF)}'))
+    else
+        files=($(git ls-files -m))
+    fi
+
+    for file in ${files}; do
+        source_file=${source_dir}/${file}
+        target_file=${remote}${source_dir}/${file}
+
+        case `uname -s` in
+            Darwin)
+                target_file="${${target_file}/Users/home}"
+                ;;
+        esac
+
+        echo ${source_file} ${target_file}
+        scp ${source_file} ${target_file}
+    done
+}
+
+function gs_work_flash_qssi() {
+    adb reboot fastboot
+    fastboot flash system system.img
+    fastboot flash system_ext system_ext.img
+    fastboot flash product product.img
+    fastboot flash vbmeta_system vbmeta_system.img
+    fastboot -w
+    fastboot reboot
 }

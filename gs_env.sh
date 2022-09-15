@@ -81,7 +81,6 @@ function _gs_update_env() {
     source ${_GS_ROOT_PATH}/gs_system.sh
     source ${_GS_ROOT_PATH}/gs_adb.sh
     source ${_GS_ROOT_PATH}/gs_android_build.sh
-    source ${_GS_ROOT_PATH}/gs_android_command.sh
     source ${_GS_ROOT_PATH}/gs_android_grep.sh
     source ${_GS_ROOT_PATH}/gs_android_push.sh
     source ${_GS_ROOT_PATH}/gs_common_alias.sh
