@@ -71,14 +71,6 @@ function _gs_print_info() {
     echo "build product = $TARGET_PRODUCT"
     echo "build variant = $TARGET_BUILD_VARIANT"
     echo "build type = $TARGET_BUILD_TYPE"
-    # 表示编译目标的CPU架构
-    echo "build arch = $TARGET_ARCH"
-    # 表示编译目标的CPU架构版本
-    echo "build arch variant = $TARGET_ARCH_VARIANT"
-    # 表示编译目标的CPU代号
-    echo "build cpu variant = $TARGET_CPU_VARIANT"
-    echo "BUILD_ID = $BUILD_ID"
-    echo "OUT_DIR = $OUT_DIR"
     echo "------------------------------"
 }
 
@@ -219,6 +211,10 @@ function _gs_show_and_choose_combo() {
 
     local index=1
     local default_index=1
+    if [ -n "$BASH_VERSION" ]; then
+       index=0
+       default_index=0
+    fi
 
     if [ -z ${_GS_LAST_BUILD_COMBO} ]; then
         _GS_LAST_BUILD_COMBO=${choices[default_index]}
