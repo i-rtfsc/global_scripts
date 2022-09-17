@@ -87,6 +87,7 @@ function _gs_update_env() {
     source ${_GS_ROOT_PATH}/gs_private_alias.sh
     source ${_GS_ROOT_PATH}/gs_ext.sh
     source ${_GS_ROOT_PATH}/gs_zsh_theme.sh
+    source ${_GS_ROOT_PATH}/gs_test.sh
     # only for work
     source ${_GS_ROOT_PATH}/.work/gs_work.sh
 }
