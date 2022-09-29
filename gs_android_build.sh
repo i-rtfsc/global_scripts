@@ -18,13 +18,13 @@
 
 # 编译线程数根据机器的核心数决定
 # 可根据需求自行更改
-case `uname -s` in
-    Darwin)
-        _GS_BUILD_THREAD=$(sysctl -n hw.logicalcpu)
-        ;;
-    *)
-        _GS_BUILD_THREAD=$(nproc)
-        ;;
+case $(uname -s) in
+Darwin)
+    _GS_BUILD_THREAD=$(sysctl -n hw.logicalcpu)
+    ;;
+*)
+    _GS_BUILD_THREAD=$(nproc)
+    ;;
 esac
 
 # target product
@@ -40,10 +40,10 @@ _GS_BUILD_TARGET_DEFAULT="qssi-userdebug"
 _GS_BOT="93c6a139-2a53-44ec-9711-850dd3a1e6f4"
 
 # 使用ccache
-_GS_CCACHE=false
+_GS_CCACHE=true
 
 function _gs_android_build_with_ccache() {
-    if $_GS_CCACHE ; then
+    if $_GS_CCACHE; then
         export USE_CCACHE=1
         export CCACHE_EXEC=/usr/bin/ccache
         #set ccache dir
@@ -53,15 +53,58 @@ function _gs_android_build_with_ccache() {
             mkdir -p ${ccache_dir}
         fi
         export CCACHE_DIR=${ccache_dir}
-        ccache -M 50G
+        ccache -M 100G
     fi
+}
+
+# remove colors
+# https://stackoverflow.com/questions/17998978/removing-colors-from-output
+function _strip_escape_codes() {
+    local _input="$1" _i _char _escape=0
+    local -n _output="$2"
+    _output=""
+    for ((_i = 0; _i < ${#_input}; _i++)); do
+        _char="${_input:_i:1}"
+        if ((${_escape} == 1)); then
+            if [[ "${_char}" == [a-zA-Z] ]]; then
+                _escape=0
+            fi
+            continue
+        fi
+        if [[ "${_char}" == $'\e' ]]; then
+            _escape=1
+            continue
+        fi
+        _output+="${_char}"
+    done
 }
 
 function _gs_notify_bot() {
     if [ -z ${_GS_BOT} ]; then
         return 0
     fi
-    curl -X POST -H "Content-Type: application/json" -d '{"msg_type":"text","content":{"text":"build finish"}}' https://open.feishu.cn/open-apis/bot/v2/hook/${_GS_BOT}
+
+    build_log=$1
+    echo $build_log
+    if test -f "$build_log"; then
+        info=$(tail -1 $build_log)
+
+        if [ -z "$info" ]; then
+            info=$(tail -2 $build_log)
+        fi
+
+        if [ -z "$info" ]; then
+            info=$(tail -3 $build_log)
+        fi
+    fi
+
+    if [ -z "$info" ]; then
+        info="build finish"
+    fi
+
+    _strip_escape_codes "${info}" info
+    echo $info
+    curl -X POST https://open.feishu.cn/open-apis/bot/v2/hook/${_GS_BOT} -H "Content-Type: application/json" -d '{"msg_type":"text","content":{"text":"'"$info"'"}}'
 }
 
 function _gs_print_info() {
@@ -75,7 +118,7 @@ function _gs_print_info() {
 }
 
 function _gs_android_build_lunch() {
-    TOP=`pwd`
+    TOP=$(pwd)
     local gs_build_log_dir=$TOP/out/build_log
     # check if the building log dir exists
     if [ ! -d ${gs_build_log_dir} ]; then
@@ -98,6 +141,8 @@ function _gs_android_build_lunch() {
     _gs_print_info
 }
 
+# 全编译
+# 可以带上编译的 target ，否则从默认配置 _GS_BUILD_TARGET_DEFAULT 获取
 function gs_android_build() {
     _gs_android_build_with_ccache
 
@@ -110,9 +155,11 @@ function gs_android_build() {
 
     # full build
     m -j ${_GS_BUILD_THREAD} 2>&1 | tee ${build_log}
-    _gs_notify_bot
+    _gs_notify_bot ${build_log}
 }
 
+# 全编译后在打ota包
+# 可以带上编译的 target ，否则从默认配置 _GS_BUILD_TARGET_DEFAULT 获取
 function gs_android_build_ota() {
     _gs_android_build_with_ccache
 
@@ -128,7 +175,7 @@ function gs_android_build_ota() {
     m -j ${_GS_BUILD_THREAD} 2>&1 | tee ${build_log}
     # make ota
     make otapackage -j ${_GS_BUILD_THREAD} 2>&1 | tee ${build_ota_log}
-    _gs_notify_bot
+    _gs_notify_bot ${build_ota_log}
 }
 
 function _gs_android_build_system() {
@@ -145,21 +192,26 @@ function _gs_android_build_system() {
 
     # build
     m -j ${_GS_BUILD_THREAD} ${goals} 2>&1 | tee ${build_log}
-    _gs_notify_bot
+    _gs_notify_bot ${build_log}
 }
 
+# 编译 system.img
 function gs_android_build_system() {
     _gs_android_build_system "snod"
 }
 
+# 编译 system_ext.img
 function gs_android_build_system_ext() {
     _gs_android_build_system "senod"
 }
 
+# 编译 vendor.img
 function gs_android_build_vendor() {
     _gs_android_build_system "vnod"
 }
 
+# 编译qssi(高通特有)
+# 可以带上编译的 target ，否则从默认配置 _GS_BUILD_TARGET_DEFAULT 获取
 function gs_qssi_build() {
     _gs_android_build_with_ccache
 
@@ -172,31 +224,31 @@ function gs_qssi_build() {
 
     # full build
     bash build.sh -j ${_GS_BUILD_THREAD} dist --qssi_only 2>&1 | tee ${build_log}
-    _gs_notify_bot
+    _gs_notify_bot ${build_log}
 }
 
 function _gs_modules() {
     local modules=(
-                  "framework"
-                  "framework-minus-apex"
-                  "services"
-                  "selinux_policy"
-                  "surfaceflinger"
-                  "update_engine"
-                  "android.hardware.power-service"
-                  "libresourcemanagerservice"
-                  "libaudioflinger"
-                  "libcameraservice"
-                  "com.journeyOS.J007engine.hidl@1.0-service"
-                  "com.journeyOS.J007engine.hidl@1.0"
-                  "J007Service"
-                  "jos-framework"
-                  "jos-services"
-                  "watermark"
-                  "xj-framework"
-                  "xj-services"
-                  )
-#    echo $modules
+        "framework"
+        "framework-minus-apex"
+        "services"
+        "selinux_policy"
+        "surfaceflinger"
+        "update_engine"
+        "android.hardware.power-service"
+        "libresourcemanagerservice"
+        "libaudioflinger"
+        "libcameraservice"
+        "com.journeyOS.J007engine.hidl@1.0-service"
+        "com.journeyOS.J007engine.hidl@1.0"
+        "J007Service"
+        "jos-framework"
+        "jos-services"
+        "watermark"
+        "xj-framework"
+        "xj-services"
+    )
+    #    echo $modules
     for item in ${modules[@]}; do
         echo ${item}
     done
@@ -207,13 +259,13 @@ function _gs_show_and_choose_combo() {
 
     local user_input=$1
     local title=$2
-    local choices=(`echo $3 | tr ',' ' '` )
+    local choices=($(echo $3 | tr ',' ' '))
 
     local index=1
     local default_index=1
     if [ -n "$BASH_VERSION" ]; then
-       index=0
-       default_index=0
+        index=0
+        default_index=0
     fi
 
     if [ -z ${_GS_LAST_BUILD_COMBO} ]; then
@@ -223,13 +275,13 @@ function _gs_show_and_choose_combo() {
     local answer=${_GS_LAST_BUILD_COMBO}
     local selection=${_GS_LAST_BUILD_COMBO}
 
-    if [ "${user_input}" ] ; then
+    if [ "${user_input}" ]; then
         answer=${user_input}
     else
         # print combo menu,
         for item in ${choices[@]}; do
-            echo $index.  ${item}
-            index=$(($index+1))
+            echo $index. ${item}
+            index=$(($index + 1))
         done
         printf "Which would you like? [ %s ] " ${answer}
         read answer
@@ -239,9 +291,9 @@ function _gs_show_and_choose_combo() {
         fi
     fi
 
-    if [ -z "$answer" ] ; then
+    if [ -z "$answer" ]; then
         echo "error: get null answer."
-    elif (echo -n $answer | grep -q -e "^[0-9][0-9]*$") ; then
+    elif (echo -n $answer | grep -q -e "^[0-9][0-9]*$"); then
         selection=${choices[answer]}
     else
         selection=${answer}
@@ -254,6 +306,9 @@ function gs_android_build_ninja_clean() {
     time prebuilts/build-tools/linux-x86/bin/ninja -j ${_GS_BUILD_THREAD} -f out/combined-${TARGET_PRODUCT}.ninja -t clean
 }
 
+# ninja编译模块
+# 可以带上模块名字，否则会有选择菜单
+# 若需要编译的模块不在菜单里，也可以在选择菜单里输入模块名
 function gs_android_build_ninja() {
     local title="select modules(ninja)"
     local modules=$(_gs_modules)
@@ -272,8 +327,12 @@ function gs_android_build_ninja() {
 
     # ninja build
     time prebuilts/build-tools/linux-x86/bin/ninja -j ${_GS_BUILD_THREAD} -f out/combined-${TARGET_PRODUCT}.ninja ${selection} | tee ${build_log}
+    _gs_notify_bot ${build_log}
 }
 
+# make编译模块
+# 可以带上模块名字，否则会有选择菜单
+# 若需要编译的模块不在菜单里，也可以在选择菜单里输入模块名
 function gs_android_build_make() {
     local title="select modules(make)"
     local modules=$(_gs_modules)
@@ -292,4 +351,5 @@ function gs_android_build_make() {
 
     # make build
     make ${selection} -j ${_GS_BUILD_THREAD} | tee ${build_log}
+    _gs_notify_bot ${build_log}
 }

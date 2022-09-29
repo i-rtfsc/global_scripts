@@ -88,15 +88,19 @@ function gs_work_init_upuphone_env() {
 gs_work_init_upuphone_env
 
 function gs_work_push_framework {
-    adb push out/target/product/lemonadep/system/framework/framework.jar /system/framework/
+    adb push out/target/product/qssi/system/framework/framework.jar /system/framework/
 }
 
 function gs_work_push_services {
-    adb push out/target/product/lemonadep/system/framework/services.jar /system/framework/
+    adb push out/target/product/qssi/system/framework/services.jar /system/framework/
 }
 
-function gs_work_push_bx-framework {
-    adb push out/target/product/lemonadep/system/framework/bx-framework.jar /system/framework/
+function gs_work_push_ext-framework {
+    adb push out/target/product/qssi/system/framework/jos-framework.jar /system/framework/
+}
+
+function gs_work_push_ext-services {
+    adb push out/target/product/qssi/system/framework/jos-services.jar /system/framework/
 }
 
 function _gs_code_git_copy() {
