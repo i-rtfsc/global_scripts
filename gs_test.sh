@@ -22,4 +22,39 @@ function gs_test() {
     elif [ -n "$BASH_VERSION" ]; then
        echo "bash"
     fi
+
+    local search_dir=`pwd`
+    files=($(find $search_dir -type f))
+    for file in ${files}; do
+#        dir_name=$(dirname $file)
+#        file_name=$(basename $file)
+#        file_name_suffix="${file##*.}"
+
+        target_file="${${file}/8550/8550_back}"_back
+
+        if [ ! -d ${target_dir_name} ]; then
+            mkdir -p ${target_dir_name}
+        fi
+#        cat $file > $target_file
+        echo $target_file
+    done
+
+#    local search_dir=`pwd`
+#    files=($(find $search_dir -type f))
+#    for file in ${files}; do
+#        dir_name=$(dirname $file)
+#        file_name=$(basename $file)
+#        file_name_suffix="${file##*.}"
+#
+#        new_file_name_suffix="${${file}/_back/""}"
+#
+#        if [ ! -d ${target_dir_name} ]; then
+#            mkdir -p ${target_dir_name}
+#        fi
+##        cat $file > $target_file
+#        new_file=$new_file_name_suffix
+#        mv $file $new_file
+#        echo $new_file
+#    done
+
 }
