@@ -1,9 +1,0 @@
-host boxing
-Hostname gerrit.upuphone.com
-Port 29418
-User anqi.huang
-PubkeyAuthentication yes
-IdentitiesOnly yes
-PasswordAuthentication no
-IdentityFile ~/.ssh/id_rsa
-StrictHostKeyChecking no

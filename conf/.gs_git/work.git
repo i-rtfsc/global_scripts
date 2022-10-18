@@ -5,5 +5,5 @@
 [commit]
     gpgsign = false
     template = ~/.gs_git/commit_template.git
-[url "ssh://boxing-master"]
-	pushInsteadOf = ssh://boxing
+#[url "ssh://boxing-master"]
+#	pushInsteadOf = ssh://boxing
