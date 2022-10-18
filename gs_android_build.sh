@@ -16,43 +16,49 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# 编译线程数根据机器的核心数决定
-# 可根据需求自行更改
-case $(uname -s) in
-Darwin)
-    _GS_BUILD_THREAD=$(sysctl -n hw.logicalcpu)
-    ;;
-*)
-    _GS_BUILD_THREAD=$(nproc)
-    ;;
-esac
+function _init_env() {
+    # 编译线程数根据机器的核心数决定
+    # 可根据需求自行更改
+    case $(uname -s) in
+    Darwin)
+        _GS_BUILD_THREAD=$(sysctl -n hw.logicalcpu)
+        ;;
+    *)
+        _GS_BUILD_THREAD=$(nproc)
+        ;;
+    esac
 
-# target product
-# 这么设置就要求在终端先lunch一次
-# 如果没有lunch就是用默认target
-_GS_BUILD_TARGET=${TARGET_PRODUCT}
+    # 设置的默认target
+    _GS_BUILD_TARGET_DEFAULT="qssi-userdebug"
+    #_GS_BUILD_TARGET_DEFAULT="sdk_phone_x86_64"
 
-# 设置的默认target
-_GS_BUILD_TARGET_DEFAULT="qssi-userdebug"
-#_GS_BUILD_TARGET_DEFAULT="sdk_phone_x86_64"
+    # 飞书机器人
+    _GS_BOT="93c6a139-2a53-44ec-9711-850dd3a1e6f4"
 
-# 机器人地址
-_GS_BOT="93c6a139-2a53-44ec-9711-850dd3a1e6f4"
-
-# 使用ccache
-_GS_CCACHE=true
+    # 使用ccache
+    _GS_CCACHE=true
+}
 
 function _gs_android_build_with_ccache() {
     if $_GS_CCACHE; then
         export USE_CCACHE=1
         export CCACHE_EXEC=/usr/bin/ccache
-        #set ccache dir
+
+        # get target product
+        local gs_target_product=${TARGET_PRODUCT}
+        if [ -z ${gs_target_product} ]; then
+            gs_target_product=${_GS_BUILD_TARGET_DEFAULT}
+        fi
+
+        local ccache_dir=$HOME/.ccache/$gs_target_product
         # check if the ccache dir exists
-        local ccache_dir=$HOME/$_GS_BUILD_TARGET_DEFAULT/.ccache
         if [ ! -d ${ccache_dir} ]; then
             mkdir -p ${ccache_dir}
         fi
+        #set ccache dir
         export CCACHE_DIR=${ccache_dir}
+        ccache --set-config=cache_dir=${ccache_dir}
+        export CCACHE_CONFIGPATH=${ccache_dir}/ccache.conf
         ccache -M 100G
     fi
 }
@@ -85,7 +91,6 @@ function _gs_notify_bot() {
     fi
 
     build_log=$1
-    echo $build_log
     if test -f "$build_log"; then
         info=$(tail -1 $build_log)
 
@@ -103,8 +108,10 @@ function _gs_notify_bot() {
     fi
 
     _strip_escape_codes "${info}" info
-    echo $info
+#    echo $info
     curl -X POST https://open.feishu.cn/open-apis/bot/v2/hook/${_GS_BOT} -H "Content-Type: application/json" -d '{"msg_type":"text","content":{"text":"'"$info"'"}}'
+    echo ""
+    echo ""
 }
 
 function _gs_print_info() {
@@ -124,14 +131,14 @@ function _gs_android_build_lunch() {
     if [ ! -d ${gs_build_log_dir} ]; then
         mkdir -p ${gs_build_log_dir}
     fi
-    export _GS_BUILD_LOG_DIR=${gs_build_log_dir}
+    _GS_BUILD_LOG_DIR=${gs_build_log_dir}
 
     local gs_target_product=$1
     if [ -z ${gs_target_product} ]; then
-        gs_target_product=${_GS_BUILD_TARGET}
+        gs_target_product=${TARGET_PRODUCT}
     fi
 
-    if [ -z ${target_product} ]; then
+    if [ -z ${gs_target_product} ]; then
         gs_target_product=${_GS_BUILD_TARGET_DEFAULT}
     fi
 
@@ -144,10 +151,12 @@ function _gs_android_build_lunch() {
 # 全编译
 # 可以带上编译的 target ，否则从默认配置 _GS_BUILD_TARGET_DEFAULT 获取
 function gs_android_build() {
-    _gs_android_build_with_ccache
+    _init_env
 
     # lunch target
     _gs_android_build_lunch $1
+
+    _gs_android_build_with_ccache
 
     # log file
     local build_time=$(date "+%Y-%m-%d-%H-%M-%S")
@@ -161,10 +170,12 @@ function gs_android_build() {
 # 全编译后在打ota包
 # 可以带上编译的 target ，否则从默认配置 _GS_BUILD_TARGET_DEFAULT 获取
 function gs_android_build_ota() {
-    _gs_android_build_with_ccache
+    _init_env
 
     # lunch target
     _gs_android_build_lunch $1
+
+    _gs_android_build_with_ccache
 
     # log file
     local build_time=$(date "+%Y-%m-%d-%H-%M-%S")
@@ -179,10 +190,12 @@ function gs_android_build_ota() {
 }
 
 function _gs_android_build_system() {
-    #_gs_android_build_with_ccache
+    _init_env
 
     # lunch target
-    _gs_android_build_lunch
+    _gs_android_build_lunch $2
+
+    _gs_android_build_with_ccache
 
     local goals=$1
 
@@ -196,27 +209,32 @@ function _gs_android_build_system() {
 }
 
 # 编译 system.img
+# 可以带上编译的 target ，否则从默认配置 _GS_BUILD_TARGET_DEFAULT 获取
 function gs_android_build_system() {
-    _gs_android_build_system "snod"
+    _gs_android_build_system "snod" $1
 }
 
 # 编译 system_ext.img
+# 可以带上编译的 target ，否则从默认配置 _GS_BUILD_TARGET_DEFAULT 获取
 function gs_android_build_system_ext() {
-    _gs_android_build_system "senod"
+    _gs_android_build_system "senod" $1
 }
 
 # 编译 vendor.img
+# 可以带上编译的 target ，否则从默认配置 _GS_BUILD_TARGET_DEFAULT 获取
 function gs_android_build_vendor() {
-    _gs_android_build_system "vnod"
+    _gs_android_build_system "vnod" $1
 }
 
 # 编译qssi(高通特有)
 # 可以带上编译的 target ，否则从默认配置 _GS_BUILD_TARGET_DEFAULT 获取
-function gs_qssi_build() {
-    _gs_android_build_with_ccache
+function gs_android_build_qssi() {
+    _init_env
 
     # lunch target
     _gs_android_build_lunch $1
+
+    _gs_android_build_with_ccache
 
     # log file
     local build_time=$(date "+%Y-%m-%d-%H-%M-%S")
@@ -247,6 +265,7 @@ function _gs_modules() {
         "watermark"
         "xj-framework"
         "xj-services"
+        "com.flyme.runtime"
     )
     #    echo $modules
     for item in ${modules[@]}; do
@@ -255,7 +274,7 @@ function _gs_modules() {
 }
 
 function _gs_show_and_choose_combo() {
-    unset _GS_BUILD_COMBO
+#    unset _GS_BUILD_COMBO
 
     local user_input=$1
     local title=$2
@@ -268,12 +287,12 @@ function _gs_show_and_choose_combo() {
         default_index=0
     fi
 
-    if [ -z ${_GS_LAST_BUILD_COMBO} ]; then
-        _GS_LAST_BUILD_COMBO=${choices[default_index]}
+    if [ -z ${_GS_BUILD_COMBO} ]; then
+        _GS_BUILD_COMBO=${choices[default_index]}
     fi
 
-    local answer=${_GS_LAST_BUILD_COMBO}
-    local selection=${_GS_LAST_BUILD_COMBO}
+    local answer=${_GS_BUILD_COMBO}
+    local selection=${_GS_BUILD_COMBO}
 
     if [ "${user_input}" ]; then
         answer=${user_input}
@@ -298,11 +317,13 @@ function _gs_show_and_choose_combo() {
     else
         selection=${answer}
     fi
+
     export _GS_BUILD_COMBO=${selection}
-    export _GS_LAST_BUILD_COMBO=${_GS_BUILD_COMBO}
 }
 
 function gs_android_build_ninja_clean() {
+    _init_env
+
     time prebuilts/build-tools/linux-x86/bin/ninja -j ${_GS_BUILD_THREAD} -f out/combined-${TARGET_PRODUCT}.ninja -t clean
 }
 
@@ -310,11 +331,13 @@ function gs_android_build_ninja_clean() {
 # 可以带上模块名字，否则会有选择菜单
 # 若需要编译的模块不在菜单里，也可以在选择菜单里输入模块名
 function gs_android_build_ninja() {
-    local title="select modules(ninja)"
-    local modules=$(_gs_modules)
+    _init_env
 
     # lunch target
     _gs_android_build_lunch
+
+    local title="select modules(ninja)"
+    local modules=$(_gs_modules)
 
     # select module++++
     _gs_show_and_choose_combo "$1" "${title}" "${modules}"
@@ -334,11 +357,13 @@ function gs_android_build_ninja() {
 # 可以带上模块名字，否则会有选择菜单
 # 若需要编译的模块不在菜单里，也可以在选择菜单里输入模块名
 function gs_android_build_make() {
-    local title="select modules(make)"
-    local modules=$(_gs_modules)
+    _init_env
 
     # lunch target
     _gs_android_build_lunch
+
+    local title="select modules(make)"
+    local modules=$(_gs_modules)
 
     # select module
     _gs_show_and_choose_combo "$1" "${title}" "${modules}"

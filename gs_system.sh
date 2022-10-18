@@ -99,11 +99,16 @@ function gs_init_vim() {
     mv $HOME/.gs_vim/.vimrc $HOME/.vimrc
 }
 
+function gs_init_cargo() {
+   cp  ${_GS_CONFIG_PATH}/.cargo_config $HOME/.cargo/config
+}
+
 function gs_init_all_config() {
     cp ${_GS_CONFIG_PATH}/.zshrc $HOME/.zshrc
     gs_init_git
     gs_init_ssh
     gs_init_vim
+    gs_init_cargo
 }
 
 function gs_repo_upload() {
