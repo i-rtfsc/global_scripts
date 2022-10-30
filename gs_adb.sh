@@ -16,6 +16,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# https://github.com/mzlogin/awesome-adb
+
 machine="$(uname -s)"
 case "${machine}" in
     Linux*)     isMac=false;;
@@ -23,7 +25,7 @@ case "${machine}" in
     *)          isMac=false;;
 esac
 
-function gs_adb_selinux() {
+function gs_adb_selinux_disable() {
     adb shell "setenforce 0"
     adb shell "stop && start"
 }
@@ -66,20 +68,12 @@ function gs_adb_screencap {
     adb pull /sdcard/"$1".png
 }
 
-function gs_adb_dispaysync {
-    adb shell dumpsys SurfaceFlinger --dispsync | grep mPeriod
-}
-
 function gs_adb_sf_set_refresh_rate() {
     adb shell service call SurfaceFlinger 1035 i32 $1
 }
 
 function gs_adb_sf_dump_refresh_rate() {
     adb shell dumpsys SurfaceFlinger | grep refresh
-}
-
-function gs_adb_vrr_set_refresh_rate() {
-    adb shell dumpsys vrr $1 system 1
 }
 
 function gs_adb_systrace {
@@ -111,24 +105,88 @@ function gs_adb_key_menu() {
     adb shell input keyevent 82
 }
 
-####################################################################################################################
-alias J007Engine-log-pid='adb logcat --pid=`com.journeyOS.J007engine.hidl@1.0-service`'
-alias J007Engine-kill='adb shell killall com.journeyOS.J007engine.hidl@1.0-service'
-####################################################################################################################
-alias J007Service-log-pid='adb logcat --pid=`adb shell pidof com.journeyOS.J007engine`'
-alias J007Service-kill='adb shell killall com.journeyOS.J007engine'
-alias J007Service-clear='adb shell pm clear com.journeyOS.J007engine'
-alias J007Service-dump='adb shell dumpsys activity service com.journeyOS.J007engine/com.journeyOS.J007engine.service.J007EngineService'
-####################################################################################################################
-alias J007Test-log-pid='adb logcat --pid=`adb shell pidof com.journeyOS.J007enginetest`'
-alias J007Test-kill='adb shell killall com.journeyOS.J007enginetest'
-alias J007Test-clear='adb shell pm clear com.journeyOS.J007enginetest'
-####################################################################################################################
-alias I007-service-log-pid='adb logcat --pid=`adb shell pidof com.journeyOS.i007Service`'
-alias I007-service-uninstall='adb uninstall com.journeyOS.i007Service'
-alias I007-service-kill='adb shell killall com.journeyOS.i007Service'
-alias I007-service-version='adb shell dumpsys package com.journeyOS.i007Service | grep -i version'
-####################################################################################################################
-alias I007-test-log-pid='adb logcat --pid=`adb shell pidof com.journeyOS.i007test`'
-alias I007-test-uninstall='adb uninstall com.journeyOS.i007test'
-####################################################################################################################
+# https://stackoverflow.com/questions/20155376/android-stop-emulator-from-command-line
+function gs_adb_shutdown_emulator() {
+    adb emu kill
+}
+
+#输入包名
+function gs_adb_dump_version() {
+    if [ -z $1 ]; then
+        echo "input package name"
+        return
+    fi
+    adb shell dumpsys package $1 | grep -i version
+}
+
+#输入包名
+function gs_adb_show_log() {
+    if [ -z $1 ]; then
+        echo "input package name"
+        return
+    fi
+    adb logcat --pid=`adb shell pidof  $1`
+}
+
+#输入包名
+function gs_adb_kill_package() {
+    if [ -z $1 ]; then
+        echo "input package name"
+        return
+    fi
+    adb shell killall $1
+#    adb shell kill -9 `adb shell pidof $1`
+}
+
+#输入包名
+function gs_adb_clear_package() {
+    if [ -z $1 ]; then
+        echo "input package name"
+        return
+    fi
+    adb shell pm clear $1
+}
+
+function gs_adb_dump_version_settings() {
+    gs_adb_dump_version com.android.settings
+}
+
+function gs_adb_j007engine_kill() {
+    gs_adb_kill_package com.journeyOS.J007engine.hidl@1.0-service
+}
+
+function gs_adb_j007engine_log() {
+    gs_adb_show_log com.journeyOS.J007engine.hidl@1.0-service
+}
+
+function gs_adb_j007service_kill() {
+    gs_adb_kill_package com.journeyOS.J007engine
+}
+
+function gs_adb_j007service_log() {
+    gs_adb_show_log com.journeyOS.J007engine
+}
+
+function gs_adb_j007service_clear() {
+    gs_adb_clear_package com.journeyOS.J007engine
+}
+
+function gs_adb_j007service_version() {
+    gs_adb_dump_version com.journeyOS.J007engine
+}
+
+function gs_adb_i007service_kill() {
+    gs_adb_kill_package com.journeyOS.i007Service
+}
+
+function gs_adb_i007service_log() {
+    gs_adb_show_log com.journeyOS.i007Service
+}
+
+function gs_adb_i007service_clear() {
+    gs_adb_clear_package com.journeyOS.i007Service
+}
+
+function gs_adb_i007service_version() {
+    gs_adb_dump_version com.journeyOS.i007Service
+}
