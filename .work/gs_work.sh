@@ -21,8 +21,8 @@ alias vm-ssh='ssh solo@10.171.53.122'
 alias vm-mount='sshfs solo@10.171.53.122:/home/solo/code/ $HOME/vm'
 alias vm-umount='sudo diskutil umount force $HOME/vm'
 
-alias ubuntu-ssh='ssh solo@10.88.159.37'
-alias ubuntu-mount='sshfs solo@10.88.159.37:/home/solo/code/ $HOME/ubuntu'
+alias ubuntu-ssh='ssh solo@10.88.161.172'
+alias ubuntu-mount='sshfs solo@10.88.161.172:/home/solo/code/ $HOME/ubuntu'
 alias ubuntu-umount='sudo diskutil umount force $HOME/ubuntu'
 
 alias uos-ssh='ssh solo@10.88.159.103'
@@ -42,29 +42,21 @@ function mz-repo() {
     export REPO_REV='master'
 }
 
-alias ums-log-pid='adb logcat --pid=`adb shell pidof com.upuphone.bxservice`'
-alias ums-kill='adb shell kill -9 `adb shell pidof com.upuphone.bxservice`'
-alias ums-version='adb shell dumpsys package com.upuphone.bxservice | grep -i version'
-alias ums-version-test='adb shell dumpsys package com.upuphone.bxservicetest | grep -i version'
+alias gs_work_fms_log='adb logcat --pid=`adb shell pidof com.flyme.mobileservice`'
+alias gs_work_fms_kill='adb shell kill -9 `adb shell pidof com.flyme.mobileservice`'
+alias gs_work_fms_version='adb shell dumpsys package com.flyme.mobileservice | grep -i version'
+alias gs_work_fms_dump='adb shell dumpsys activity service com.flyme.mobileservice/.ltpo.VrrService'
 
-alias ai-log-pid='adb logcat --pid=`adb shell pidof com.upuphone.aiservice`'
-alias ai-kill='adb shell kill -9 `adb shell pidof com.upuphone.aiservice`'
-alias ai-version='adb shell dumpsys package com.upuphone.aiservice | grep -i version'
-alias ai-dump='adb shell dumpsys activity service com.upuphone.aiservice/.service.AiService'
-alias ai-push='adb push out/target/product/lemonadep/system_ext/priv-app/AiService/AiService.apk system_ext/priv-app/AiService/AiService.apk'
+alias gs_work_fms_ltpo_enable='adb shell dumpsys activity service com.flyme.mobileservice/.ltpo.VrrService put settings ltpo true bool'
+alias gs_work_fms_ltpo_disable='adb shell dumpsys activity service com.flyme.mobileservice/.ltpo.VrrService put settings ltpo false bool'
 
-alias watermark-push='adb push out/target/product/lemonadep/system_ext/bin/watermark system_ext/bin/watermark'
-alias watermark-kill='adb shell killall watermark'
+alias gs_work_ltpo_note='adb shell "dmesg -w | grep -iE dsi"'
 
-function gs_work_build_ext_fwk() {
+function gs_work_build_fms() {
     ./gradlew clean ; ./gradlew asR
     adb root ; adb remount
-    adb push test/build/ExtFwk.apk /system_ext/app/ExtFwk/
-    adb shell kill -9 `adb shell pidof com.android.extfwk`
-}
-
-function gs_work_start_ext_fwk() {
-    adb shell am start -n com.android.extfwk/com.android.extfwk.DebugActivity
+    adb push Apps/app-phone/build/outputs/apk/release/app-phone-universal-release.apk /system_ext/app/fms/fms.apk
+    adb shell kill -9 `adb shell pidof com.flyme.mobileservice`
 }
 
 function gs_work_flash_qssi() {
@@ -185,11 +177,34 @@ function gs_work_qssi_git_copy() {
 }
 
 function gs_work_flash_qssi() {
-    adb reboot fastboot
+#    adb reboot fastboot
     fastboot flash system system.img
     fastboot flash system_ext system_ext.img
     fastboot flash product product.img
     fastboot flash vbmeta_system vbmeta_system.img
     fastboot -w
     fastboot reboot
+}
+
+function gs_work_mars_copy() {
+    local target=$1
+    if [ -z ${target} ]; then
+        target="/Volumes/share/mars"
+    fi
+
+    local source_dir=`pwd`
+    source="/Users/solo/code/mfsc"
+    local target_dir="${${source_dir}/${source}/${target}}"
+    echo $target_dir
+
+    if [ -z $1 ]; then
+        files=($(git status --short --no-renames | awk '{print $(NF)}'))
+    else
+        files=($(git ls-files -m))
+    fi
+
+    for file in ${files}; do
+        echo ${source_dir}/${file} ${target_dir}/${file}
+        cp ${source_dir}/${file} ${target_dir}/${file}
+    done
 }

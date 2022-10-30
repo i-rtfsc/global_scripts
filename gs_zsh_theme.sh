@@ -60,9 +60,31 @@ function _gs_get_current_dir() {
     echo "${ZSH_COLOR_PURPLE}[${ZSH_COLOR_CYAN}$real_dir${ZSH_COLOR_PURPLE}]"
 }
 
+function _gs_get_machine_info_with_current_dir() {
+    local name="%n"
+    if $isMac ; then
+        local ip=$(ipconfig getifaddr en0)
+        if [ -z ${ip} ]; then
+            ip=$(ipconfig getifaddr en1)
+        fi
+    else
+        local ip=$(ip a | grep " `route | grep default | awk 'NR==1{print $NF}'`:" -A2 | tail -n1 | awk '{print $2}' | cut -f1 -d '/')
+    fi
+    local real_dir=${PWD/#$HOME/~}
+    echo "${ZSH_COLOR_PURPLE}[${ZSH_COLOR_RED}$name${ZSH_COLOR_YELLOW}@${ZSH_COLOR_RED}$ip:${ZSH_COLOR_CYAN}$real_dir${ZSH_COLOR_PURPLE}]"
+}
+
 function _gs_get_time() {
     echo "${ZSH_COLOR_PURPLE}[${ZSH_COLOR_BLUE}$(date "+%Y-%m-%d %H:%M:%S")${ZSH_COLOR_PURPLE}]"
 }
+
+
+function _gs_system_cpu_men() {
+#    cpu_mem=$(ps -A -o %cpu,%mem | awk '{ cpu += $1; mem += $2} END {print "cpu : "cpu"%, memory : "mem"%"}')
+    cpu_mem=$(ps -A -o %cpu,%mem | awk '{ cpu += $1; mem += $2} END {print "cpu : "cpu" %" }')
+    echo "${ZSH_COLOR_PURPLE}[${ZSH_COLOR_RED}${cpu_mem}${ZSH_COLOR_PURPLE}]"
+}
+
 
 # conda env or python version info
 function _gs_conda_or_py_info() {
@@ -93,6 +115,13 @@ function _gs_prompt_start_line2() {
     echo "${ZSH_COLOR_PURPLE}╰─"
 }
 
-PROMPT=$'$(_gs_prompt_start_line1)$(_gs_get_machine_info)$(_gs_spilt_icon)$(_gs_get_current_dir)$(_gs_spilt_icon)$(_gs_get_time)
+#PROMPT=$'$(_gs_prompt_start_line1)$(_gs_get_machine_info)$(_gs_spilt_icon)$(_gs_get_current_dir)$(_gs_spilt_icon)$(_gs_get_time)
+PROMPT=$'$(_gs_prompt_start_line1)$(_gs_get_machine_info_with_current_dir)$(_gs_spilt_icon)$(_gs_get_time)
 $(_gs_prompt_start_line2)$(_gs_conda_or_py_info)$(_gs_big_arrows)${ZSH_COLOR_WHITE}'
 RPROMPT=$(_gs_right_display)
+
+TMOUT=1
+
+TRAPALRM() {
+    zle reset-prompt
+}
