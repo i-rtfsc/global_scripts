@@ -100,7 +100,7 @@ function gs_init_vim() {
 }
 
 function gs_init_cargo() {
-   cp  ${_GS_CONFIG_PATH}/.cargo_config $HOME/.cargo/config
+   cp  ${_GS_CONFIG_PATH}/cargo_config $HOME/.cargo/config
 }
 
 function gs_init_all_config() {

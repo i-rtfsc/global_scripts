@@ -22,9 +22,13 @@ function _init_env() {
     case $(uname -s) in
     Darwin)
         _GS_BUILD_THREAD=$(sysctl -n hw.logicalcpu)
+        # 使用ccache
+        _GS_CCACHE=false
         ;;
     *)
         _GS_BUILD_THREAD=$(nproc)
+        # 使用ccache
+        _GS_CCACHE=true
         ;;
     esac
 
@@ -35,12 +39,9 @@ function _init_env() {
     # 飞书机器人
     _GS_BOT="93c6a139-2a53-44ec-9711-850dd3a1e6f4"
 
-    # 使用ccache
-    _GS_CCACHE=true
-
     # CMakeLists.txt project file generation is enabled via environment variable:
     export SOONG_GEN_CMAKEFILES=1
-    export SOONG_GEN_CMAKEFILES_DEBUG=1
+#    export SOONG_GEN_CMAKEFILES_DEBUG=1
 }
 
 function _gs_android_build_with_ccache() {
