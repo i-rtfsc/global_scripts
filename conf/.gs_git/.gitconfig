@@ -11,4 +11,4 @@
 [includeIf "gitdir:~/code/work/"]
     path =  ~/.gs_git/work.git
 [includeIf "gitdir:~/work/"]
-path =  ~/.gs_git/work.git
+    path =  ~/.gs_git/work.git

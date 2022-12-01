@@ -120,8 +120,8 @@ PROMPT=$'$(_gs_prompt_start_line1)$(_gs_get_machine_info_with_current_dir)$(_gs_
 $(_gs_prompt_start_line2)$(_gs_conda_or_py_info)$(_gs_big_arrows)${ZSH_COLOR_WHITE}'
 RPROMPT=$(_gs_right_display)
 
-TMOUT=1
-
-TRAPALRM() {
-    zle reset-prompt
-}
+#TMOUT=1
+#
+#TRAPALRM() {
+#    zle reset-prompt
+#}

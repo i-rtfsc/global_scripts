@@ -29,7 +29,7 @@ alias uos-ssh='ssh solo@10.88.159.103'
 alias uos-mount='sshfs solo@10.88.159.103:/home/solo/code/ $HOME/uos'
 alias uos-umount='sudo diskutil umount force $HOME/uos'
 
-alias mz-ssh='ssh x-huanganqi@fort-test.meizu.com'
+alias mz-ssh='ssh -oHostKeyAlgorithms=+ssh-dss x-huanganqi@fort-test.meizu.com'
 function mz-share() {
     sudo mount -t cifs //172.16.204.113/share ~/share -o username=meizu,password=$1
 }
@@ -55,8 +55,38 @@ alias gs_work_ltpo_note='adb shell "dmesg -w | grep -iE dsi"'
 function gs_work_build_fms() {
     ./gradlew clean ; ./gradlew asR
     adb root ; adb remount
-    adb push Apps/app-phone/build/outputs/apk/release/app-phone-universal-release.apk /system_ext/app/fms/fms.apk
+    adb push Apps/app-phone/build/outputs/apk/release/app-phone-universal-release.apk /system/app/FMS/FMS.apk
     adb shell kill -9 `adb shell pidof com.flyme.mobileservice`
+}
+
+function gs_work_copy_image() {
+    abs_current_dir=$(pwd)
+    current_dir_name=$(basename "$PWD")
+    source_dir=$abs_current_dir/out/target/product/qssi
+    image_dir=/data/share/image
+    target_dir=$image_dir/$current_dir_name
+    target_gz=$target_dir.tar.gz
+
+    echo $abs_current_dir
+    echo $source_dir
+    echo $target_dir
+    echo $target_gz
+
+    ls $source_dir/system.img
+
+    rm -rf $target_dir
+    rm -rf $target_gz
+    mkdir -p $target_dir
+
+    cp $source_dir/system.img $target_dir
+    cp $source_dir/system_ext.img $target_dir
+    cp $source_dir/product.img $target_dir
+    cp $source_dir/vbmeta_system.img $target_dir
+
+#    tar -zcvf $target_gz $target_dir
+    pushd $image_dir
+    tar -zcvf $target_gz $current_dir_name
+    popd
 }
 
 function gs_work_flash_qssi() {
@@ -189,11 +219,11 @@ function gs_work_flash_qssi() {
 function gs_work_mars_copy() {
     local target=$1
     if [ -z ${target} ]; then
-        target="/Volumes/share/mars"
+        target="/home/share/mars"
     fi
 
     local source_dir=`pwd`
-    source="/Users/solo/code/mfsc"
+    source="/home/solo/code/mfsc"
     local target_dir="${${source_dir}/${source}/${target}}"
     echo $target_dir
 

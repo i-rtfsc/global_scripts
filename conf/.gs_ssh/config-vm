@@ -1,14 +1,4 @@
 host boxing
-Hostname gerrit-slave.upuphone.com
-Port 29418
-User anqi.huang
-PubkeyAuthentication yes
-IdentitiesOnly yes
-PasswordAuthentication no
-IdentityFile ~/.ssh/id_rsa
-StrictHostKeyChecking no
-
-host boxing-master
 Hostname gerrit.upuphone.com
 Port 29418
 User anqi.huang
