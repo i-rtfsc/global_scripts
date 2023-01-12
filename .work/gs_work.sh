@@ -52,10 +52,17 @@ alias gs_work_fms_ltpo_disable='adb shell dumpsys activity service com.flyme.mob
 
 alias gs_work_ltpo_note='adb shell "dmesg -w | grep -iE dsi"'
 
+function gs_work_init_empty_commit() {
+    git init
+    git checkout -b flyme10_base
+    git add .
+    git commit --allow-empty -m 'init commit'
+}
+
 function gs_work_build_fms() {
     ./gradlew clean ; ./gradlew asR
-    adb root ; adb remount
-    adb push Apps/app-phone/build/outputs/apk/release/app-phone-universal-release.apk /system/app/FMS/FMS.apk
+#    adb root ; adb remount
+    adb push app/build/outputs/apk/release/app-universal-release.apk /system/app/FMS/FMS.apk
     adb shell kill -9 `adb shell pidof com.flyme.mobileservice`
 }
 
@@ -110,11 +117,13 @@ function gs_work_init_upuphone_env() {
 gs_work_init_upuphone_env
 
 function gs_work_push_framework {
-    adb push out/target/product/qssi/system/framework/framework.jar /system/framework/
+    adb push out/target/product/qssi/system/framework/framework.jar /system/framework/framework.jar
+    adb shell "stop && start"
 }
 
 function gs_work_push_services {
-    adb push out/target/product/qssi/system/framework/services.jar /system/framework/
+    adb push out/target/product/qssi/system/framework/services.jar /system/framework/services.jar
+    adb shell "stop && start"
 }
 
 function gs_work_push_ext-framework {
@@ -122,7 +131,46 @@ function gs_work_push_ext-framework {
 }
 
 function gs_work_push_ext-services {
-    adb push out/target/product/qssi/system/framework/jos-services.jar /system/framework/
+    adb push out/target/product/qssi/system/framework/xj-services.jar /system/framework/xj-services.jar
+    adb shell "stop && start"
+}
+
+function gs_work_push_libgui {
+    adb push out/target/product/qssi/system/lib/libgui.so /system/lib/libgui.so
+    adb push out/target/product/qssi/system/lib64/libgui.so /system/lib64/libgui.so
+}
+
+function gs_work_push_mediaserver {
+    adb push out/target/product/qssi/system/lib/libresourcemanagerservice.so /system/lib/libresourcemanagerservice.so
+    adb push out/target/product/qssi/system/lib64/libresourcemanagerservice.so /system/lib64/libresourcemanagerservice.so
+
+    adb push out/target/product/qssi/system/lib/libmediadrm.so /system/lib/libmediadrm.so
+    adb push out/target/product/qssi/system/lib64/libmediadrm.so /system/lib64/libmediadrm.so
+
+    adb push out/target/product/qssi/system/lib/libmediaplayerservice.so /system/lib/libmediaplayerservice.so
+    adb push out/target/product/qssi/system/lib64/libmediaplayerservice.so /system/lib64/libmediaplayerservice.so
+}
+function gs_work_push_input {
+    #adb push out/target/product/qssi/system/lib64/libinputflinger_base.so system/lib64/libinputflinger_base.so
+#    adb push out/target/product/qssi/system/lib/libinputflinger_base.so system/lib/libinputflinger_base.so
+
+    adb push out/target/product/qssi/system/lib64/libinputflinger.so system/lib64/libinputflinger.so
+#    adb push out/target/product/qssi/system/lib/libinputflinger.so system/lib/libinputflinger.so
+
+    adb push out/target/product/qssi/system/lib64/libinputreader.so system/lib64/libinputreader.so
+#    adb push out/target/product/qssi/system/lib/libinputreader.so system/lib/libinputreader.so
+
+    #adb push out/target/product/qssi/system/lib64/libinputreporter.so system/lib64/libinputreporter.so
+#    adb push out/target/product/qssi/system/lib/libinputreporter.so system/lib/libinputreporter.so
+
+    adb push out/target/product/qssi/system/lib64/libinputservice.so system/lib64/libinputservice.so
+#    adb push out/target/product/qssi/system/lib/libinputservice.so system/lib/libinputservice.so
+
+    #adb push out/target/product/qssi/system/lib64/libinput.so system/lib64/libinput.so
+#    adb push out/target/product/qssi/system/lib/libinput.so system/lib/libinput.so
+
+    adb push out/target/product/qssi/system/lib64/libandroid_runtime.so system/lib64/libandroid_runtime.so
+#    adb push out/target/product/qssi/system/lib/libandroid_runtime.so system/lib/libandroid_runtime.so
 }
 
 function _gs_code_git_copy() {
@@ -219,11 +267,11 @@ function gs_work_flash_qssi() {
 function gs_work_mars_copy() {
     local target=$1
     if [ -z ${target} ]; then
-        target="/home/share/mars"
+        target="/home/solo/share/mars"
     fi
 
     local source_dir=`pwd`
-    source="/home/solo/code/mfsc"
+    source="/home/solo/code/flyme"
     local target_dir="${${source_dir}/${source}/${target}}"
     echo $target_dir
 
@@ -235,6 +283,6 @@ function gs_work_mars_copy() {
 
     for file in ${files}; do
         echo ${source_dir}/${file} ${target_dir}/${file}
-        cp ${source_dir}/${file} ${target_dir}/${file}
+        sudo cp ${source_dir}/${file} ${target_dir}/${file}
     done
 }

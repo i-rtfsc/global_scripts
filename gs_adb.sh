@@ -68,6 +68,11 @@ function gs_adb_screencap {
     adb pull /sdcard/"$1".png
 }
 
+function gs_adb_screenrecord {
+    adb shell screenrecord /sdcard/"$1".mp4
+    adb pull /sdcard/"$1".mp4
+}
+
 function gs_adb_sf_set_refresh_rate() {
     adb shell service call SurfaceFlinger 1035 i32 $1
 }
@@ -149,6 +154,14 @@ function gs_adb_clear_package() {
 
 function gs_adb_dump_version_settings() {
     gs_adb_dump_version com.android.settings
+}
+
+function gs_adb_abx2xml() {
+    # https://blog.csdn.net/q1165328963/article/details/125007694
+    # adb shell cat /data/system/packages.xml | adb shell abx2xml - -
+    # usage: abx2xml [-i] input [output]
+    # usage: xml2abx [-i] input [output]
+    adb shell cat $1 | adb shell abx2xml - -
 }
 
 function gs_adb_j007engine_kill() {
