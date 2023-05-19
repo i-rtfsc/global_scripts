@@ -40,6 +40,13 @@ function gs_adb_hidden_api_disable {
     adb shell settings delete global hidden_api_policy_p_apps
 }
 
+function gs_adb_settings_provider() {
+    # 查看 SettingsProvider 所有的配置
+    # 比如不知道某个开关对应的数据库key，可以通过打开关闭抓两份结果对比值的变化
+    adb shell dumpsys settings
+}
+
+
 function gs_adb_show_3rd_app {
     adb shell pm list packages -f -3
 }
@@ -73,6 +80,10 @@ function gs_adb_screenrecord {
     adb pull /sdcard/"$1".mp4
 }
 
+function gs_adb_sf_show_refresh_rate() {
+    adb shell service call SurfaceFlinger 1034 i32 $1
+}
+
 function gs_adb_sf_set_refresh_rate() {
     adb shell service call SurfaceFlinger 1035 i32 $1
 }
@@ -86,12 +97,26 @@ function gs_adb_systrace {
         python2 ~/Library/Android/sdk/platform-tools/systrace/systrace.py
     else
         # TODO
-        python2 ~/Library/Android/sdk/platform-tools/systrace/systrace.py
+        python2 ~/bin/platform-tools/systrace/systrace.py
     fi
 }
 
 function gs_adb_imei {
     adb shell "service call iphonesubinfo 1 | cut -c 52-66 | tr -d '.[:space:]'"
+}
+
+function gs_adb_input_disable() {
+    adb shell settings put system touch_event 0
+    adb shell setprop sys.inputlog.enabled false
+    adb shell setprop sys.input.TouchFilterEnable false
+    adb shell dumpsys input
+}
+
+function gs_adb_input_enable {
+    adb shell settings put system touch_event 1
+    adb shell setprop sys.inputlog.enabled true
+    adb shell setprop sys.input.TouchFilterEnable false
+    adb shell dumpsys input
 }
 
 function gs_adb_key() {
@@ -113,6 +138,15 @@ function gs_adb_key_menu() {
 # https://stackoverflow.com/questions/20155376/android-stop-emulator-from-command-line
 function gs_adb_shutdown_emulator() {
     adb emu kill
+}
+
+function gs_adb_rm_dex2oat() {
+    adb root
+    adb remount
+    adb shell rm -rf system/framework/oat
+    adb shell rm -rf system/framework/arm
+    adb shell rm -rf system/framework/arm64
+    adb reboot
 }
 
 #输入包名

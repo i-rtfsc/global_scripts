@@ -16,54 +16,45 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-alias vm-ssh-all='ssh anqi.huang@jumpserver.upuphone.com -p 2222'
-alias vm-ssh='ssh solo@10.171.53.122'
-alias vm-mount='sshfs solo@10.171.53.122:/home/solo/code/ $HOME/vm'
-alias vm-umount='sudo diskutil umount force $HOME/vm'
-
-alias ubuntu-ssh='ssh solo@10.88.161.172'
-alias ubuntu-mount='sshfs solo@10.88.161.172:/home/solo/code/ $HOME/ubuntu'
-alias ubuntu-umount='sudo diskutil umount force $HOME/ubuntu'
-
-alias uos-ssh='ssh solo@10.88.159.103'
-alias uos-mount='sshfs solo@10.88.159.103:/home/solo/code/ $HOME/uos'
-alias uos-umount='sudo diskutil umount force $HOME/uos'
-
-alias mz-ssh='ssh -oHostKeyAlgorithms=+ssh-dss x-huanganqi@fort-test.meizu.com'
-function mz-share() {
-    sudo mount -t cifs //172.16.204.113/share ~/share -o username=meizu,password=$1
-}
-
 alias gs_work_update_py2='sudo rm -rf /usr/bin/python; sudo ln -s /usr/bin/python2.7 /usr/bin/python'
 alias gs_work_update_py3='sudo rm -rf /usr/bin/python; sudo ln -s /usr/bin/python3 /usr/bin/python'
 
-function mz-repo() {
-    export REPO_URL='ssh://x-huanganqi@review.rnd.meizu.com:29418/repo'
-    export REPO_REV='master'
+alias ubuntu-ssh='ssh solo@10.88.30.174'
+alias ubuntu-mount='sshfs solo@10.88.30.174:/home/solo/code/ $HOME/ubuntu'
+alias ubuntu-umount='sudo diskutil umount force $HOME/ubuntu'
+
+function flyme-ssh() {
+    ssh -oHostKeyAlgorithms=+ssh-dss x-huanganqi@fort.meizu.com
 }
 
-alias gs_work_fms_log='adb logcat --pid=`adb shell pidof com.flyme.mobileservice`'
-alias gs_work_fms_kill='adb shell kill -9 `adb shell pidof com.flyme.mobileservice`'
-alias gs_work_fms_version='adb shell dumpsys package com.flyme.mobileservice | grep -i version'
-alias gs_work_fms_dump='adb shell dumpsys activity service com.flyme.mobileservice/.ltpo.VrrService'
-
-alias gs_work_fms_ltpo_enable='adb shell dumpsys activity service com.flyme.mobileservice/.ltpo.VrrService put settings ltpo true bool'
-alias gs_work_fms_ltpo_disable='adb shell dumpsys activity service com.flyme.mobileservice/.ltpo.VrrService put settings ltpo false bool'
-
-alias gs_work_ltpo_note='adb shell "dmesg -w | grep -iE dsi"'
-
-function gs_work_init_empty_commit() {
-    git init
-    git checkout -b flyme10_base
-    git add .
-    git commit --allow-empty -m 'init commit'
+function flyme-share() {
+    sudo mount -t cifs //172.16.204.113/share ~/share -o username=meizu,password=$1
 }
 
-function gs_work_build_fms() {
-    ./gradlew clean ; ./gradlew asR
-#    adb root ; adb remount
-    adb push app/build/outputs/apk/release/app-universal-release.apk /system/app/FMS/FMS.apk
-    adb shell kill -9 `adb shell pidof com.flyme.mobileservice`
+function gs_work_input_log_enabled() {
+    adb shell setprop log.tag.InputDispatcherInboundEvent DEBUG
+    adb shell setprop log.tag.InputDispatcherOutboundEvent DEBUG
+    adb shell setprop log.tag.InputDispatcherDispatchCycle DEBUG
+    adb shell setprop log.tag.InputDispatcherChannelCreation DEBUG
+    adb shell setprop log.tag.InputDispatcherInjection DEBUG
+    adb shell setprop log.tag.InputDispatcherFocus DEBUG
+    adb shell setprop log.tag.InputDispatcherTouchMode DEBUG
+    adb shell setprop log.tag.InputDispatcherTouchOcclusion DEBUG
+    adb shell setprop log.tag.InputDispatcherAppSwitch DEBUG
+    adb shell setprop log.tag.InputDispatcherHover DEBUG
+    adb shell setprop sys.inputlog.enabled true
+    adb shell "stop && start"
+    # system_server起来进入桌面后
+    # adb shell dumpsys input
+}
+
+function gs_work_flash_qssi() {
+    fastboot flash system system.img
+    fastboot flash system_ext system_ext.img
+    fastboot flash product product.img
+    fastboot flash vbmeta_system vbmeta_system.img
+    fastboot -w
+    fastboot reboot
 }
 
 function gs_work_copy_image() {
@@ -96,183 +87,20 @@ function gs_work_copy_image() {
     popd
 }
 
-function gs_work_flash_qssi() {
-    fastboot flash system system.img
-    fastboot flash system_ext system_ext.img
-    fastboot flash product product.img
-    fastboot flash vbmeta_system vbmeta_system.img
-    fastboot -w
-    fastboot reboot
-}
-
-function gs_work_init_upuphone_env() {
-    # init repo url
-    unset REPO_URL
-    export REPO_URL='http://gerrit.upuphone.com/repo'
-    # init gitlab url
-    unset GITLAB_URL
-    export GITLAB_URL='git@gitlab.upuphone.com'
-}
-# init upuphone env
-gs_work_init_upuphone_env
-
-function gs_work_push_framework {
-    adb push out/target/product/qssi/system/framework/framework.jar /system/framework/framework.jar
-    adb shell "stop && start"
-}
-
-function gs_work_push_services {
-    adb push out/target/product/qssi/system/framework/services.jar /system/framework/services.jar
-    adb shell "stop && start"
-}
-
-function gs_work_push_ext-framework {
-    adb push out/target/product/qssi/system/framework/jos-framework.jar /system/framework/
-}
-
-function gs_work_push_ext-services {
-    adb push out/target/product/qssi/system/framework/xj-services.jar /system/framework/xj-services.jar
-    adb shell "stop && start"
-}
-
-function gs_work_push_libgui {
-    adb push out/target/product/qssi/system/lib/libgui.so /system/lib/libgui.so
-    adb push out/target/product/qssi/system/lib64/libgui.so /system/lib64/libgui.so
-}
-
-function gs_work_push_mediaserver {
-    adb push out/target/product/qssi/system/lib/libresourcemanagerservice.so /system/lib/libresourcemanagerservice.so
-    adb push out/target/product/qssi/system/lib64/libresourcemanagerservice.so /system/lib64/libresourcemanagerservice.so
-
-    adb push out/target/product/qssi/system/lib/libmediadrm.so /system/lib/libmediadrm.so
-    adb push out/target/product/qssi/system/lib64/libmediadrm.so /system/lib64/libmediadrm.so
-
-    adb push out/target/product/qssi/system/lib/libmediaplayerservice.so /system/lib/libmediaplayerservice.so
-    adb push out/target/product/qssi/system/lib64/libmediaplayerservice.so /system/lib64/libmediaplayerservice.so
-}
-function gs_work_push_input {
-    #adb push out/target/product/qssi/system/lib64/libinputflinger_base.so system/lib64/libinputflinger_base.so
-#    adb push out/target/product/qssi/system/lib/libinputflinger_base.so system/lib/libinputflinger_base.so
-
-    adb push out/target/product/qssi/system/lib64/libinputflinger.so system/lib64/libinputflinger.so
-#    adb push out/target/product/qssi/system/lib/libinputflinger.so system/lib/libinputflinger.so
-
-    adb push out/target/product/qssi/system/lib64/libinputreader.so system/lib64/libinputreader.so
-#    adb push out/target/product/qssi/system/lib/libinputreader.so system/lib/libinputreader.so
-
-    #adb push out/target/product/qssi/system/lib64/libinputreporter.so system/lib64/libinputreporter.so
-#    adb push out/target/product/qssi/system/lib/libinputreporter.so system/lib/libinputreporter.so
-
-    adb push out/target/product/qssi/system/lib64/libinputservice.so system/lib64/libinputservice.so
-#    adb push out/target/product/qssi/system/lib/libinputservice.so system/lib/libinputservice.so
-
-    #adb push out/target/product/qssi/system/lib64/libinput.so system/lib64/libinput.so
-#    adb push out/target/product/qssi/system/lib/libinput.so system/lib/libinput.so
-
-    adb push out/target/product/qssi/system/lib64/libandroid_runtime.so system/lib64/libandroid_runtime.so
-#    adb push out/target/product/qssi/system/lib/libandroid_runtime.so system/lib/libandroid_runtime.so
-}
-
-function _gs_code_git_copy() {
-    local target=$1
-    if [ -z ${target} ]; then
-        target="vm"
-    fi
-
+function gs_work_git_copy() {
     local source_dir=`pwd`
-    local target_dir="${${source_dir}/code/${target}}"
+    # code 改成 share
+    local target_dir="${${source_dir}/code/share}"
     echo $target_dir
 
-    if [ -z $1 ]; then
-        files=($(git status --short --no-renames | awk '{print $(NF)}'))
-    else
-        files=($(git ls-files -m))
-    fi
-
-    for file in ${files}; do
-        echo ${source_dir}/${file} ${target_dir}/${file}
-        cp ${source_dir}/${file} ${target_dir}/${file}
-    done
-}
-
-function _gs_work_git_copy() {
     local target=$1
     if [ -z ${target} ]; then
-        target="vm"
-    fi
-
-    local source_dir=`pwd`
-    local target_dir="${${source_dir}/work/${target}}"
-    echo $target_dir
-
-    if [ -z $1 ]; then
-        files=($(git status --short --no-renames | awk '{print $(NF)}'))
+        echo "target was null"
+        exit
     else
-        files=($(git ls-files -m))
+        # flyme 改成 $1
+        target_dir="${${target_dir}/flyme/${target}}"
     fi
-
-    for file in ${files}; do
-        echo ${source_dir}/${file} ${target_dir}/${file}
-        cp ${source_dir}/${file} ${target_dir}/${file}
-    done
-}
-
-function gs_work_git_copy_vm() {
-    _gs_work_git_copy "vm"
-}
-
-function gs_work_git_copy_uos() {
-    _gs_work_git_copy "uos"
-}
-
-function gs_work_git_copy_mz() {
-    _gs_code_git_copy "share"
-}
-
-function gs_work_qssi_git_copy() {
-    local source_dir=`pwd`
-    local remote='solo@10.171.53.122:'
-
-    if [ -z $1 ]; then
-        files=($(git status --short --no-renames | awk '{print $(NF)}'))
-    else
-        files=($(git ls-files -m))
-    fi
-
-    for file in ${files}; do
-        source_file=${source_dir}/${file}
-        target_file=${remote}${source_dir}/${file}
-
-        case `uname -s` in
-            Darwin)
-                target_file="${${target_file}/Users/home}"
-                ;;
-        esac
-
-        echo ${source_file} ${target_file}
-        scp ${source_file} ${target_file}
-    done
-}
-
-function gs_work_flash_qssi() {
-#    adb reboot fastboot
-    fastboot flash system system.img
-    fastboot flash system_ext system_ext.img
-    fastboot flash product product.img
-    fastboot flash vbmeta_system vbmeta_system.img
-    fastboot -w
-    fastboot reboot
-}
-
-function gs_work_mars_copy() {
-    local target=$1
-    if [ -z ${target} ]; then
-        target="/home/solo/share/mars"
-    fi
-
-    local source_dir=`pwd`
-    source="/home/solo/code/flyme"
-    local target_dir="${${source_dir}/${source}/${target}}"
     echo $target_dir
 
     if [ -z $1 ]; then
@@ -286,3 +114,16 @@ function gs_work_mars_copy() {
         sudo cp ${source_dir}/${file} ${target_dir}/${file}
     done
 }
+
+function gs_work_git_copy_mars() {
+    gs_work_git_copy mars
+}
+
+function gs_work_git_copy_flyme10() {
+    gs_work_git_copy flyme10
+}
+
+function gs_work_git_copy_flyme10-u() {
+    gs_work_git_copy flyme10-u
+}
+
