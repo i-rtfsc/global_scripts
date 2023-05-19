@@ -76,41 +76,6 @@ function gs_brew_github() {
     brew update
 }
 
-_GS_CONFIG_PATH="$HOME/code/github/global_scripts/conf"
-
-function gs_init_git() {
-    # conf or update git conf
-    rm -rf $HOME/.gs_git
-    cp -r ${_GS_CONFIG_PATH}/.gs_git $HOME/.gs_git
-    mv $HOME/.gs_git/.gitconfig $HOME/.gitconfig
-}
-
-function gs_init_ssh() {
-    # conf or update ssh conf
-   rm -rf $HOME/.ssh
-   cp -r ${_GS_CONFIG_PATH}/.gs_ssh $HOME/.ssh
-   chmod 700 $HOME/.ssh/id_rsa
-}
-
-function gs_init_vim() {
-    # conf or update ssh conf
-    rm -rf $HOME/.gs_vim
-    cp -r ${_GS_CONFIG_PATH}/.gs_vim $HOME/
-    mv $HOME/.gs_vim/.vimrc $HOME/.vimrc
-}
-
-function gs_init_cargo() {
-   cp  ${_GS_CONFIG_PATH}/cargo_config $HOME/.cargo/config
-}
-
-function gs_init_all_config() {
-    cp ${_GS_CONFIG_PATH}/.zshrc $HOME/.zshrc
-    gs_init_git
-    gs_init_ssh
-    gs_init_vim
-    gs_init_cargo
-}
-
 function gs_repo_upload() {
     git push -u origin HEAD:$1
 }

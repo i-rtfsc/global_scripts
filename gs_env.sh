@@ -17,6 +17,7 @@
 # limitations under the License.
 
 _GS_ROOT_PATH="$HOME/code/github/global_scripts"
+_GS_CONFIG_PATH="${_GS_ROOT_PATH}/conf"
 
 # global python env
 function _gs_init_env() {
@@ -30,7 +31,6 @@ function _gs_init_env() {
     export LC_ALL=en_US.UTF-8
     export LANG=en_US.UTF-8
 }
-
 
 function _gs_conda_initialize() {
     # <<< conda initialize <<<
@@ -76,6 +76,31 @@ function _gs_cargo_initialize() {
     source ${_GS_CARGO_DIR}
 }
 
+function gs_init_git() {
+    # conf or update git conf
+    rm -rf $HOME/.gs_git
+    cp -r ${_GS_CONFIG_PATH}/.gs_git $HOME/.gs_git
+    mv $HOME/.gs_git/.gitconfig $HOME/.gitconfig
+}
+
+function gs_init_ssh() {
+    # conf or update ssh conf
+   rm -rf $HOME/.ssh
+   cp -r ${_GS_CONFIG_PATH}/.gs_ssh $HOME/.ssh
+   chmod 700 $HOME/.ssh/id_rsa
+}
+
+function gs_init_vim() {
+    # conf or update ssh conf
+    rm -rf $HOME/.gs_vim
+    cp -r ${_GS_CONFIG_PATH}/.gs_vim $HOME/
+    mv $HOME/.gs_vim/.vimrc $HOME/.vimrc
+}
+
+function gs_init_cargo() {
+   cp  ${_GS_CONFIG_PATH}/cargo_config $HOME/.cargo/config
+}
+
 # gs update environment
 function _gs_update_env() {
     source ${_GS_ROOT_PATH}/gs_system.sh
@@ -90,6 +115,14 @@ function _gs_update_env() {
     source ${_GS_ROOT_PATH}/gs_test.sh
     # only for work
     source ${_GS_ROOT_PATH}/.work/gs_work.sh
+}
+
+function gs_init_all_config() {
+#    cp ${_GS_CONFIG_PATH}/.zshrc $HOME/.zshrc
+    gs_init_git
+    gs_init_ssh
+    gs_init_vim
+    gs_init_cargo
 }
 
 _gs_init_env
