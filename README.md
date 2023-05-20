@@ -1,5 +1,12 @@
 # global scripts
 
+# 在 ~/.bashrc 里source gs_env.sh文件即可，比如我的工程目录在/Users/solo/code/github/global_scripts
+```bash
+source $HOME/code/github/global_scripts/gs_env.sh
+```
+> ~/.bashrc 和 ~/.zshrc 都要 source
+> source gs_env.sh 要改成其所在的路径
+
 # 依赖zsh、oyz
 如果不想用zsh，也可以使用该工程。但建议配合zsh使用更佳。
 ## 安装zsh
@@ -15,11 +22,22 @@ sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.
 > https://github.com/ohmyzsh/ohmyzsh
 
 ## 配置
-在.zshrc里source env.sh文件即可，比如我的工程目录在/Users/solo/code/github/global_scripts
+在 ~/.zshrc 里source gs_env.sh文件即可，比如我的工程目录在/Users/solo/code/github/global_scripts
 ```bash
-source $HOME/code/github/global_scripts/env.sh
+source $HOME/code/github/global_scripts/gs_env.sh
 ```
-> 若没安装zsh，则需要改成在.bashrc中source env.sh。注释掉env.sh中source zsh_theme.sh这一行。
+> ~/.bashrc 和 ~/.zshrc 都要 source
+> source gs_env.sh 要改成其所在的路径
+>
+> .zshrc里还配置zsh-autosuggestions 、zsh-syntax-highlighting插件，所以需要下载以下两个工程
+> $ git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
+> $ git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
+
+# 重要
+gs_env.sh文件中，要把 _GS_ROOT_PATH 配置成正确的路径（也就是你下载global_scripts工程的路径）
+```bash
+_GS_ROOT_PATH="$HOME/code/github/global_scripts"
+```
 
 # 脚本能力
 ## android_build.sh
@@ -28,27 +46,35 @@ android源码编译快捷键命令，如全编、ninja单编等。
 ```bash
 ╭─[solo@10.0.12.10] ➤ [/Users/solo/code/8350] ➤ [2022-04-29 17:02:11]
 ╰─(py39tf2.x) ❯❯❯❯❯❯ gs_android_build
-gs_android_build             gs_android_build_make        gs_android_build_ninja       gs_android_build_ota         gs_android_build_system      gs_android_build_system_ext  gs_android_build_vendor
+gs_android_build              gs_android_build_ninja        gs_android_build_ota          gs_android_build.sh           gs_android_build_system_ext                                                                                                                   
+gs_android_build_make         gs_android_build_ninja_clean  gs_android_build_qssi         gs_android_build_system       gs_android_build_vendor
 ```
 ```bash
 ╭─[solo@10.0.12.10] ➤ [/Users/solo/code/8450] ➤ [2022-04-29 17:03:55]
 ╰─(Ppy39tf2.x) ❯❯❯❯❯❯ gs_android_build_ninja
 Trying dependencies-only mode on a non-existing device tree?
 
-1. bx-framework
-2. framework
+1. framework
+2. framework-minus-apex
 3. services
-4. J007Service
-5. com.journeyOS.J007engine.hidl@1.0-service
-6. UMS
-7. UMSTest
-8. AiService
-9. update_engine
-10. surfaceflinger
+4. libandroid_servers
+5. libinputflinger
+6. libinputdispatcher
+7. libinputreader
+8. selinux_policy
+9. surfaceflinger
+10. update_engine
 11. android.hardware.power-service
-12. SystemUI
-13. Settings
-Which would you like? [ com.journeyOS.J007engine.hidl@1.0-service ]
+12. libresourcemanagerservice
+13. libaudioflinger
+14. libcameraservice
+15. com.journeyOS.J007engine.hidl@1.0-service
+16. com.journeyOS.J007engine.hidl@1.0
+17. J007Service
+18. jos-framework
+19. jos-services
+20. watermark
+Which would you like? [ framework ]
 ```
 
 ## android_grep.sh
@@ -77,13 +103,20 @@ adb快捷键命令
 ```bash
 ╭─[solo@10.0.12.10] ➤ [/Users/solo/code/8350] ➤ [2022-04-29 17:06:17]
 ╰─(py39tf2.x) ❯❯❯❯❯❯ gs_adb_
-gs_adb_dispaysync          gs_adb_imei                gs_adb_key_home            gs_adb_log_grep            gs_adb_show_3rd_app
-gs_adb_hidden_api_disable  gs_adb_key                 gs_adb_key_menu            gs_adb_ps_grep             gs_adb_show_system_app
-gs_adb_hidden_api_enable   gs_adb_key_back            gs_adb_kill_grep           gs_adb_screencap           gs_adb_systrace
+gs_adb_abx2xml                gs_adb_hidden_api_enable      gs_adb_imei                   gs_adb_j007service_clear      gs_adb_key_back               gs_adb_log_grep               gs_adb_selinux_disable        gs_adb_show_3rd_app                                       
+gs_adb_clear_package          gs_adb_i007service_clear      gs_adb_input_disable          gs_adb_j007service_kill       gs_adb_key_home               gs_adb_ps_grep                gs_adb_settings_provider      gs_adb_show_log                                           
+gs_adb_dump_version           gs_adb_i007service_kill       gs_adb_input_enable           gs_adb_j007service_log        gs_adb_key_menu               gs_adb_rm_dex2oat             gs_adb_sf_dump_refresh_rate   gs_adb_show_system_app                                    
+gs_adb_dump_version_settings  gs_adb_i007service_log        gs_adb_j007engine_kill        gs_adb_j007service_version    gs_adb_kill_grep              gs_adb_screencap              gs_adb_sf_set_refresh_rate    gs_adb_shutdown_emulator                                  
+gs_adb_hidden_api_disable     gs_adb_i007service_version    gs_adb_j007engine_log         gs_adb_key                    gs_adb_kill_package           gs_adb_screenrecord           gs_adb_sf_show_refresh_rate   gs_adb_systrace
 ```
 
 ## android_push.sh
-push一些常用模块
+```bash
+╭─[solo@10.0.12.10] ➤ [/Users/solo/code/8350] ➤ [2022-04-29 17:06:17]
+╰─(py39tf2.x) ❯❯❯❯❯❯ gs_android_push_
+gs_android_push_ext_framework   gs_android_push_ext_services    gs_android_push_framework       gs_android_push_fwk             gs_android_push_mediaserver     gs_android_push_so                                                                          
+gs_android_push_ext_fwk         gs_android_push_flyme_services  gs_android_push_framework_jni   gs_android_push_input           gs_android_push_services        gs_android_push_surfaceflinger
+```
 
 ## zsh自定义主题
 用户名、ip地址、当前目录绝对路径、当前时间
@@ -193,7 +226,6 @@ ss = status --short
 ## 基础配置
 - init.vim: 配置入口，设置 runtimepath 检测脚本路径，加载其他脚本。
 - tiny文件夹: 所有人都能同意的基础配置（无任何按键和样式定义）。
-- backup.vim: 自动备份配置。
 - fileconfig.vim: 文件相关的配置。
 - keymaps.vim: 快捷键定义。
 - style.vim: 状态栏，更紧凑的标签栏文字等和显示相关。

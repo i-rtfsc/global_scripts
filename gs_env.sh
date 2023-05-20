@@ -77,10 +77,18 @@ function _gs_cargo_initialize() {
 }
 
 function gs_init_git() {
+    local gs_conf_dir=$HOME/bin/global_scripts/conf
+    # check if the gs conf dir exists
+    if [ ! -d ${gs_conf_dir} ]; then
+        mkdir -p ${gs_conf_dir}
+    fi
+
+    local gs_conf_git_dir=$HOME/bin/global_scripts/conf/gs_git
     # conf or update git conf
-    rm -rf $HOME/.gs_git
-    cp -r ${_GS_CONFIG_PATH}/.gs_git $HOME/.gs_git
-    mv $HOME/.gs_git/.gitconfig $HOME/.gitconfig
+    rm -rf $gs_conf_git_dir
+
+    cp -r ${_GS_CONFIG_PATH}/gs_git $gs_conf_git_dir
+    mv $gs_conf_git_dir/.gitconfig $HOME/.gitconfig
 }
 
 function gs_init_ssh() {
@@ -91,10 +99,19 @@ function gs_init_ssh() {
 }
 
 function gs_init_vim() {
+    local gs_conf_dir=$HOME/bin/global_scripts/conf
+    # check if the gs conf dir exists
+    if [ ! -d ${gs_conf_dir} ]; then
+        mkdir -p ${gs_conf_dir}
+    fi
+
+    local gs_conf_vim_dir=$HOME/bin/global_scripts/conf/gs_vim
+
     # conf or update ssh conf
-    rm -rf $HOME/.gs_vim
-    cp -r ${_GS_CONFIG_PATH}/.gs_vim $HOME/
-    mv $HOME/.gs_vim/.vimrc $HOME/.vimrc
+    rm -rf $gs_conf_vim_dir
+    cp -r ${_GS_CONFIG_PATH}/gs_vim $gs_conf_vim_dir
+    mv $gs_conf_vim_dir/.vimrc $HOME/.vimrc
+    source $HOME/.vimrc
 }
 
 function gs_init_cargo() {
@@ -111,7 +128,9 @@ function _gs_update_env() {
     source ${_GS_ROOT_PATH}/gs_common_alias.sh
     source ${_GS_ROOT_PATH}/gs_private_alias.sh
     source ${_GS_ROOT_PATH}/gs_ext.sh
-    source ${_GS_ROOT_PATH}/gs_zsh_theme.sh
+    if [ -n "$ZSH_VERSION" ]; then
+       source ${_GS_ROOT_PATH}/gs_zsh_theme.sh
+    fi
     source ${_GS_ROOT_PATH}/gs_test.sh
     # only for work
     source ${_GS_ROOT_PATH}/.work/gs_work.sh
@@ -126,6 +145,11 @@ function gs_init_all_config() {
 }
 
 _gs_init_env
-_gs_conda_initialize
+# 我用 conda 我为了跑 py3.6以上，所以默认配置了py39tf2.x
+# 公司 repo 、编译 qssi 都不支持高版本py
+# 正好在 bash 情况下我没有用 conda 的需求，所以 bash 下不配置 conda
+if [ -n "$ZSH_VERSION" ]; then
+   _gs_conda_initialize
+fi
 _gs_cargo_initialize
 _gs_update_env

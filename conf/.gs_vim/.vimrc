@@ -1,1 +1,0 @@
-source ~/.gs_vim/init.vim

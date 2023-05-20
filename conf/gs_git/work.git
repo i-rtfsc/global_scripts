@@ -1,0 +1,6 @@
+[user]
+	name = x-huanganqi
+	email = x-huanganqi@meizu.com
+[commit]
+    gpgsign = false
+    template = ~/bin/global_scripts/conf/gs_git/commit_template.git

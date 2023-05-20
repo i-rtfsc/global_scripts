@@ -17,7 +17,7 @@
 # limitations under the License.
 
 
-function _gs_work_push_with_args() {
+function _gs_android_push_with_args() {
     # 工程root dir名字
     # (如 flyme10)
     local target=$1
@@ -49,7 +49,7 @@ function _gs_work_push_with_args() {
     fi
 }
 
-function gs_work_push_framework {
+function gs_android_push_framework {
     local target=$1
     if [ -z ${target} ]; then
         target=flyme10
@@ -60,10 +60,10 @@ function gs_work_push_framework {
         resume=1
     fi
 
-    _gs_work_push_with_args $target system/framework framework.jar qssi $resume
+    _gs_android_push_with_args $target system/framework framework.jar qssi $resume
 }
 
-function gs_work_push_services {
+function gs_android_push_services {
     local target=$1
     if [ -z ${target} ]; then
         target=flyme10
@@ -74,10 +74,10 @@ function gs_work_push_services {
         resume=1
     fi
 
-    _gs_work_push_with_args $target system/framework services.jar qssi $resume
+    _gs_android_push_with_args $target system/framework services.jar qssi $resume
 }
 
-function gs_work_push_fwk {
+function gs_android_push_fwk {
     local target=$1
     if [ -z ${target} ]; then
         target=flyme10
@@ -88,11 +88,11 @@ function gs_work_push_fwk {
         resume=1
     fi
 
-    _gs_work_push_with_args $target system/framework framework.jar qssi 0
-    _gs_work_push_with_args $target system/framework services.jar qssi $resume
+    _gs_android_push_with_args $target system/framework framework.jar qssi 0
+    _gs_android_push_with_args $target system/framework services.jar qssi $resume
 }
 
-function gs_work_push_ext_framework {
+function gs_android_push_ext_framework {
     local target=$1
     if [ -z ${target} ]; then
         target=flyme10
@@ -103,10 +103,10 @@ function gs_work_push_ext_framework {
         resume=1
     fi
 
-    _gs_work_push_with_args $target system/framework xj-framework.jar qssi $resume
+    _gs_android_push_with_args $target system/framework xj-framework.jar qssi $resume
 }
 
-function gs_work_push_ext_services {
+function gs_android_push_ext_services {
     local target=$1
     if [ -z ${target} ]; then
         target=flyme10
@@ -117,10 +117,10 @@ function gs_work_push_ext_services {
         resume=1
     fi
 
-    _gs_work_push_with_args $target system/framework xj-services.jar qssi $resume
+    _gs_android_push_with_args $target system/framework xj-services.jar qssi $resume
 }
 
-function gs_work_push_ext_fwk {
+function gs_android_push_ext_fwk {
     local target=$1
     if [ -z ${target} ]; then
         target=flyme10
@@ -131,11 +131,11 @@ function gs_work_push_ext_fwk {
         resume=1
     fi
 
-    _gs_work_push_with_args $target system/framework xj-framework.jar qssi 0
-    _gs_work_push_with_args $target system/framework xj-services.jar qssi $resume
+    _gs_android_push_with_args $target system/framework xj-framework.jar qssi 0
+    _gs_android_push_with_args $target system/framework xj-services.jar qssi $resume
 }
 
-function gs_work_push_flyme_services {
+function gs_android_push_flyme_services {
     local target=$1
     if [ -z ${target} ]; then
         target=flyme10
@@ -146,14 +146,14 @@ function gs_work_push_flyme_services {
         resume=1
     fi
 
-    _gs_work_push_with_args $target system_ext/apex com.flyme.runtime.apex qssi 0
+    _gs_android_push_with_args $target system_ext/apex com.flyme.runtime.apex qssi 0
     adb reboot
-#    _gs_work_push_with_args $target system_ext/apex/com.flyme.runtime/javalib framework-flyme.jar qssi 0
-#    _gs_work_push_with_args $target system_ext/apex/com.flyme.runtime/javalib service-flyme.jar qssi 0
+#    _gs_android_push_with_args $target system_ext/apex/com.flyme.runtime/javalib framework-flyme.jar qssi 0
+#    _gs_android_push_with_args $target system_ext/apex/com.flyme.runtime/javalib service-flyme.jar qssi 0
 #    adb reboot
 }
 
-function gs_work_push_surfaceflinger {
+function gs_android_push_surfaceflinger {
     local target=$1
     if [ -z ${target} ]; then
         target=flyme10
@@ -164,10 +164,10 @@ function gs_work_push_surfaceflinger {
         resume=1
     fi
 
-    _gs_work_push_with_args $target system/bin surfaceflinger qssi $resume
+    _gs_android_push_with_args $target system/bin surfaceflinger qssi $resume
 }
 
-function gs_work_push_framework_jni {
+function gs_android_push_framework_jni {
     local target=$1
     if [ -z ${target} ]; then
         target=flyme10
@@ -183,11 +183,11 @@ function gs_work_push_framework_jni {
         resume=1
     fi
 
-    _gs_work_push_with_args $target system/$abi libandroid_runtime.so qssi 0
-    _gs_work_push_with_args $target system/$abi libandroid_servers.so qssi $resume
+    _gs_android_push_with_args $target system/$abi libandroid_runtime.so qssi 0
+    _gs_android_push_with_args $target system/$abi libandroid_servers.so qssi $resume
 }
 
-function gs_work_push_input {
+function gs_android_push_input {
     local target=$1
     if [ -z ${target} ]; then
         target=flyme10
@@ -203,14 +203,14 @@ function gs_work_push_input {
         resume=1
     fi
 
-    _gs_work_push_with_args $target system/$abi libinputreader.so qssi 0
-    _gs_work_push_with_args $target system/$abi libinputflinger.so qssi 0
-    _gs_work_push_with_args $target system/$abi libinputservice.so qssi 0
-    _gs_work_push_with_args $target system/$abi libandroid_runtime.so qssi 0
-    _gs_work_push_with_args $target system/$abi libandroid_servers.so qssi $resume
+    _gs_android_push_with_args $target system/$abi libinputreader.so qssi 0
+    _gs_android_push_with_args $target system/$abi libinputflinger.so qssi 0
+    _gs_android_push_with_args $target system/$abi libinputservice.so qssi 0
+    _gs_android_push_with_args $target system/$abi libandroid_runtime.so qssi 0
+    _gs_android_push_with_args $target system/$abi libandroid_servers.so qssi $resume
 }
 
-function gs_work_push_mediaserver {
+function gs_android_push_mediaserver {
     local target=$1
     if [ -z ${target} ]; then
         target=flyme10
@@ -226,12 +226,12 @@ function gs_work_push_mediaserver {
         resume=1
     fi
 
-    _gs_work_push_with_args $target system/$abi libmediadrm.so qssi 0
-    _gs_work_push_with_args $target system/$abi libresourcemanagerservice.so qssi 0
-    _gs_work_push_with_args $target system/$abi libmediaplayerservice.so qssi $resume
+    _gs_android_push_with_args $target system/$abi libmediadrm.so qssi 0
+    _gs_android_push_with_args $target system/$abi libresourcemanagerservice.so qssi 0
+    _gs_android_push_with_args $target system/$abi libmediaplayerservice.so qssi $resume
 }
 
-function gs_work_push_so {
+function gs_android_push_so {
     local so=$1
     if [ -z ${so} ]; then
         echo "error... need input so name"
@@ -253,5 +253,5 @@ function gs_work_push_so {
         resume=1
     fi
 
-    _gs_work_push_with_args $target system/$abi $so qssi $resume
+    _gs_android_push_with_args $target system/$abi $so qssi $resume
 }

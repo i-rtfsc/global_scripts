@@ -81,10 +81,12 @@ function gs_work_copy_image() {
     cp $source_dir/product.img $target_dir
     cp $source_dir/vbmeta_system.img $target_dir
 
-#    tar -zcvf $target_gz $target_dir
-    pushd $image_dir
+    echo $image_dir
+#    pushd $image_dir
+    cd $image_dir
     tar -zcvf $target_gz $current_dir_name
-    popd
+#    popd
+    cd -
 }
 
 function gs_work_git_copy() {
