@@ -1,0 +1,18 @@
+[include]
+    path =  ~/bin/global_scripts/conf/gs_git/alias.git
+    path =  ~/bin/global_scripts/conf/gs_git/apply.git
+    path =  ~/bin/global_scripts/conf/gs_git/branch.git
+    path =  ~/bin/global_scripts/conf/gs_git/color.git
+    path =  ~/bin/global_scripts/conf/gs_git/core.git
+    path =  ~/bin/global_scripts/conf/gs_git/credentials.git
+    path =  ~/bin/global_scripts/conf/gs_git/diff.git
+    path =  ~/bin/global_scripts/conf/gs_git/push.git
+    path =  ~/bin/global_scripts/conf/gs_git/user.git
+[includeIf "gitdir:~/work/"]
+    path =  ~/bin/global_scripts/conf/gs_git/work.git
+[includeIf "gitdir:~/code/work/"]
+    path =  ~/bin/global_scripts/conf/gs_git/work.git
+[includeIf "gitdir:~/code/flyme/"]
+    path =  ~/bin/global_scripts/conf/gs_git/work.git
+[includeIf "gitdir:~/code/flyme10/"]
+    path =  ~/ bin/global_scripts/conf/gs_git/work.git

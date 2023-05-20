@@ -36,9 +36,6 @@ LoadScript conf/tiny/other.vim
 " tmux配置
 LoadScript conf/tmux.vim
 
-" backup设置
-LoadScript conf/backup.vim
-
 " terminal设置
 LoadScript conf/terminal.vim
 
