@@ -18,6 +18,7 @@
 
 
 function _gs_android_push_with_args() {
+    adb root ; adb remount
     # 工程root dir名字
     # (如 flyme10)
     local target=$1

@@ -105,11 +105,8 @@ function gs_work_git_copy() {
     fi
     echo $target_dir
 
-    if [ -z $1 ]; then
-        files=($(git status --short --no-renames | awk '{print $(NF)}'))
-    else
-        files=($(git ls-files -m))
-    fi
+    files=($(git status --short --no-renames | awk '{print $(NF)}'))
+    #files=($(git ls-files -m))
 
     for file in ${files}; do
         echo ${source_dir}/${file} ${target_dir}/${file}
