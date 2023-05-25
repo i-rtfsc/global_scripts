@@ -1,10 +1,6 @@
-<Feat><module> : title
+[Input][SystemGesture]
 
-+ Add feature1
-+ Add feature2
-* Modify feature3
-- Break feature4
-
-Ones ID : #3480
-Property : IN
-Ripple Effects : none
+Redmine : #
+Details :
+ApplyTo : All
+Suggest : NA

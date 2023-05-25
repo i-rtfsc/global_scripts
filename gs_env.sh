@@ -84,10 +84,14 @@ function gs_init_git() {
     fi
 
     local gs_conf_git_dir=$HOME/bin/global_scripts/conf/gs_git
-    # conf or update git conf
-    rm -rf $gs_conf_git_dir
 
-    cp -r ${_GS_CONFIG_PATH}/gs_git $gs_conf_git_dir
+    if [ "${_GS_CONFIG_PATH}/gs_git" = "$gs_conf_dir/gs_git" ]; then
+        echo "don't need cp"
+    else
+        rm -rf $gs_conf_dir/gs_git
+        cp -r ${_GS_CONFIG_PATH}/gs_git $gs_conf_git_dir
+    fi
+
     mv $gs_conf_git_dir/.gitconfig $HOME/.gitconfig
 }
 
@@ -107,9 +111,13 @@ function gs_init_vim() {
 
     local gs_conf_vim_dir=$HOME/bin/global_scripts/conf/gs_vim
 
-    # conf or update ssh conf
-    rm -rf $gs_conf_vim_dir
-    cp -r ${_GS_CONFIG_PATH}/gs_vim $gs_conf_vim_dir
+    if [ "${_GS_CONFIG_PATH}/gs_vim" = "$gs_conf_dir/gs_vim" ]; then
+        echo "don't need cp"
+    else
+        rm -rf $gs_conf_dir/gs_vim
+        cp -r ${_GS_CONFIG_PATH}/gs_vim $gs_conf_vim_dir
+    fi
+
     mv $gs_conf_vim_dir/.vimrc $HOME/.vimrc
     source $HOME/.vimrc
 }
