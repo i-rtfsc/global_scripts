@@ -16,56 +16,78 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-function _init_env() {
-    # 编译线程数根据机器的核心数决定
-    # 可根据需求自行更改
+function _gs_android_build_with_help() {
+    echo "Usage:"
+    echo "      -t: 编译的target，如 sdk_phone_x86_64、qssi。"
+    echo "      -j: 编译线程数。"
+    echo "      -m: 需要编译的模块，如framework。"
+    echo "      -c: 是否启用ccache，1启用、0不启用；linux环境下默认使用。"
+    echo "      -b: 飞书机器人token，编译完成后飞书通知。"
+}
+
+function _gs_android_build_with_opts() {
+    # 设置的默认target
+    gs_target="sdk_phone_x86_64"
+
+    # 编译的模块名
+    gs_module=""
+
     case $(uname -s) in
     Darwin)
-        _GS_BUILD_THREAD=$(sysctl -n hw.logicalcpu)
+        # 编译线程数根据机器的核心数决定
+        gs_build_thread=$(sysctl -n hw.logicalcpu)
         # 使用ccache
-        _GS_CCACHE=false
+        gs_ccache="0"
         ;;
     *)
-        _GS_BUILD_THREAD=$(nproc)
+        # 编译线程数根据机器的核心数决定
+        gs_build_thread=$(nproc)
         # 使用ccache
-        _GS_CCACHE=true
+        gs_ccache="1"
         ;;
     esac
 
-    # 设置的默认target
-#    _GS_BUILD_TARGET_DEFAULT="qssi-userdebug"
-    _GS_BUILD_TARGET_DEFAULT="sdk_phone_x86_64"
-
     # 飞书机器人
-    _GS_BOT="93c6a139-2a53-44ec-9711-850dd3a1e6f4"
+    local gs_bot="93c6a139-2a53-44ec-9711-850dd3a1e6f4"
+
+    # error
+    gs_error=0
 
     # CMakeLists.txt project file generation is enabled via environment variable:
     export SOONG_GEN_CMAKEFILES=1
-#    export SOONG_GEN_CMAKEFILES_DEBUG=1
-}
 
-function _gs_android_build_with_ccache() {
-    if $_GS_CCACHE; then
-        export USE_CCACHE=1
-        export CCACHE_EXEC=/usr/bin/ccache
+    while getopts 't:j:m:c:b:h' opt;
+    do
+        case ${opt} in
+            t)
+                gs_target="${OPTARG}"
+                ;;
+            j)
+                gs_build_thread="${OPTARG}"
+                ;;
+            c)
+                gs_ccache="${OPTARG}"
+                ;;
+            b)
+                gs_bot="${OPTARG}"
+                ;;
+            m)
+                gs_module="${OPTARG}"
+                ;;
+            h)
+                gs_error=1
+#                通过read读取返回值，所以这里不能打印help
+#                _gs_android_build_with_help
+                ;;
+            ?)
+                gs_error=1
+#                _gs_android_build_with_help
+                ;;
+        esac
+    done
 
-        # get target product
-        local gs_target_product=${TARGET_PRODUCT}
-        if [ -z ${gs_target_product} ]; then
-            gs_target_product=${_GS_BUILD_TARGET_DEFAULT}
-        fi
-
-        local ccache_dir=$HOME/.ccache/$gs_target_product
-        # check if the ccache dir exists
-        if [ ! -d ${ccache_dir} ]; then
-            mkdir -p ${ccache_dir}
-        fi
-        #set ccache dir
-        export CCACHE_DIR=${ccache_dir}
-        ccache --set-config=cache_dir=${ccache_dir}
-        export CCACHE_CONFIGPATH=${ccache_dir}/ccache.conf
-        ccache -M 100G
-    fi
+    # gs_module有可能为空, 所以必须放在最后面
+    echo "${gs_error} ${gs_target} ${gs_build_thread} ${gs_ccache} ${gs_bot} ${gs_module}"
 }
 
 # remove colors
@@ -91,7 +113,8 @@ function _strip_escape_codes() {
 }
 
 function _gs_notify_bot() {
-    if [ -z ${_GS_BOT} ]; then
+    gs_bot=$2
+    if [ -z ${gs_bot} ]; then
         return 0
     fi
 
@@ -114,7 +137,7 @@ function _gs_notify_bot() {
 
     _strip_escape_codes "${info}" info
 #    echo $info
-    curl -X POST https://open.feishu.cn/open-apis/bot/v2/hook/${_GS_BOT} -H "Content-Type: application/json" -d '{"msg_type":"text","content":{"text":"'"$info"'"}}'
+    curl -X POST https://open.feishu.cn/open-apis/bot/v2/hook/${gs_bot} -H "Content-Type: application/json" -d '{"msg_type":"text","content":{"text":"'"$info"'"}}'
     echo ""
     echo ""
 }
@@ -131,123 +154,52 @@ function _gs_print_info() {
 
 function _gs_android_build_lunch() {
     TOP=$(pwd)
-    local gs_build_log_dir=$TOP/out/build_log
+    # 创建log目录
+    gs_build_log_dir=$TOP/out/build_log
     # check if the building log dir exists
     if [ ! -d ${gs_build_log_dir} ]; then
         mkdir -p ${gs_build_log_dir}
     fi
     _GS_BUILD_LOG_DIR=${gs_build_log_dir}
 
-    local gs_target_product=$1
-    if [ -z ${gs_target_product} ]; then
-        gs_target_product=${TARGET_PRODUCT}
+    # 如果TARGET_PRODUCT为空，则使用输入的gs_target参数
+#    if [ -z ${TARGET_PRODUCT} ]; then
+#        _GS_TARGET_PRODUCT=$1
+#    else
+#        _GS_TARGET_PRODUCT=${TARGET_PRODUCT}
+#    fi
+    # 这个改用自己export的_GS_TARGET_PRODUCT是因为有些公司改写了编译规则，
+    # aosp使用TARGET_PRODUCT是没问题的。
+    if [ -z ${_GS_TARGET_PRODUCT} ]; then
+        _GS_TARGET_PRODUCT=$1
+    else
+        _GS_TARGET_PRODUCT=${_GS_TARGET_PRODUCT}
     fi
-
-    if [ -z ${gs_target_product} ]; then
-        gs_target_product=${_GS_BUILD_TARGET_DEFAULT}
-    fi
+    export _GS_TARGET_PRODUCT=${_GS_TARGET_PRODUCT}
 
     source build/envsetup.sh
-    lunch ${gs_target_product}
-
-    _gs_print_info
+    lunch ${_GS_TARGET_PRODUCT}
 }
 
-# 全编译
-# 可以带上编译的 target ，否则从默认配置 _GS_BUILD_TARGET_DEFAULT 获取
-function gs_android_build() {
-    _init_env
+function _gs_android_build_with_ccache() {
+    gs_ccache=$1
+    gs_target_product=$2
 
-    # lunch target
-    _gs_android_build_lunch $1
+    if [ "$gs_ccache" = "1" ]; then
+        export USE_CCACHE=1
+        export CCACHE_EXEC=/usr/bin/ccache
 
-    _gs_android_build_with_ccache
-
-    # log file
-    local build_time=$(date "+%Y-%m-%d-%H-%M-%S")
-    local build_log=${_GS_BUILD_LOG_DIR}/build_full_${build_time}.log
-
-    # full build
-    m -j ${_GS_BUILD_THREAD} 2>&1 | tee ${build_log}
-    _gs_notify_bot ${build_log}
-}
-
-# 全编译后在打ota包
-# 可以带上编译的 target ，否则从默认配置 _GS_BUILD_TARGET_DEFAULT 获取
-function gs_android_build_ota() {
-    _init_env
-
-    # lunch target
-    _gs_android_build_lunch $1
-
-    _gs_android_build_with_ccache
-
-    # log file
-    local build_time=$(date "+%Y-%m-%d-%H-%M-%S")
-    local build_log=${_GS_BUILD_LOG_DIR}/build_full_${build_time}.log
-    local build_ota_log=${_GS_BUILD_LOG_DIR}/build_ota_${build_time}.log
-
-    # full build
-    m -j ${_GS_BUILD_THREAD} 2>&1 | tee ${build_log}
-    # make ota
-    make otapackage -j ${_GS_BUILD_THREAD} 2>&1 | tee ${build_ota_log}
-    _gs_notify_bot ${build_ota_log}
-}
-
-function _gs_android_build_system() {
-    _init_env
-
-    # lunch target
-    _gs_android_build_lunch $2
-
-    _gs_android_build_with_ccache
-
-    local goals=$1
-
-    # log file
-    local build_time=$(date "+%Y-%m-%d-%H-%M-%S")
-    local build_log=${_GS_BUILD_LOG_DIR}/build_${goals}_${build_time}.log
-
-    # build
-    m -j ${_GS_BUILD_THREAD} ${goals} 2>&1 | tee ${build_log}
-    _gs_notify_bot ${build_log}
-}
-
-# 编译 system.img
-# 可以带上编译的 target ，否则从默认配置 _GS_BUILD_TARGET_DEFAULT 获取
-function gs_android_build_system() {
-    _gs_android_build_system "snod" $1
-}
-
-# 编译 system_ext.img
-# 可以带上编译的 target ，否则从默认配置 _GS_BUILD_TARGET_DEFAULT 获取
-function gs_android_build_system_ext() {
-    _gs_android_build_system "senod" $1
-}
-
-# 编译 vendor.img
-# 可以带上编译的 target ，否则从默认配置 _GS_BUILD_TARGET_DEFAULT 获取
-function gs_android_build_vendor() {
-    _gs_android_build_system "vnod" $1
-}
-
-# 编译qssi(高通特有)
-# 可以带上编译的 target ，否则从默认配置 _GS_BUILD_TARGET_DEFAULT 获取
-function gs_android_build_qssi() {
-    _init_env
-
-    # lunch target
-    _gs_android_build_lunch $1
-
-    _gs_android_build_with_ccache
-
-    # log file
-    local build_time=$(date "+%Y-%m-%d-%H-%M-%S")
-    local build_log=${_GS_BUILD_LOG_DIR}/build_full_${build_time}.log
-
-    # full build
-    bash build.sh -j ${_GS_BUILD_THREAD} dist --qssi_only 2>&1 | tee ${build_log}
-    _gs_notify_bot ${build_log}
+        local ccache_dir=$HOME/.ccache/$gs_target_product
+        # check if the ccache dir exists
+        if [ ! -d ${ccache_dir} ]; then
+            mkdir -p ${ccache_dir}
+        fi
+        #set ccache dir
+        export CCACHE_DIR=${ccache_dir}
+        ccache --set-config=cache_dir=${ccache_dir}
+        export CCACHE_CONFIGPATH=${ccache_dir}/ccache.conf
+        ccache -M 100G
+    fi
 }
 
 function _gs_modules() {
@@ -266,6 +218,7 @@ function _gs_modules() {
         "libresourcemanagerservice"
         "libaudioflinger"
         "libcameraservice"
+        "toolbox"
         "com.journeyOS.J007engine.hidl@1.0-service"
         "com.journeyOS.J007engine.hidl@1.0"
         "J007Service"
@@ -276,7 +229,6 @@ function _gs_modules() {
         "xj-services"
         "com.flyme.runtime"
     )
-    #    echo $modules
     for item in ${modules[@]}; do
         echo ${item}
     done
@@ -337,53 +289,137 @@ function gs_android_build_ninja_clean() {
 }
 
 # ninja编译模块
-# 可以带上模块名字，否则会有选择菜单
-# 若需要编译的模块不在菜单里，也可以在选择菜单里输入模块名
 function gs_android_build_ninja() {
-    _init_env
+    read gs_error gs_target gs_build_thread gs_ccache gs_bot gs_module <<< $(_gs_android_build_with_opts $*)
+
+    # 错误则打印help
+    if [[ ${gs_error} == "1" ]] ; then
+        _gs_android_build_with_help
+        return
+    fi
+
+    echo "error=${gs_error} target=${gs_target} thread=${gs_build_thread} ccache=${gs_ccache} bot=${gs_bot} module=${gs_module}"
 
     # lunch target
-    _gs_android_build_lunch
+    _gs_android_build_lunch ${gs_target}
+    # 校准target
+    gs_target=${_GS_TARGET_PRODUCT}
+    gs_build_log_dir=${_GS_BUILD_LOG_DIR}
 
-    local title="select modules(ninja)"
-    local modules=$(_gs_modules)
+    # 设置ccache
+    _gs_android_build_with_ccache ${gs_ccache} ${gs_target}
 
     # select module++++
-    _gs_show_and_choose_combo "$1" "${title}" "${modules}"
+    title="select modules(ninja)"
+    modules=$(_gs_modules)
+    _gs_show_and_choose_combo "${gs_module}" "${title}" "${modules}"
     selection=${_GS_BUILD_COMBO}
 
     # log file
-    local build_time=$(date "+%Y-%m-%d-%H-%M-%S")
-    build_log=${_GS_BUILD_LOG_DIR}/ninja_build_${selection}_${build_time}.log
+    build_time=$(date "+%Y-%m-%d-%H-%M-%S")
+    build_log=${gs_build_log_dir}/ninja_build_${selection}_${build_time}.log
     echo "selection = "${selection} ", building log =" ${build_log}
 
     # ninja build
-    time prebuilts/build-tools/linux-x86/bin/ninja -j ${_GS_BUILD_THREAD} -f out/combined-${TARGET_PRODUCT}.ninja ${selection} | tee ${build_log}
-    _gs_notify_bot ${build_log}
+    time prebuilts/build-tools/linux-x86/bin/ninja -j ${gs_build_thread} -f out/combined-${TARGET_PRODUCT}.ninja ${selection} | tee ${build_log}
+    _gs_notify_bot ${build_log} ${gs_bot}
 }
 
 # make编译模块
-# 可以带上模块名字，否则会有选择菜单
-# 若需要编译的模块不在菜单里，也可以在选择菜单里输入模块名
 function gs_android_build_make() {
-    _init_env
+    read gs_error gs_target gs_build_thread gs_ccache gs_bot gs_module <<< $(_gs_android_build_with_opts $*)
+
+    # 错误则打印help
+    if [[ ${gs_error} == "1" ]] ; then
+        _gs_android_build_with_help
+        return
+    fi
+
+    echo "error=${gs_error} target=${gs_target} thread=${gs_build_thread} ccache=${gs_ccache} bot=${gs_bot} module=${gs_module}"
 
     # lunch target
-    _gs_android_build_lunch
+    _gs_android_build_lunch ${gs_target}
+    # 校准target
+    gs_target=$_GS_TARGET_PRODUCT
+    gs_build_log_dir=$_GS_BUILD_LOG_DIR
 
-    local title="select modules(make)"
-    local modules=$(_gs_modules)
+    # 设置ccache
+    _gs_android_build_with_ccache ${gs_ccache} ${gs_target}
 
-    # select module
-    _gs_show_and_choose_combo "$1" "${title}" "${modules}"
+    # select module++++
+    title="select modules(make)"
+    modules=$(_gs_modules)
+    _gs_show_and_choose_combo "$gs_module" "${title}" "${modules}"
     selection=${_GS_BUILD_COMBO}
 
     # log file
-    local build_time=$(date "+%Y-%m-%d-%H-%M-%S")
-    build_log=${_GS_BUILD_LOG_DIR}/make_build_${selection}_${build_time}.log
+    build_time=$(date "+%Y-%m-%d-%H-%M-%S")
+    build_log=${gs_build_log_dir}/make_build_${selection}_${build_time}.log
     echo "selection = "${selection} ", building log =" ${build_log}
 
     # make build
-    make ${selection} -j ${_GS_BUILD_THREAD} | tee ${build_log}
-    _gs_notify_bot ${build_log}
+    make ${selection} -j ${gs_build_thread} | tee ${build_log}
+    _gs_notify_bot ${build_log} ${gs_bot}
+}
+
+# 全编译
+function gs_android_build() {
+    read gs_error gs_target gs_build_thread gs_ccache gs_bot gs_module <<< $(_gs_android_build_with_opts $*)
+
+    # 错误则打印help
+    if [[ ${gs_error} == "1" ]] ; then
+        _gs_android_build_with_help
+        return
+    fi
+
+    echo "error=${gs_error} target=${gs_target} thread=${gs_build_thread} ccache=${gs_ccache} bot=${gs_bot} module=${gs_module}"
+
+    # lunch target
+    _gs_android_build_lunch ${gs_target}
+    # 校准target
+    gs_target=$_GS_TARGET_PRODUCT
+    gs_build_log_dir=$_GS_BUILD_LOG_DIR
+
+    # 设置ccache
+    _gs_android_build_with_ccache ${gs_ccache} ${gs_target}
+
+    # log file
+    build_time=$(date "+%Y-%m-%d-%H-%M-%S")
+    build_log=${gs_build_log_dir}/build_full_${build_time}.log
+
+    # full build
+    m -j ${gs_build_thread} 2>&1 | tee ${build_log}
+    _gs_notify_bot ${build_log} ${gs_bot}
+}
+
+# 编译qssi(高通特有)
+# 可以带上编译的 target ，否则从默认配置 _GS_BUILD_TARGET_DEFAULT 获取
+function gs_android_build_qssi() {
+    read gs_error gs_target gs_build_thread gs_ccache gs_bot gs_module <<< $(_gs_android_build_with_opts $*)
+
+    # 错误则打印help
+    if [[ ${gs_error} == "1" ]] ; then
+        _gs_android_build_with_help
+        return
+    fi
+
+    echo "error=${gs_error} target=${gs_target} thread=${gs_build_thread} ccache=${gs_ccache} bot=${gs_bot} module=${gs_module}"
+
+    # lunch target
+    _gs_android_build_lunch ${gs_target}
+    # 校准target
+    gs_target=$_GS_TARGET_PRODUCT
+    gs_build_log_dir=$_GS_BUILD_LOG_DIR
+
+    # 设置ccache
+    _gs_android_build_with_ccache ${gs_ccache} ${gs_target}
+
+    # log file
+    build_time=$(date "+%Y-%m-%d-%H-%M-%S")
+    build_log=${gs_build_log_dir}/build_full_${build_time}.log
+
+    # full build
+    # full build
+    bash build.sh -j ${gs_build_thread} dist --qssi_only 2>&1 | tee ${build_log}
+    _gs_notify_bot ${build_log} ${gs_bot}
 }
