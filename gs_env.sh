@@ -28,6 +28,10 @@ function _gs_init_env() {
     export PATH=$PATH:"$_GS_ROOT_PATH/.work/"
     export PATH=$PATH:"$_GS_ROOT_PATH/codestyle/"
 
+    if [ -d "$HOME/Android/Sdk/platform-tools" ] ; then
+        PATH="$HOME/Android/Sdk/platform-tools:$PATH"
+    fi
+
     export LC_ALL=en_US.UTF-8
     export LANG=en_US.UTF-8
 }
@@ -98,7 +102,7 @@ function gs_init_git() {
 function gs_init_ssh() {
     # conf or update ssh conf
    rm -rf $HOME/.ssh
-   cp -r ${_GS_CONFIG_PATH}/.gs_ssh $HOME/.ssh
+   cp -r ${_GS_CONFIG_PATH}/gs_ssh $HOME/.ssh
    chmod 700 $HOME/.ssh/id_rsa
 }
 
