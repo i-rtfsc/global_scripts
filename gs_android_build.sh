@@ -16,7 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-function _gs_android_build_with_help() {
+function _gs_android_build_help() {
     echo "Usage:"
     echo "      -t: 编译的target，如 sdk_phone_x86_64、qssi。"
     echo "      -j: 编译线程数。"
@@ -25,7 +25,7 @@ function _gs_android_build_with_help() {
     echo "      -b: 飞书机器人token，编译完成后飞书通知。"
 }
 
-function _gs_android_build_with_opts() {
+function _gs_android_build_parse_opts() {
     # 设置的默认target
     gs_target="sdk_phone_x86_64"
 
@@ -77,11 +77,11 @@ function _gs_android_build_with_opts() {
             h)
                 gs_error=1
 #                通过read读取返回值，所以这里不能打印help
-#                _gs_android_build_with_help
+#                _gs_android_build_help
                 ;;
             ?)
                 gs_error=1
-#                _gs_android_build_with_help
+#                _gs_android_build_help
                 ;;
         esac
     done
@@ -208,8 +208,8 @@ function _gs_modules() {
         "framework-minus-apex"
         "services"
         "libandroid_servers"
+        "libandroid_runtime"
         "libinputflinger"
-        "libinputdispatcher"
         "libinputreader"
         "selinux_policy"
         "surfaceflinger"
@@ -283,28 +283,27 @@ function _gs_show_and_choose_combo() {
 }
 
 function gs_android_build_ninja_clean() {
-    _init_env
-
     time prebuilts/build-tools/linux-x86/bin/ninja -j ${_GS_BUILD_THREAD} -f out/combined-${TARGET_PRODUCT}.ninja -t clean
 }
 
 # ninja编译模块
 function gs_android_build_ninja() {
-    read gs_error gs_target gs_build_thread gs_ccache gs_bot gs_module <<< $(_gs_android_build_with_opts $*)
+    read gs_error gs_target gs_build_thread gs_ccache gs_bot gs_module <<< $(_gs_android_build_parse_opts $*)
 
     # 错误则打印help
-    if [[ ${gs_error} == "1" ]] ; then
-        _gs_android_build_with_help
+    if [[ ${gs_error} == 1 ]] ; then
+        _gs_android_build_help
         return
     fi
 
-    echo "error=${gs_error} target=${gs_target} thread=${gs_build_thread} ccache=${gs_ccache} bot=${gs_bot} module=${gs_module}"
+    echo "error=${gs_error}, target=${gs_target}, thread=${gs_build_thread}, ccache=${gs_ccache}, bot=${gs_bot}, module=${gs_module}"
 
     # lunch target
     _gs_android_build_lunch ${gs_target}
     # 校准target
     gs_target=${_GS_TARGET_PRODUCT}
     gs_build_log_dir=${_GS_BUILD_LOG_DIR}
+    echo "update target=${gs_target}"
 
     # 设置ccache
     _gs_android_build_with_ccache ${gs_ccache} ${gs_target}
@@ -327,21 +326,22 @@ function gs_android_build_ninja() {
 
 # make编译模块
 function gs_android_build_make() {
-    read gs_error gs_target gs_build_thread gs_ccache gs_bot gs_module <<< $(_gs_android_build_with_opts $*)
+    read gs_error gs_target gs_build_thread gs_ccache gs_bot gs_module <<< $(_gs_android_build_parse_opts $*)
 
     # 错误则打印help
-    if [[ ${gs_error} == "1" ]] ; then
-        _gs_android_build_with_help
+    if [[ ${gs_error} == 1 ]] ; then
+        _gs_android_build_help
         return
     fi
 
-    echo "error=${gs_error} target=${gs_target} thread=${gs_build_thread} ccache=${gs_ccache} bot=${gs_bot} module=${gs_module}"
+    echo "error=${gs_error}, target=${gs_target}, thread=${gs_build_thread}, ccache=${gs_ccache}, bot=${gs_bot}, module=${gs_module}"
 
     # lunch target
     _gs_android_build_lunch ${gs_target}
     # 校准target
     gs_target=$_GS_TARGET_PRODUCT
     gs_build_log_dir=$_GS_BUILD_LOG_DIR
+    echo "update target=${gs_target}"
 
     # 设置ccache
     _gs_android_build_with_ccache ${gs_ccache} ${gs_target}
@@ -364,21 +364,22 @@ function gs_android_build_make() {
 
 # 全编译
 function gs_android_build() {
-    read gs_error gs_target gs_build_thread gs_ccache gs_bot gs_module <<< $(_gs_android_build_with_opts $*)
+    read gs_error gs_target gs_build_thread gs_ccache gs_bot gs_module <<< $(_gs_android_build_parse_opts $*)
 
     # 错误则打印help
-    if [[ ${gs_error} == "1" ]] ; then
-        _gs_android_build_with_help
+    if [[ ${gs_error} == 1 ]] ; then
+        _gs_android_build_help
         return
     fi
 
-    echo "error=${gs_error} target=${gs_target} thread=${gs_build_thread} ccache=${gs_ccache} bot=${gs_bot} module=${gs_module}"
+    echo "error=${gs_error}, target=${gs_target}, thread=${gs_build_thread}, ccache=${gs_ccache}, bot=${gs_bot}, module=${gs_module}"
 
     # lunch target
     _gs_android_build_lunch ${gs_target}
     # 校准target
     gs_target=$_GS_TARGET_PRODUCT
     gs_build_log_dir=$_GS_BUILD_LOG_DIR
+    echo "update target=${gs_target}"
 
     # 设置ccache
     _gs_android_build_with_ccache ${gs_ccache} ${gs_target}
@@ -395,21 +396,22 @@ function gs_android_build() {
 # 编译qssi(高通特有)
 # 可以带上编译的 target ，否则从默认配置 _GS_BUILD_TARGET_DEFAULT 获取
 function gs_android_build_qssi() {
-    read gs_error gs_target gs_build_thread gs_ccache gs_bot gs_module <<< $(_gs_android_build_with_opts $*)
+    read gs_error gs_target gs_build_thread gs_ccache gs_bot gs_module <<< $(_gs_android_build_parse_opts $*)
 
     # 错误则打印help
-    if [[ ${gs_error} == "1" ]] ; then
-        _gs_android_build_with_help
+    if [[ ${gs_error} == 1 ]] ; then
+        _gs_android_build_help
         return
     fi
 
-    echo "error=${gs_error} target=${gs_target} thread=${gs_build_thread} ccache=${gs_ccache} bot=${gs_bot} module=${gs_module}"
+    echo "error=${gs_error}, target=${gs_target}, thread=${gs_build_thread}, ccache=${gs_ccache}, bot=${gs_bot}, module=${gs_module}"
 
     # lunch target
     _gs_android_build_lunch ${gs_target}
     # 校准target
     gs_target=$_GS_TARGET_PRODUCT
     gs_build_log_dir=$_GS_BUILD_LOG_DIR
+    echo "update target=${gs_target}"
 
     # 设置ccache
     _gs_android_build_with_ccache ${gs_ccache} ${gs_target}
