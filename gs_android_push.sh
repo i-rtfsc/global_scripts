@@ -25,7 +25,7 @@ function _gs_android_push_help() {
     echo "      -r: 是否重启 android(仅上层)，1重启，0不重启。"
 }
 
-function _gs_android_push_opts() {
+function _gs_android_push_parse_opts() {
     # 工程root dir名字
     # (如 aosp)
     local target=aosp
@@ -77,7 +77,7 @@ function _gs_android_push_opts() {
     echo "${gs_error} ${target} ${module_dir} ${module} ${product} ${resume}"
 }
 
-function _gs_android_push_with_args() {
+function _gs_android_push_impl() {
     adb root ; adb remount
     # 工程root dir名字
     # (如 flyme10)
@@ -96,10 +96,11 @@ function _gs_android_push_with_args() {
     vm_dir=$HOME/code/work/vm
     vm_out_dir=$HOME/share/$target
 
+    echo $vm_out_dir/out/target/product/$product/$module_dir/$module /$module_dir/$module
+
     if [ ! -d $vm_dir ]; then
         adb push $vm_out_dir/out/target/product/$product/$module_dir/$module /$module_dir/$module
     else
-        echo $vm_out_dir/out/target/product/$product/$module_dir/$module $vm_dir/$module
         cp $vm_out_dir/out/target/product/$product/$module_dir/$module $vm_dir/$module
         adb push $vm_dir/$module /$module_dir/$module
         rm $vm_dir/$module
@@ -111,217 +112,248 @@ function _gs_android_push_with_args() {
 }
 
 function gs_android_push_framework {
-    read gs_error target module_dir module product resume <<< $(_gs_android_build_with_opts $*)
+    read gs_error target module_dir module product resume <<< $(_gs_android_push_parse_opts $*)
     # 错误则打印help
-    if [[ ${gs_error} == "1" ]] ; then
+    if [[ ${gs_error} == 1 ]] ; then
         _gs_android_push_help
         return
     fi
+
+    echo "target=${target}, module_dir=${module_dir}, module=${module}, product=${product}, resume=${resume}"
 
     ##### 强制改成 qssi 的 framework.jar #####
     module_dir=system/framework
     module=framework.jar
     product=qssi
     ##### 强制改成 qssi 的 framework.jar #####
+    echo "update module_dir=${module_dir}, module=${module}, product=${product}"
 
-    _gs_android_push_with_args $target $module_dir $module $product $resume
+    _gs_android_push_impl $target $module_dir $module $product $resume
 }
 
 function gs_android_push_services {
-    read gs_error target module_dir module product resume <<< $(_gs_android_build_with_opts $*)
+    read gs_error target module_dir module product resume <<< $(_gs_android_push_parse_opts $*)
     # 错误则打印help
-    if [[ ${gs_error} == "1" ]] ; then
+    if [[ ${gs_error} == 1 ]] ; then
         _gs_android_push_help
         return
     fi
+
+    echo "target=${target}, module_dir=${module_dir}, module=${module}, product=${product}, resume=${resume}"
 
     ##### 强制改成 qssi 的 services.jar #####
     module_dir=system/framework
     module=services.jar
     product=qssi
     ##### 强制改成 qssi 的 services.jar #####
+    echo "update module_dir=${module_dir}, module=${module}, product=${product}"
 
-    _gs_android_push_with_args $target $module_dir $module $product $resume
+    _gs_android_push_impl $target $module_dir $module $product $resume
 }
 
 function gs_android_push_ext_framework {
-    read gs_error target module_dir module product resume <<< $(_gs_android_build_with_opts $*)
+    read gs_error target module_dir module product resume <<< $(_gs_android_push_parse_opts $*)
     # 错误则打印help
-    if [[ ${gs_error} == "1" ]] ; then
+    if [[ ${gs_error} == 1 ]] ; then
         _gs_android_push_help
         return
     fi
+
+    echo "target=${target}, module_dir=${module_dir}, module=${module}, product=${product}, resume=${resume}"
 
     ##### 强制改成 qssi 的 xj-framework.jar #####
     module_dir=system/framework
     module=xj-framework.jar
     product=qssi
     ##### 强制改成 qssi 的 xj-framework.jar #####
+    echo "update module_dir=${module_dir}, module=${module}, product=${product}"
 
-    _gs_android_push_with_args $target $module_dir $module $product $resume
+    _gs_android_push_impl $target $module_dir $module $product $resume
 }
 
 function gs_android_push_ext_services {
-    read gs_error target module_dir module product resume <<< $(_gs_android_build_with_opts $*)
+    read gs_error target module_dir module product resume <<< $(_gs_android_push_parse_opts $*)
     # 错误则打印help
-    if [[ ${gs_error} == "1" ]] ; then
+    if [[ ${gs_error} == 1 ]] ; then
         _gs_android_push_help
         return
     fi
+
+    echo "target=${target}, module_dir=${module_dir}, module=${module}, product=${product}, resume=${resume}"
 
     ##### 强制改成 qssi 的 xj-services.jar #####
     module_dir=system/framework
     module=xj-services.jar
     product=qssi
     ##### 强制改成 qssi 的 xj-services.jar #####
+    echo "update module_dir=${module_dir}, module=${module}, product=${product}"
 
-    _gs_android_push_with_args $target $module_dir $module $product $resume
+    _gs_android_push_impl $target $module_dir $module $product $resume
 }
 
 function gs_android_push_flyme_services {
-    read gs_error target module_dir module product resume <<< $(_gs_android_build_with_opts $*)
+    read gs_error target module_dir module product resume <<< $(_gs_android_push_parse_opts $*)
     # 错误则打印help
-    if [[ ${gs_error} == "1" ]] ; then
+    if [[ ${gs_error} == 1 ]] ; then
         _gs_android_push_help
         return
     fi
+    echo "target=${target}, module_dir=${module_dir}, module=${module}, product=${product}, resume=${resume}"
 
     ##### 强制改成 qssi 的 com.flyme.runtime.apex #####
     module_dir=system_ext/apex
     module=com.flyme.runtime.apex
     product=qssi
     ##### 强制改成 qssi 的 com.flyme.runtime.apex #####
+    echo "update module_dir=${module_dir}, module=${module}, product=${product}"
 
-    _gs_android_push_with_args $target $module_dir $module $product $resume
+    _gs_android_push_impl $target $module_dir $module $product $resume
     if [ "$resume" = "1" ]; then
         adb reboot
     fi
 }
 
 function gs_android_push_surfaceflinger {
-    read gs_error target module_dir module product resume <<< $(_gs_android_build_with_opts $*)
+    read gs_error target module_dir module product resume <<< $(_gs_android_push_parse_opts $*)
     # 错误则打印help
-    if [[ ${gs_error} == "1" ]] ; then
+    if [[ ${gs_error} == 1 ]] ; then
         _gs_android_push_help
         return
     fi
+
+    echo "target=${target}, module_dir=${module_dir}, module=${module}, product=${product}, resume=${resume}"
 
     ##### 强制改成 qssi 的 surfaceflinger #####
     module_dir=system/bin
     module=surfaceflinger
     product=qssi
     ##### 强制改成 qssi 的 surfaceflinger #####
+    echo "update module_dir=${module_dir}, module=${module}, product=${product}"
 
-    _gs_android_push_with_args $target $module_dir $module $product $resume
+    _gs_android_push_impl $target $module_dir $module $product $resume
 }
 
 function gs_android_push_framework_jni {
-    read gs_error target module_dir module product resume <<< $(_gs_android_build_with_opts $*)
+    read gs_error target module_dir module product resume <<< $(_gs_android_push_parse_opts $*)
     # 错误则打印help
-    if [[ ${gs_error} == "1" ]] ; then
+    if [[ ${gs_error} == 1 ]] ; then
         _gs_android_push_help
         return
     fi
+
+    echo "target=${target}, module_dir=${module_dir}, module=${module}, product=${product}, resume=${resume}"
 
     ##### 强制改成 qssi 的 libandroid_runtime.so #####
     module_dir=system/lib64
     module=libandroid_runtime.so
     product=qssi
     ##### 强制改成 qssi 的 libandroid_runtime.so #####
+    echo "update module_dir=${module_dir}, module=${module}, product=${product}"
 
-    _gs_android_push_with_args $target $module_dir $module $product 0
+    _gs_android_push_impl $target $module_dir $module $product 0
 
     # 接着push libandroid_servers.so
     module=libandroid_servers.so
-    _gs_android_push_with_args $target $module_dir $module $product $resume
+    _gs_android_push_impl $target $module_dir $module $product $resume
 }
 
 function gs_android_push_input {
-    read gs_error target module_dir module product resume <<< $(_gs_android_build_with_opts $*)
+    read gs_error target module_dir module product resume <<< $(_gs_android_push_parse_opts $*)
     # 错误则打印help
-    if [[ ${gs_error} == "1" ]] ; then
+    if [[ ${gs_error} == 1 ]] ; then
         _gs_android_push_help
         return
     fi
+
+    echo "target=${target}, module_dir=${module_dir}, module=${module}, product=${product}, resume=${resume}"
 
     ##### 强制改成 qssi 的 libinput.so #####
     module_dir=system/lib64
     module=libinput.so
     product=qssi
     ##### 强制改成 qssi 的 libinput.so #####
+    echo "update module_dir=${module_dir}, module=${module}, product=${product}"
 
-    _gs_android_push_with_args $target $module_dir $module $product 0
+    _gs_android_push_impl $target $module_dir $module $product 0
 
     # 接着push libinputreader.so
     module=libinputreader.so
-    _gs_android_push_with_args $target $module_dir $module $product 0
+    _gs_android_push_impl $target $module_dir $module $product 0
 
     # 接着push libinputflinger.so
     module=libinputflinger.so
-    _gs_android_push_with_args $target $module_dir $module $product 0
+    _gs_android_push_impl $target $module_dir $module $product 0
 
     # 接着push libinputservice.so
     module=libinputservice.so
-    _gs_android_push_with_args $target $module_dir $module $product 0
+    _gs_android_push_impl $target $module_dir $module $product 0
 
     # 接着push libandroid_runtime.so
     module=libandroid_runtime.so
-    _gs_android_push_with_args $target $module_dir $module $product 0
+    _gs_android_push_impl $target $module_dir $module $product 0
 
     # 接着push libandroid_servers.so
     module=libandroid_servers.so
-    _gs_android_push_with_args $target $module_dir $module $product $resume
+    _gs_android_push_impl $target $module_dir $module $product $resume
 }
 
 function gs_android_push_mediaserver {
-    read gs_error target module_dir module product resume <<< $(_gs_android_build_with_opts $*)
+    read gs_error target module_dir module product resume <<< $(_gs_android_push_parse_opts $*)
     # 错误则打印help
-    if [[ ${gs_error} == "1" ]] ; then
+    if [[ ${gs_error} == 1 ]] ; then
         _gs_android_push_help
         return
     fi
+
+    echo "target=${target}, module_dir=${module_dir}, module=${module}, product=${product}, resume=${resume}"
 
     ##### 强制改成 qssi 的 libmediadrm.so #####
     module_dir=system/lib64
     module=libmediadrm.so
     product=qssi
     ##### 强制改成 qssi 的 libmediadrm.so #####
+    echo "update module_dir=${module_dir}, module=${module}, product=${product}"
 
-    _gs_android_push_with_args $target $module_dir $module $product 0
+    _gs_android_push_impl $target $module_dir $module $product 0
 
     # 接着push libresourcemanagerservice.so
     module=libresourcemanagerservice.so
-    _gs_android_push_with_args $target $module_dir $module $product 0
+    _gs_android_push_impl $target $module_dir $module $product 0
 
     # 接着push libmediaplayerservice.so
     module=libmediaplayerservice.so
-    _gs_android_push_with_args $target $module_dir $module $product $resume
+    _gs_android_push_impl $target $module_dir $module $product $resume
 }
 
 function gs_android_push_so {
-    read gs_error target module_dir module product resume <<< $(_gs_android_build_with_opts $*)
+    read gs_error target module_dir module product resume <<< $(_gs_android_push_parse_opts $*)
     # 错误则打印help
-    if [[ ${gs_error} == "1" ]] ; then
+    if [[ ${gs_error} == 1 ]] ; then
         _gs_android_push_help
         return
     fi
+
+    echo "target=${target}, module_dir=${module_dir}, module=${module}, product=${product}, resume=${resume}"
 
     ##### 强制改成 qssi 的 lib64 #####
     module_dir=system/lib64
     product=qssi
     ##### 强制改成 qssi 的 lib64 #####
+    echo "update module_dir=${module_dir}, product=${product}"
 
-    _gs_android_push_with_args $target $module_dir $module $product $resume
+    _gs_android_push_impl $target $module_dir $module $product $resume
 }
 
 # 任何组合参数
-function gs_android_push_with_args {
-    read gs_error target module_dir module product resume <<< $(_gs_android_build_with_opts $*)
+function gs_android_push_args {
+    read gs_error target module_dir module product resume <<< $(_gs_android_push_parse_opts $*)
     # 错误则打印help
-    if [[ ${gs_error} == "1" ]] ; then
+    if [[ ${gs_error} == 1 ]] ; then
         _gs_android_push_help
         return
     fi
 
-    _gs_android_push_with_args $target $module_dir $module $product $resume
+    echo "target=${target}, module_dir=${module_dir}, module=${module}, product=${product}, resume=${resume}"
+
+    _gs_android_push_impl $target $module_dir $module $product $resume
 }
