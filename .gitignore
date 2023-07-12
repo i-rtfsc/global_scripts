@@ -2,4 +2,7 @@
 **/*.db-shm
 **/*.db-wal
 
+frida/frida-inject
+frida/frida-server
+
 test

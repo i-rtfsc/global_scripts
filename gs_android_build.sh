@@ -27,7 +27,8 @@ function _gs_android_build_help() {
 
 function _gs_android_build_parse_opts() {
     # 设置的默认target
-    gs_target="sdk_phone_x86_64"
+    gs_target="qssi-userdebug-mars"
+#    gs_target="sdk_phone_x86_64"
 
     # 编译的模块名
     gs_module=""
@@ -92,7 +93,7 @@ function _gs_android_build_parse_opts() {
 
 # remove colors
 # https://stackoverflow.com/questions/17998978/removing-colors-from-output
-function _strip_escape_codes() {
+function _gs_android_build_strip_escape_codes() {
     local _input="$1" _i _char _escape=0
     local -n _output="$2"
     _output=""
@@ -112,7 +113,7 @@ function _strip_escape_codes() {
     done
 }
 
-function _gs_notify_bot() {
+function _gs_android_build_bot() {
     gs_bot=$2
     if [ -z ${gs_bot} ]; then
         return 0
@@ -135,14 +136,14 @@ function _gs_notify_bot() {
         info="build finish"
     fi
 
-    _strip_escape_codes "${info}" info
+    _gs_android_build_strip_escape_codes "${info}" info
 #    echo $info
     curl -X POST https://open.feishu.cn/open-apis/bot/v2/hook/${gs_bot} -H "Content-Type: application/json" -d '{"msg_type":"text","content":{"text":"'"$info"'"}}'
     echo ""
     echo ""
 }
 
-function _gs_print_info() {
+function _gs_android_build_print_info() {
     echo "------------------------------"
     # Android平台的版本号
     echo "Android platform version = $PLATFORM_VERSION"
@@ -189,7 +190,15 @@ function _gs_android_build_with_ccache() {
         export USE_CCACHE=1
         export CCACHE_EXEC=/usr/bin/ccache
 
-        local ccache_dir=$HOME/.ccache/$gs_target_product
+#        ccache_dir=$HOME/code/.ccache/$gs_target_product
+        # 如果是qssi, 在只获取前面的字符串
+        if [[ $gs_target_product =~ "qssi" ]]
+        then
+            ccache_dir=$HOME/code/.ccache/$(echo $gs_target_product | cut -d '-' -f1)
+        else
+            ccache_dir=$HOME/code/.ccache/$gs_target_product
+        fi
+
         # check if the ccache dir exists
         if [ ! -d ${ccache_dir} ]; then
             mkdir -p ${ccache_dir}
@@ -202,7 +211,7 @@ function _gs_android_build_with_ccache() {
     fi
 }
 
-function _gs_modules() {
+function _gs_android_build_modules() {
     local modules=(
         "framework"
         "framework-minus-apex"
@@ -234,7 +243,7 @@ function _gs_modules() {
     done
 }
 
-function _gs_show_and_choose_combo() {
+function _gs_android_build_show_and_choose_combo() {
 #    unset _GS_BUILD_COMBO
 
     local user_input=$1
@@ -310,8 +319,8 @@ function gs_android_build_ninja() {
 
     # select module++++
     title="select modules(ninja)"
-    modules=$(_gs_modules)
-    _gs_show_and_choose_combo "${gs_module}" "${title}" "${modules}"
+    modules=$(_gs_android_build_modules)
+    _gs_android_build_show_and_choose_combo "${gs_module}" "${title}" "${modules}"
     selection=${_GS_BUILD_COMBO}
 
     # log file
@@ -321,7 +330,7 @@ function gs_android_build_ninja() {
 
     # ninja build
     time prebuilts/build-tools/linux-x86/bin/ninja -j ${gs_build_thread} -f out/combined-${TARGET_PRODUCT}.ninja ${selection} | tee ${build_log}
-    _gs_notify_bot ${build_log} ${gs_bot}
+    _gs_android_build_bot ${build_log} ${gs_bot}
 }
 
 # make编译模块
@@ -348,8 +357,8 @@ function gs_android_build_make() {
 
     # select module++++
     title="select modules(make)"
-    modules=$(_gs_modules)
-    _gs_show_and_choose_combo "$gs_module" "${title}" "${modules}"
+    modules=$(_gs_android_build_modules)
+    _gs_android_build_show_and_choose_combo "$gs_module" "${title}" "${modules}"
     selection=${_GS_BUILD_COMBO}
 
     # log file
@@ -359,7 +368,7 @@ function gs_android_build_make() {
 
     # make build
     make ${selection} -j ${gs_build_thread} | tee ${build_log}
-    _gs_notify_bot ${build_log} ${gs_bot}
+    _gs_android_build_bot ${build_log} ${gs_bot}
 }
 
 # 全编译
@@ -390,7 +399,7 @@ function gs_android_build() {
 
     # full build
     m -j ${gs_build_thread} 2>&1 | tee ${build_log}
-    _gs_notify_bot ${build_log} ${gs_bot}
+    _gs_android_build_bot ${build_log} ${gs_bot}
 }
 
 # 编译qssi(高通特有)
@@ -423,5 +432,5 @@ function gs_android_build_qssi() {
     # full build
     # full build
     bash build.sh -j ${gs_build_thread} dist --qssi_only 2>&1 | tee ${build_log}
-    _gs_notify_bot ${build_log} ${gs_bot}
+    _gs_android_build_bot ${build_log} ${gs_bot}
 }

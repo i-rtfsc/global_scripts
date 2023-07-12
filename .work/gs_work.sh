@@ -58,9 +58,14 @@ function gs_work_flash_qssi() {
 }
 
 function gs_work_copy_image() {
+    target=$1
+    if [ -z ${target} ]; then
+        target=qssi
+    fi
+
     abs_current_dir=$(pwd)
     current_dir_name=$(basename "$PWD")
-    source_dir=$abs_current_dir/out/target/product/qssi
+    source_dir=$abs_current_dir/out/target/product/$target
     image_dir=/data/share/image
     target_dir=$image_dir/$current_dir_name
     target_gz=$target_dir.tar.gz
