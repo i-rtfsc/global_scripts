@@ -140,6 +140,7 @@ function _gs_update_env() {
     source ${_GS_ROOT_PATH}/gs_common_alias.sh
     source ${_GS_ROOT_PATH}/gs_private_alias.sh
     source ${_GS_ROOT_PATH}/gs_ext.sh
+    source ${_GS_ROOT_PATH}/frida/gs_android_frida.sh
     if [ -n "$ZSH_VERSION" ]; then
        source ${_GS_ROOT_PATH}/gs_zsh_theme.sh
     fi

@@ -28,7 +28,7 @@ function _gs_android_push_help() {
 function _gs_android_push_parse_opts() {
     # 工程root dir名字
     # (如 aosp)
-    local target=aosp
+    local target=flyme10
     # 需要push的模块名
     # (如 模块的目录system/framework)
     local module_dir=system/framework
@@ -36,7 +36,7 @@ function _gs_android_push_parse_opts() {
     local module=framework.jar
     # TARGET_PRODUCT
     # (如 sdk_phone_x86_64)
-    local product=sdk_phone_x86_64
+    local product=qssi
     # 是否重启 android(仅上层)
     local resume="0"
 
@@ -124,9 +124,8 @@ function gs_android_push_framework {
     ##### 强制改成 qssi 的 framework.jar #####
     module_dir=system/framework
     module=framework.jar
-    product=qssi
     ##### 强制改成 qssi 的 framework.jar #####
-    echo "update module_dir=${module_dir}, module=${module}, product=${product}"
+    echo "update module_dir=${module_dir}, module=${module}"
 
     _gs_android_push_impl $target $module_dir $module $product $resume
 }
@@ -144,9 +143,8 @@ function gs_android_push_services {
     ##### 强制改成 qssi 的 services.jar #####
     module_dir=system/framework
     module=services.jar
-    product=qssi
     ##### 强制改成 qssi 的 services.jar #####
-    echo "update module_dir=${module_dir}, module=${module}, product=${product}"
+    echo "update module_dir=${module_dir}, module=${module}"
 
     _gs_android_push_impl $target $module_dir $module $product $resume
 }
@@ -164,9 +162,8 @@ function gs_android_push_ext_framework {
     ##### 强制改成 qssi 的 xj-framework.jar #####
     module_dir=system/framework
     module=xj-framework.jar
-    product=qssi
     ##### 强制改成 qssi 的 xj-framework.jar #####
-    echo "update module_dir=${module_dir}, module=${module}, product=${product}"
+    echo "update module_dir=${module_dir}, module=${module}"
 
     _gs_android_push_impl $target $module_dir $module $product $resume
 }
@@ -184,9 +181,8 @@ function gs_android_push_ext_services {
     ##### 强制改成 qssi 的 xj-services.jar #####
     module_dir=system/framework
     module=xj-services.jar
-    product=qssi
     ##### 强制改成 qssi 的 xj-services.jar #####
-    echo "update module_dir=${module_dir}, module=${module}, product=${product}"
+    echo "update module_dir=${module_dir}, module=${module}"
 
     _gs_android_push_impl $target $module_dir $module $product $resume
 }
@@ -203,9 +199,8 @@ function gs_android_push_flyme_services {
     ##### 强制改成 qssi 的 com.flyme.runtime.apex #####
     module_dir=system_ext/apex
     module=com.flyme.runtime.apex
-    product=qssi
     ##### 强制改成 qssi 的 com.flyme.runtime.apex #####
-    echo "update module_dir=${module_dir}, module=${module}, product=${product}"
+    echo "update module_dir=${module_dir}, module=${module}"
 
     _gs_android_push_impl $target $module_dir $module $product $resume
     if [ "$resume" = "1" ]; then
@@ -226,9 +221,8 @@ function gs_android_push_surfaceflinger {
     ##### 强制改成 qssi 的 surfaceflinger #####
     module_dir=system/bin
     module=surfaceflinger
-    product=qssi
     ##### 强制改成 qssi 的 surfaceflinger #####
-    echo "update module_dir=${module_dir}, module=${module}, product=${product}"
+    echo "update module_dir=${module_dir}, module=${module}"
 
     _gs_android_push_impl $target $module_dir $module $product $resume
 }
@@ -246,9 +240,8 @@ function gs_android_push_framework_jni {
     ##### 强制改成 qssi 的 libandroid_runtime.so #####
     module_dir=system/lib64
     module=libandroid_runtime.so
-    product=qssi
     ##### 强制改成 qssi 的 libandroid_runtime.so #####
-    echo "update module_dir=${module_dir}, module=${module}, product=${product}"
+    echo "update module_dir=${module_dir}, module=${module}"
 
     _gs_android_push_impl $target $module_dir $module $product 0
 
@@ -270,9 +263,8 @@ function gs_android_push_input {
     ##### 强制改成 qssi 的 libinput.so #####
     module_dir=system/lib64
     module=libinput.so
-    product=qssi
     ##### 强制改成 qssi 的 libinput.so #####
-    echo "update module_dir=${module_dir}, module=${module}, product=${product}"
+    echo "update module_dir=${module_dir}"
 
     _gs_android_push_impl $target $module_dir $module $product 0
 
@@ -310,9 +302,8 @@ function gs_android_push_mediaserver {
     ##### 强制改成 qssi 的 libmediadrm.so #####
     module_dir=system/lib64
     module=libmediadrm.so
-    product=qssi
     ##### 强制改成 qssi 的 libmediadrm.so #####
-    echo "update module_dir=${module_dir}, module=${module}, product=${product}"
+    echo "update module_dir=${module_dir}"
 
     _gs_android_push_impl $target $module_dir $module $product 0
 
@@ -337,9 +328,8 @@ function gs_android_push_so {
 
     ##### 强制改成 qssi 的 lib64 #####
     module_dir=system/lib64
-    product=qssi
     ##### 强制改成 qssi 的 lib64 #####
-    echo "update module_dir=${module_dir}, product=${product}"
+    echo "update module_dir=${module_dir}"
 
     _gs_android_push_impl $target $module_dir $module $product $resume
 }
