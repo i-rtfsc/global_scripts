@@ -81,10 +81,38 @@ function gs_android_frida {
     else
         echo "frida-inject doesn't exist"
         root_dir=$(pwd)
-        adb push ${root_dir}/frida-inject  /data/local/frida/frida-inject
+        adb push ${root_dir}/frida-inject /data/local/frida/frida-inject
         adb shell chmod a+x /data/local/frida/frida-inject
     fi
 
     adb push ${js_file} /data/local/frida/${file_name}
     adb shell /data/local/frida/frida-inject -p `adb shell pidof ${process_name}` -s /data/local/frida/${file_name}
+}
+
+# 在手机上运行frida-server服务
+function gs_android_frida_server() {
+    root_dir=$(pwd)
+    echo ${root_dir}
+
+    adb root
+    adb remount
+
+    if [[ `adb shell ls /data/local/frida/frida-server 2> /dev/null` ]]; then
+        echo "frida-inject exists"
+        adb shell chmod a+x /data/local/frida/frida-server
+    else
+        echo "frida-server doesn't exist"
+        root_dir=$(pwd)
+        adb push ${root_dir}/frida-server /data/local/frida/frida-server
+        adb shell chmod a+x /data/local/frida/frida-server
+    fi
+
+    adb shell "/data/local/frida/frida-server &"
+}
+
+function gs_android_frida_kill() {
+    pids=($(adb shell ps | grep frida | awk '{print $2}'))
+    for pid in ${pids}; do
+        adb shell kill -9 $pid
+    done
 }
