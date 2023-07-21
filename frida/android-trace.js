@@ -186,13 +186,13 @@ function uniqBy(array, key) {
 }
 
 // usage examples
-setTimeout(function () {
+setImmediate(function () {
     // var name ="com.android.server.accessibility.AccessibilityInputFilter.onMotionEvent";
     var name = "com.android.server.wm.SystemGesturesPointerEventListener.captureDown"
 
     Java.perform(function () {
         trace(name);
     });
-}, 0);
+});
 
 

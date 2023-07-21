@@ -16,11 +16,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-function gs_8350_extract() {
+function gs_ext_8350_extract() {
     for name in  $(ls *.tar.gz)
     do
         echo "$name"
         tar -zxvf "$name"
         rm -rf "$name"
     done
+}
+
+function gs_ext_repo_upload() {
+    git push -u origin HEAD:$1
 }

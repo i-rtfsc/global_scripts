@@ -5,4 +5,8 @@
 frida/frida-inject
 frida/frida-server
 
+
+clash/logs
+clash/conf/cache.db
+
 test

@@ -16,27 +16,44 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-function gs_system_cpu_men() {
-    cpu_mem=$(ps -A -o %cpu,%mem | awk '{ cpu += $1; mem += $2} END {print "cpu="cpu"%\nmem="mem"%"}')
-    echo "${cpu_mem}"
+# 开启系统代理
+function gs_system_proxy_on() {
+    export http_proxy=http://127.0.0.1:7890
+    export https_proxy=http://127.0.0.1:7890
+    export no_proxy=127.0.0.1,localhost
+    export HTTP_PROXY=http://127.0.0.1:7890
+    export HTTPS_PROXY=http://127.0.0.1:7890
+    export NO_PROXY=127.0.0.1,localhost
+    echo -e "\033[32m[√] 已开启代理\033[0m"
 }
 
-function gs_repo_url_update_google() {
+# 关闭系统代理
+function gs_system_proxy_off(){
+    unset http_proxy
+    unset https_proxy
+    unset no_proxy
+    unset HTTP_PROXY
+    unset HTTPS_PROXY
+    unset NO_PROXY
+    echo -e "\033[31m[×] 已关闭代理\033[0m"
+}
+
+function gs_system_repo_url_update_google() {
     unset REPO_URL
     export REPO_URL='https://gerrit.googlesource.com/git-repo'
 }
 
-function gs_repo_url_update_intel() {
+function gs_system_repo_url_update_intel() {
     unset REPO_URL
     export REPO_URL='https://gerrit.intel.com/git-repo'
 }
 
-function gs_repo_url_update_tsinghua() {
+function gs_system_repo_url_update_tsinghua() {
     unset REPO_URL
     export REPO_URL='https://mirrors.tuna.tsinghua.edu.cn/git/git-repo'
 }
 
-function gs_brew_remote() {
+function gs_system_brew_remote() {
     # brew.git镜像源
     git -C "$(brew --repo)" remote -v
     # homebrew-core.git镜像源
@@ -45,7 +62,7 @@ function gs_brew_remote() {
     git -C "$(brew --repo homebrew/cask)" remote -v
 }
 
-function gs_brew_ustc() {
+function gs_system_brew_ustc() {
     git -C "$(brew --repo)" remote set-url origin https://mirrors.ustc.edu.cn/brew.git
     git -C "$(brew --repo homebrew/core)" remote set-url origin https://mirrors.ustc.edu.cn/homebrew-core.git
     git -C "$(brew --repo homebrew/cask)" remote set-url origin https://mirrors.ustc.edu.cn/homebrew-cask.git
@@ -53,7 +70,7 @@ function gs_brew_ustc() {
     brew update
 }
 
-function gs_brew_tsinghua() {
+function gs_system_brew_tsinghua() {
     git -C "$(brew --repo)" remote set-url origin https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/brew.git
     git -C "$(brew --repo homebrew/core)" remote set-url origin https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/homebrew-core.git
     git -C "$(brew --repo homebrew/cask)" remote set-url origin https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/homebrew-cask.git
@@ -61,7 +78,7 @@ function gs_brew_tsinghua() {
     brew update
 }
 
-function gs_brew_aliyun() {
+function gs_system_brew_aliyun() {
     git -C "$(brew --repo)" remote set-url origin https://mirrors.aliyun.com/homebrew//brew.git
     git -C "$(brew --repo homebrew/core)" remote set-url origin https://mirrors.aliyun.com/homebrew//homebrew-core.git
     git -C "$(brew --repo homebrew/cask)" remote set-url origin https://mirrors.aliyun.com/homebrew//homebrew-cask.git
@@ -69,13 +86,9 @@ function gs_brew_aliyun() {
     brew update
 }
 
-function gs_brew_github() {
+function gs_system_brew_github() {
     git -C "$(brew --repo)" remote set-url origin https://github.com/Homebrew/brew.git
     git -C "$(brew --repo homebrew/core)" remote set-url origin https://github.com/Homebrew/homebrew-core.git
     git -C "$(brew --repo homebrew/cask)" remote set-url origin https://github.com/Homebrew/homebrew-cask.git
     brew update
-}
-
-function gs_repo_upload() {
-    git push -u origin HEAD:$1
 }

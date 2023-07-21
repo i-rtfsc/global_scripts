@@ -19,6 +19,8 @@
 alias gs_work_update_py2='sudo rm -rf /usr/bin/python; sudo ln -s /usr/bin/python2.7 /usr/bin/python'
 alias gs_work_update_py3='sudo rm -rf /usr/bin/python; sudo ln -s /usr/bin/python3 /usr/bin/python'
 
+alias uos-ssh='ssh solo@10.88.30.242'
+alias ubuntu-vpn-ssh='ssh solo@10.88.221.244'
 alias ubuntu-ssh='ssh solo@10.88.30.174'
 alias ubuntu-mount='sshfs solo@10.88.30.174:/home/solo/code/ $HOME/ubuntu'
 alias ubuntu-umount='sudo diskutil umount force $HOME/ubuntu'
