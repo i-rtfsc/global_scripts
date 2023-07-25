@@ -62,9 +62,44 @@ function native_hook_template(native_library, native_function) {
     );
 }
 
+function listMethods(className) {
+    const clz = Java.use(className);
+
+    const methods = clz.class.getDeclaredMethods(); // 方法
+    const constructors = clz.class.getDeclaredConstructors(); // 构造函数
+    const fields = clz.class.getDeclaredFields(); // 字段
+    const innerClasses = clz.class.getDeclaredClasses(); // 内部类
+    const superClass = clz.class.getSuperclass(); // 父类(抽象类)
+    const interfaces = clz.class.getInterfaces(); // 所有接口
+
+    for (const method of methods) {
+        console.log(method.getName());
+    }
+
+    for (const constructor of constructors) {
+        console.log(constructor);
+    }
+
+    for (const field of fields) {
+        console.log(field);
+    }
+
+    for (const inner of innerClasses) {
+        console.log(inner);
+    }
+
+    console.log(superClass);
+
+    for (const i_f of interfaces) {
+        console.log(i_f);
+    }
+
+}
+
 function test() {
     // selinux();
-    native_hook_template('libc.so', 'open');
+    // native_hook_template('libc.so', 'open');
+    listMethods('android.app.Activity');
 }
 
 setImmediate(function () {
