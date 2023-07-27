@@ -88,8 +88,12 @@ function hookFunc(targetClass, targetMethod, showStack = true) {
 
 function main() {
     // hookFunc('com.android.server.policy.PhoneWindowManager', 'interceptKeyBeforeQueueing');
-    // hookFunc('com.android.internal.widget.PointerLocationView', 'onPointerEvent');
     // hookFunc('com.android.server.policy.PhoneWindowManager', 'isLongPressToAssistantEnabled', false);
+
+    // hookFunc('com.android.server.wm.PointerEventDispatcher', 'onInputEvent', false);
+    hookFunc('com.android.internal.widget.PointerLocationView', 'onPointerEvent', false);
+    hookFunc('com.android.internal.widget.PointerLocationView', 'onTouchEvent', false);
+    hookFunc('com.android.internal.widget.PointerLocationView', 'onGenericMotionEvent', false);
 
     // hookFunc('android.app.Activity', 'onKeyDown', false);
     // hookFunc('android.app.Activity', 'onKeyUp', false);
