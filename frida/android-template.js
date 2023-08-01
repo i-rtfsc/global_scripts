@@ -39,9 +39,9 @@ function chooseClass(targetClass) {
  * 【也可以改代码，改变返回值，入参等。】
  * @param targetClass 类名
  * @param targetMethod 方法名
- * @param showStack 打印出调用栈，默认打印
+ * @param showStack 打印出调用栈，默认不打印
  */
-function hookFunc(targetClass, targetMethod, showStack = true) {
+function hookFunc(targetClass, targetMethod, showStack = false) {
     var clazz = Java.use(targetClass);
     var overloads = clazz[targetMethod].overloads;
     for (var i in overloads) {
@@ -68,6 +68,7 @@ function hookFunc(targetClass, targetMethod, showStack = true) {
                 //调用原方法
                 //可以改传入的参数
                 var retval = this[targetMethod].apply(this, arguments);
+
                 //返回值
                 output = output.concat("retval: " + retval);
                 output = output.concat("\n")
@@ -88,12 +89,16 @@ function hookFunc(targetClass, targetMethod, showStack = true) {
 
 function main() {
     // hookFunc('com.android.server.policy.PhoneWindowManager', 'interceptKeyBeforeQueueing');
-    // hookFunc('com.android.server.policy.PhoneWindowManager', 'isLongPressToAssistantEnabled', false);
+    // hookFunc('com.android.server.policy.PhoneWindowManager', 'isLongPressToAssistantEnabled');
 
-    // hookFunc('com.android.server.wm.PointerEventDispatcher', 'onInputEvent', false);
-    hookFunc('com.android.internal.widget.PointerLocationView', 'onPointerEvent', false);
-    hookFunc('com.android.internal.widget.PointerLocationView', 'onTouchEvent', false);
-    hookFunc('com.android.internal.widget.PointerLocationView', 'onGenericMotionEvent', false);
+    // hookFunc('com.android.server.wm.PointerEventDispatcher', 'onInputEvent');
+    // hookFunc('com.android.internal.widget.PointerLocationView', 'onPointerEvent');
+    // hookFunc('com.android.internal.widget.PointerLocationView', 'onTouchEvent');
+    // hookFunc('com.android.internal.widget.PointerLocationView', 'onGenericMotionEvent');
+    // hookFunc('android.view.InputEventReceiver', 'dispatchInputEvent');
+
+    // hookFunc('com.android.server.policy.PhoneWindowManager', 'hasVeryLongPressOnPowerBehavior');
+
 
     // hookFunc('android.app.Activity', 'onKeyDown', false);
     // hookFunc('android.app.Activity', 'onKeyUp', false);
@@ -101,8 +106,8 @@ function main() {
     // hookFunc('android.view.View', 'onTouchEvent', false);
     // hookFunc('android.view.View', 'onLongClick', false);
 
-    // hookFunc('com.android.internal.widget.RecyclerView', 'onTouchEvent', false);
-    // hookFunc('android.view.GestureDetector', 'onLongPress', false);
+    // hookFunc('com.android.internal.widget.RecyclerView', 'onTouchEvent');
+    // hookFunc('android.view.GestureDetector', 'onLongPress');
 
 
     // //获取TelephonyManager实例化的对象
