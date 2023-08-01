@@ -96,10 +96,24 @@ function listMethods(className) {
 
 }
 
+
+function hook_so(so_name) {
+    var symbols = Process.findModuleByName(so_name).enumerateExports();
+    // var symbols = Process.findModuleByName(so_name).enumerateSymbols();
+    symbols.forEach((symbol) => {
+        console.log("symbol name = ", symbol.name);
+        console.log("symbol addr = ", symbol.address);
+    })
+
+}
+
+
 function test() {
     // selinux();
     // native_hook_template('libc.so', 'open');
-    listMethods('android.app.Activity');
+    // listMethods('android.app.Activity');
+    // hook_so('libinputreader.so');
+    hook_so('libinputflinger.so');
 }
 
 setImmediate(function () {

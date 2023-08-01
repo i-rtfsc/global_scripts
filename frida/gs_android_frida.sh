@@ -80,7 +80,12 @@ function gs_android_frida {
         adb shell chmod a+x /data/local/frida/frida-inject
     else
         echo "frida-inject doesn't exist"
-        root_dir=$(pwd)
+        if [ -z ${_GS_ROOT_PATH} ]; then
+            root_dir=$(pwd)
+        else
+            root_dir=${_GS_ROOT_PATH}/frida
+        fi
+
         adb push ${root_dir}/frida-inject /data/local/frida/frida-inject
         adb shell chmod a+x /data/local/frida/frida-inject
     fi
@@ -102,7 +107,11 @@ function gs_android_frida_server() {
         adb shell chmod a+x /data/local/frida/frida-server
     else
         echo "frida-server doesn't exist"
-        root_dir=$(pwd)
+        if [ -z ${_GS_ROOT_PATH} ]; then
+            root_dir=$(pwd)
+        else
+            root_dir=${_GS_ROOT_PATH}/frida/frida-inject
+        fi
         adb push ${root_dir}/frida-server /data/local/frida/frida-server
         adb shell chmod a+x /data/local/frida/frida-server
     fi
