@@ -69,6 +69,22 @@ function gs_android_frida {
 
     echo "process_name=${process_name}, js_file=${js_file}"
 
+    # 如果js文件不存在，则设置默认的${_GS_ROOT_PATH}/frida/路径
+    if [ ! -f ${js_file} ]; then
+        if [ -z ${_GS_ROOT_PATH} ]; then
+            js_file=$(pwd)/${js_file}
+        else
+            js_file=${_GS_ROOT_PATH}/frida/${js_file}
+        fi
+        echo "update js_file=${js_file}"
+    fi
+
+    # 再次检查文件，不存在则退出
+    if [ ! -f ${js_file} ]; then
+        echo "${js_file} does not exist."
+        exit
+    fi
+
     file_name=`basename ${js_file}`
     echo "file_name=${file_name}"
 
@@ -84,6 +100,11 @@ function gs_android_frida {
             root_dir=$(pwd)
         else
             root_dir=${_GS_ROOT_PATH}/frida
+        fi
+
+         if [ ! -f ${root_dir}/frida-inject ]; then
+            echo "${root_dir}/frida-inject does not exist."
+            exit
         fi
 
         adb push ${root_dir}/frida-inject /data/local/frida/frida-inject
