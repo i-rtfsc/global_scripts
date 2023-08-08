@@ -16,6 +16,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+#LUNCH_TARGET_DEFAULT="sdk_phone_x86_64"
+LUNCH_TARGET_DEFAULT="qssi-userdebug-mars"
+
 function _gs_android_build_help() {
     echo "Usage:"
     echo "      -t: 编译的target，如 sdk_phone_x86_64、qssi。"
@@ -27,8 +30,7 @@ function _gs_android_build_help() {
 
 function _gs_android_build_parse_opts() {
     # 设置的默认target
-    gs_target="qssi-userdebug-mars"
-#    gs_target="sdk_phone_x86_64"
+    gs_target=$LUNCH_TARGET_DEFAULT
 
     # 编译的模块名
     gs_module=""
@@ -171,11 +173,16 @@ function _gs_android_build_lunch() {
 #    fi
     # 这个改用自己export的_GS_TARGET_PRODUCT是因为有些公司改写了编译规则，
     # aosp使用TARGET_PRODUCT是没问题的。
-    if [ -z ${_GS_TARGET_PRODUCT} ]; then
-        _GS_TARGET_PRODUCT=$1
+    if [ "$1" = "$LUNCH_TARGET_DEFAULT" ]; then
+        if [ -z ${_GS_TARGET_PRODUCT} ]; then
+            _GS_TARGET_PRODUCT=$1
+        else
+            _GS_TARGET_PRODUCT=${_GS_TARGET_PRODUCT}
+        fi
     else
-        _GS_TARGET_PRODUCT=${_GS_TARGET_PRODUCT}
+        _GS_TARGET_PRODUCT=$1
     fi
+
     export _GS_TARGET_PRODUCT=${_GS_TARGET_PRODUCT}
 
     source build/envsetup.sh

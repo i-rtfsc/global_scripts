@@ -648,8 +648,8 @@ def work(project_name, project_list):
         else:
             include_directories += project
 
-    cmake_file = os.path.join(os.path.dirname(__file__), project_name, "CMakeLists.txt")
-    # cmake_file = os.path.join(os.path.dirname(__file__), "../", project_name, "CMakeLists.txt")
+    # cmake_file = os.path.join(os.path.dirname(__file__), project_name, "CMakeLists.txt")
+    cmake_file = os.path.join(os.path.dirname(__file__), "../", project_name, "CMakeLists.txt")
     # cmake_file_text = Template(cmake_template).substitute({'project_name': project_name,
     #                                                        'code_files': code_files,
     #                                                        'include_directories': include_directories,
@@ -798,18 +798,25 @@ def main():
     root = options.root.strip()
     project = options.project.strip()
 
+    # work("update_engine",
+    #      ["/home/solo/code/github/global_scripts/test/clion/system/update_engine"])
+
     # work("android_runtime",
     #      ["/home/solo/code/github/global_scripts/test/clion/frameworks/base/core/jni"])
 
-    work("android-services",
-         ["/home/solo/code/github/global_scripts/test/clion/frameworks/base/libs/services"])
+
+    # work("android-services",
+    #      ["/home/solo/code/github/global_scripts/test/clion/frameworks/base/libs/services",
+    #       "/home/solo/code/github/global_scripts/test/clion/frameworks/base/services/core/jni",
+    #       "/home/solo/code/github/global_scripts/test/clion/frameworks/base/services/incremental"])
 
     # work("surfaceflinger", ["/home/solo/code/github/global_scripts/test/clion/frameworks/native/services/surfaceflinger"])
     # work("inputflinger", ["/home/solo/code/github/global_scripts/test/clion/frameworks/native/services/inputflinger"])
-    # work("aosp-native", ["/home/solo/code/github/global_scripts/test/clion/frameworks/base",
-    #                      "/home/solo/code/github/global_scripts/test/clion/frameworks/native",
-    #                      "/home/solo/code/github/global_scripts/test/clion/frameworks/av"
-    #                      ])
+
+    work("aosp-native", ["/home/solo/code/github/global_scripts/test/clion/frameworks/base",
+                         "/home/solo/code/github/global_scripts/test/clion/frameworks/native",
+                         "/home/solo/code/github/global_scripts/test/clion/frameworks/av"
+                         ])
 
     return 0
 
