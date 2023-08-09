@@ -37,6 +37,8 @@ set(AOSP_BIONIC false)
 set(AOSP_SYSTEM false)
 set(AOSP_EXTERNAL false)
 set(AOSP_PACKAGES false)
+set(AOSP_BOOTABLE false)
+set(AOSP_PREBUILTS false)
 set(AOSP_HARDWARE false)
 set(AOSP_VENDOR false)
 
@@ -190,6 +192,42 @@ if (${AOSP_PACKAGES})
     list (APPEND HEADERS ${HEADERS_PACKAGES})    
 endif ()
 
+# add aosp bootable
+if (${AOSP_BOOTABLE})
+    message("enable aosp bootable")
+
+    # add aosp bootable src
+    file(GLOB SOURCE_FILES_BOOTABLE${code_files_bootable})
+    # append aosp bootable src
+    list (APPEND SOURCE_FILES ${SOURCE_FILES_BOOTABLE})
+
+    # add aosp bootable header dir
+    include_directories(${include_directories_bootable})
+
+    # add aosp bootable header file
+    file (GLOB_RECURSE HEADERS_BOOTABLE${header_files_bootable})
+    # append aosp bootable header
+    list (APPEND HEADERS ${HEADERS_BOOTABLE})
+endif ()
+
+# add aosp prebuilts
+if (${AOSP_PREBUILTS})
+    message("enable aosp prebuilts")
+
+    # add aosp prebuilts src
+    file(GLOB SOURCE_FILES_PREBUILTS${code_files_prebuilts})
+    # append aosp prebuilts src
+    list (APPEND SOURCE_FILES ${SOURCE_FILES_PREBUILTS})
+
+    # add aosp prebuilts header dir
+    include_directories(${include_directories_prebuilts})
+
+    # add aosp prebuilts header file
+    file (GLOB_RECURSE HEADERS_PREBUILTS${header_files_prebuilts})
+    # append aosp prebuilts header
+    list (APPEND HEADERS ${HEADERS_PREBUILTS})
+endif ()
+
 # add aosp hardware
 if (${AOSP_HARDWARE})
     message("enable aosp hardware")
@@ -249,6 +287,8 @@ set(AOSP_BIONIC false)
 set(AOSP_SYSTEM false)
 set(AOSP_EXTERNAL false)
 set(AOSP_PACKAGES false)
+set(AOSP_BOOTABLE false)
+set(AOSP_PREBUILTS false)
 set(AOSP_HARDWARE false)
 set(AOSP_VENDOR false)
 
@@ -261,6 +301,11 @@ file (GLOB_RECURSE HEADERS${header_files})
 # add aosp system common
 if (${AOSP_SYSTEM_COMMON})
     message("enable aosp system common")
+
+    # add aosp system common src
+    file(GLOB SOURCE_FILES_SYSTEM_COMMON${code_files_system_common})
+    # append aosp system common src
+    list (APPEND SOURCE_FILES ${SOURCE_FILES_SYSTEM_COMMON})
 
     # add aosp system common header dir
     include_directories(${include_directories_system_common})
@@ -367,6 +412,32 @@ if (${AOSP_PACKAGES})
     list (APPEND HEADERS ${HEADERS_PACKAGES})    
 endif ()
 
+# add aosp bootable
+if (${AOSP_BOOTABLE})
+    message("enable aosp bootable")
+
+    # add aosp bootable header dir
+    include_directories(${include_directories_bootable})
+
+    # add aosp bootable header file
+    file (GLOB_RECURSE HEADERS_BOOTABLE${header_files_bootable})
+    # append aosp bootable header
+    list (APPEND HEADERS ${HEADERS_BOOTABLE})
+endif ()
+
+# add aosp prebuilts
+if (${AOSP_PREBUILTS})
+    message("enable aosp prebuilts")
+
+    # add aosp prebuilts header dir
+    include_directories(${include_directories_prebuilts})
+
+    # add aosp prebuilts header file
+    file (GLOB_RECURSE HEADERS_PREBUILTS${header_files_prebuilts})
+    # append aosp prebuilts header
+    list (APPEND HEADERS ${HEADERS_PREBUILTS})
+endif ()
+
 # add aosp hardware
 if (${AOSP_HARDWARE})
     message("enable aosp hardware")
@@ -405,12 +476,12 @@ def parseargs():
     usage = "usage: %prog [options] arg1 arg2"
     parser = optparse.OptionParser(usage=usage)
 
-    buildoptiongroup = optparse.OptionGroup(parser, "generate cmake file")
+    buildoptiongroup = optparse.OptionGroup(parser, "mix cmake file")
 
     buildoptiongroup.add_option("-r", "--root", dest="root",
-                                help="root dir", default="/home/solo/code/flyme")
+                                help="root dir", default="/home/solo/code/github/global_scripts/test/clion/")
     buildoptiongroup.add_option("-p", "--project", dest="project",
-                                help="project name(android_runtime,android_services,inputflinger,surfaceflinger,media), or aosp-native[all projects]",
+                                help="project name(android_runtime,android_services,inputflinger,surfaceflinger), or aosp-native[all projects]",
                                 default="aosp-native")
 
     parser.add_option_group(buildoptiongroup)
@@ -438,15 +509,14 @@ def write_text(file, text):
         f.write(text)
 
 
-def work(project_name, project_list):
+def work(project_name, root, project_list):
     code_dirs = []
     header_dirs = []
     include_dirs = []
 
     for project_dir in project_list:
-
-        project_dirs = fast_scandir(project_dir)
-        project_dirs.append(project_dir)
+        project_dirs = fast_scandir(os.path.join(root, project_dir))
+        project_dirs.append(os.path.join(root, project_dir))
         project_dirs.sort()
 
         for dir in project_dirs:
@@ -494,6 +564,8 @@ def work(project_name, project_list):
     code_files_packages = "\n"
     code_files_vendor = "\n"
     code_files_hardware = "\n"
+    code_files_bootable = "\n"
+    code_files_prebuilts = "\n"
 
     code_files_system_common = "\n"
     code_files_system = "\n"
@@ -511,10 +583,14 @@ def work(project_name, project_list):
             code_files_external += "\t" + code
         elif "${ANDROID_ROOT}/packages/" in code:
             code_files_packages += "\t" + code
-        elif "${ANDROID_ROOT}/vendor/" in code:
+        elif "${ANDROID_ROOT}/vendor/" in code or "${ANDROID_ROOT}/device/" in code:
             code_files_vendor += "\t" + code
         elif "${ANDROID_ROOT}/hardware/" in code:
             code_files_hardware += "\t" + code
+        elif "${ANDROID_ROOT}/bootable/" in code:
+            code_files_bootable += "\t" + code
+        elif "${ANDROID_ROOT}/prebuilts/" in code:
+            code_files_prebuilts += "\t" + code
         elif "${ANDROID_ROOT}/system/" in code:
             if "${ANDROID_ROOT}/system/core/" in code \
                     or "${ANDROID_ROOT}/system/libbase/" in code \
@@ -549,6 +625,8 @@ def work(project_name, project_list):
     header_files_packages = "\n"
     header_files_vendor = "\n"
     header_files_hardware = "\n"
+    header_files_bootable = "\n"
+    header_files_prebuilts = "\n"
 
     header_files_system_common = "\n"
     header_files_system = "\n"
@@ -566,10 +644,14 @@ def work(project_name, project_list):
             header_files_external += "\t" + header
         elif "${ANDROID_ROOT}/packages/" in header:
             header_files_packages += "\t" + header
-        elif "${ANDROID_ROOT}/vendor/" in header:
+        elif "${ANDROID_ROOT}/vendor/" in header or "${ANDROID_ROOT}/device/" in header:
             header_files_vendor += "\t" + header
         elif "${ANDROID_ROOT}/hardware/" in header:
             header_files_hardware += "\t" + header
+        elif "${ANDROID_ROOT}/bootable/" in header:
+            header_files_bootable += "\t" + header
+        elif "${ANDROID_ROOT}/prebuilts/" in header:
+            header_files_prebuilts += "\t" + header
         elif "${ANDROID_ROOT}/system/" in header:
             if "${ANDROID_ROOT}/system/core/" in header \
                     or "${ANDROID_ROOT}/system/libbase/" in header \
@@ -585,7 +667,7 @@ def work(project_name, project_list):
                 header_files_system += "\t" + header
         elif "${ANDROID_ROOT}/libnativehelper/" in header:
             # libnativehelper 也认为是common
-            header_files_hardware += "\t" + header
+            header_files_system_common += "\t" + header
         elif "${ANDROID_ROOT}/test/" in header \
                 or "${ANDROID_ROOT}/tools/" in header:
             # 忽略
@@ -604,6 +686,8 @@ def work(project_name, project_list):
     include_directories_packages = "\n"
     include_directories_vendor = "\n"
     include_directories_hardware = "\n"
+    include_directories_bootable = "\n"
+    include_directories_prebuilts = "\n"
 
     include_directories_system_common = "\n"
     include_directories_system = "\n"
@@ -621,10 +705,14 @@ def work(project_name, project_list):
             include_directories_external += "\t" + project
         elif "${ANDROID_ROOT}/packages/" in project:
             include_directories_packages += "\t" + project
-        elif "${ANDROID_ROOT}/vendor/" in project:
+        elif "${ANDROID_ROOT}/vendor/" in project or "${ANDROID_ROOT}/device/" in project:
             include_directories_vendor += "\t" + project
         elif "${ANDROID_ROOT}/hardware/" in project:
             include_directories_hardware += "\t" + project
+        elif "${ANDROID_ROOT}/bootable/" in project:
+            include_directories_bootable += "\t" + project
+        elif "${ANDROID_ROOT}/prebuilts/" in project:
+            include_directories_prebuilts += "\t" + project
         elif "${ANDROID_ROOT}/system/" in project:
             if "${ANDROID_ROOT}/system/core/" in project \
                     or "${ANDROID_ROOT}/system/libbase/" in project \
@@ -730,67 +818,117 @@ def work(project_name, project_list):
     #                                                        })
 
     cmake_file_text = Template(cmake_template_mini).substitute({'project_name': project_name,
-                                                           'code_files': code_files,
-                                                           'include_directories': include_directories,
-                                                           'header_files': header_files,
-                                                           'BUILD_NATIVE_ROOT': "${BUILD_NATIVE_ROOT}",
-                                                           'SOURCE_FILES': "${SOURCE_FILES}",
-                                                           'HEADERS': "${HEADERS}",
-                                                           # system common
-                                                           'AOSP_SYSTEM_COMMON': "${AOSP_SYSTEM_COMMON}",
-                                                           'HEADERS_SYSTEM_COMMON': "${HEADERS_SYSTEM_COMMON}",
-                                                           'include_directories_system_common': include_directories_system_common + "\t",
-                                                           'header_files_system_common': header_files_system_common + "\t",
-                                                           # # system
-                                                           'AOSP_SYSTEM': "${AOSP_SYSTEM}",
-                                                           'HEADERS_SYSTEM': "${HEADERS_SYSTEM}",
-                                                           'include_directories_system': include_directories_system + "\t",
-                                                           'header_files_system': header_files_system + "\t",
-                                                           # av
-                                                           'AOSP_AV': "${AOSP_AV}",
-                                                           'SOURCE_FILES_AV': "${SOURCE_FILES_AV}",
-                                                           'HEADERS_AV': "${HEADERS_AV}",
-                                                           'code_files_av': code_files_av + "\t",
-                                                           'include_directories_av': include_directories_av + "\t",
-                                                           'header_files_av': header_files_av + "\t",
-                                                           # out
-                                                           'AOSP_OUT': "${AOSP_OUT}",
-                                                           'HEADERS_OUT': "${HEADERS_OUT}",
-                                                           'include_directories_out': include_directories_out + "\t",
-                                                           'header_files_out': header_files_out + "\t",
-                                                           # art
-                                                           'AOSP_ART': "${AOSP_ART}",
-                                                           'HEADERS_ART': "${HEADERS_ART}",
-                                                           'include_directories_art': include_directories_art + "\t",
-                                                           'header_files_art': header_files_art + "\t",
-                                                           # bionic
-                                                           'AOSP_BIONIC': "${AOSP_BIONIC}",
-                                                           'HEADERS_BIONIC': "${HEADERS_BIONIC}",
-                                                           'include_directories_bionic': include_directories_bionic + "\t",
-                                                           'header_files_bionic': header_files_bionic + "\t",
-                                                           # external
-                                                           'AOSP_EXTERNAL': "${AOSP_EXTERNAL}",
-                                                           'HEADERS_EXTERNAL': "${HEADERS_EXTERNAL}",
-                                                           'include_directories_external': include_directories_external + "\t",
-                                                           'header_files_external': header_files_external + "\t",
-                                                           # packages
-                                                           'AOSP_PACKAGES': "${AOSP_PACKAGES}",
-                                                           'HEADERS_PACKAGES': "${HEADERS_PACKAGES}",
-                                                           'include_directories_packages': include_directories_packages + "\t",
-                                                           'header_files_packages': header_files_packages + "\t",
-                                                           # hardware
-                                                           'AOSP_HARDWARE': "${AOSP_HARDWARE}",
-                                                           'HEADERS_HARDWARE': "${HEADERS_HARDWARE}",
-                                                           'include_directories_hardware': include_directories_hardware + "\t",
-                                                           'header_files_hardware': header_files_hardware + "\t",
-                                                           # vendor
-                                                           'AOSP_VENDOR': "${AOSP_VENDOR}",
-                                                           'HEADERS_VENDOR': "${HEADERS_VENDOR}",
-                                                           'include_directories_vendor': include_directories_vendor + "\t",
-                                                           'header_files_vendor': header_files_vendor + "\t",
-                                                           })
+                                                                'code_files': code_files,
+                                                                'include_directories': include_directories,
+                                                                'header_files': header_files,
+                                                                'BUILD_NATIVE_ROOT': "${BUILD_NATIVE_ROOT}",
+                                                                'SOURCE_FILES': "${SOURCE_FILES}",
+                                                                'HEADERS': "${HEADERS}",
+                                                                # system common
+                                                                'AOSP_SYSTEM_COMMON': "${AOSP_SYSTEM_COMMON}",
+                                                                'SOURCE_FILES_SYSTEM_COMMON': "${SOURCE_FILES_SYSTEM_COMMON}",
+                                                                'HEADERS_SYSTEM_COMMON': "${HEADERS_SYSTEM_COMMON}",
+                                                                'code_files_system_common': code_files_system_common + "\t",
+                                                                'include_directories_system_common': include_directories_system_common + "\t",
+                                                                'header_files_system_common': header_files_system_common + "\t",
+                                                                # # system
+                                                                'AOSP_SYSTEM': "${AOSP_SYSTEM}",
+                                                                'HEADERS_SYSTEM': "${HEADERS_SYSTEM}",
+                                                                'include_directories_system': include_directories_system + "\t",
+                                                                'header_files_system': header_files_system + "\t",
+                                                                # av
+                                                                'AOSP_AV': "${AOSP_AV}",
+                                                                'SOURCE_FILES_AV': "${SOURCE_FILES_AV}",
+                                                                'HEADERS_AV': "${HEADERS_AV}",
+                                                                'code_files_av': code_files_av + "\t",
+                                                                'include_directories_av': include_directories_av + "\t",
+                                                                'header_files_av': header_files_av + "\t",
+                                                                # out
+                                                                'AOSP_OUT': "${AOSP_OUT}",
+                                                                'HEADERS_OUT': "${HEADERS_OUT}",
+                                                                'include_directories_out': include_directories_out + "\t",
+                                                                'header_files_out': header_files_out + "\t",
+                                                                # art
+                                                                'AOSP_ART': "${AOSP_ART}",
+                                                                'HEADERS_ART': "${HEADERS_ART}",
+                                                                'include_directories_art': include_directories_art + "\t",
+                                                                'header_files_art': header_files_art + "\t",
+                                                                # bionic
+                                                                'AOSP_BIONIC': "${AOSP_BIONIC}",
+                                                                'HEADERS_BIONIC': "${HEADERS_BIONIC}",
+                                                                'include_directories_bionic': include_directories_bionic + "\t",
+                                                                'header_files_bionic': header_files_bionic + "\t",
+                                                                # external
+                                                                'AOSP_EXTERNAL': "${AOSP_EXTERNAL}",
+                                                                'HEADERS_EXTERNAL': "${HEADERS_EXTERNAL}",
+                                                                'include_directories_external': include_directories_external + "\t",
+                                                                'header_files_external': header_files_external + "\t",
+                                                                # packages
+                                                                'AOSP_PACKAGES': "${AOSP_PACKAGES}",
+                                                                'HEADERS_PACKAGES': "${HEADERS_PACKAGES}",
+                                                                'include_directories_packages': include_directories_packages + "\t",
+                                                                'header_files_packages': header_files_packages + "\t",
+                                                                # bootable
+                                                                'AOSP_BOOTABLE': "${AOSP_BOOTABLE}",
+                                                                'HEADERS_BOOTABLE': "${HEADERS_BOOTABLE}",
+                                                                'include_directories_bootable': include_directories_bootable + "\t",
+                                                                'header_files_bootable': header_files_bootable + "\t",
+                                                                # prebuilts
+                                                                'AOSP_PREBUILTS': "${AOSP_PREBUILTS}",
+                                                                'HEADERS_PREBUILTS': "${HEADERS_PREBUILTS}",
+                                                                'include_directories_prebuilts': include_directories_prebuilts + "\t",
+                                                                'header_files_prebuilts': header_files_prebuilts + "\t",
+                                                                # hardware
+                                                                'AOSP_HARDWARE': "${AOSP_HARDWARE}",
+                                                                'HEADERS_HARDWARE': "${HEADERS_HARDWARE}",
+                                                                'include_directories_hardware': include_directories_hardware + "\t",
+                                                                'header_files_hardware': header_files_hardware + "\t",
+                                                                # vendor
+                                                                'AOSP_VENDOR': "${AOSP_VENDOR}",
+                                                                'HEADERS_VENDOR': "${HEADERS_VENDOR}",
+                                                                'include_directories_vendor': include_directories_vendor + "\t",
+                                                                'header_files_vendor': header_files_vendor + "\t",
+                                                                })
 
     write_text(cmake_file, cmake_file_text)
+
+
+def get_dirs(project):
+    dirs = []
+    android_runtime = ["frameworks/base/core/jni"]
+    android_services = ["frameworks/base/libs/services",
+                        "frameworks/base/services/core/jni",
+                        "frameworks/base/services/incremental"]
+    inputflinger = ["frameworks/native/services/inputflinger"]
+    surfaceflinger = ["frameworks/native/services/surfaceflinger"]
+    aosp_native = ["frameworks/base",
+                   "frameworks/native",
+                   "frameworks/av",
+                   "system/core",
+                   "system/libbase/",
+                   "system/libfmq/",
+                   "system/libhidl/",
+                   "system/libhwbinder/",
+                   "system/logging/",
+                   "system/tools/aidl/",
+                   "system/tools/hidl/",
+                   "system/tools/sysprop/",
+                   ]
+
+    if project == "android_runtime":
+        dirs.extend(android_runtime)
+    elif project == "android_services":
+        dirs.extend(android_services)
+    elif project == "inputflinger":
+        dirs.extend(inputflinger)
+    elif project == "surfaceflinger":
+        dirs.extend(surfaceflinger)
+    elif project == "aosp-native":
+        dirs.extend(aosp_native)
+    else:
+        dirs.extend(aosp_native)
+
+    return dirs
 
 
 def main():
@@ -798,25 +936,7 @@ def main():
     root = options.root.strip()
     project = options.project.strip()
 
-    # work("update_engine",
-    #      ["/home/solo/code/github/global_scripts/test/clion/system/update_engine"])
-
-    # work("android_runtime",
-    #      ["/home/solo/code/github/global_scripts/test/clion/frameworks/base/core/jni"])
-
-
-    # work("android-services",
-    #      ["/home/solo/code/github/global_scripts/test/clion/frameworks/base/libs/services",
-    #       "/home/solo/code/github/global_scripts/test/clion/frameworks/base/services/core/jni",
-    #       "/home/solo/code/github/global_scripts/test/clion/frameworks/base/services/incremental"])
-
-    # work("surfaceflinger", ["/home/solo/code/github/global_scripts/test/clion/frameworks/native/services/surfaceflinger"])
-    # work("inputflinger", ["/home/solo/code/github/global_scripts/test/clion/frameworks/native/services/inputflinger"])
-
-    work("aosp-native", ["/home/solo/code/github/global_scripts/test/clion/frameworks/base",
-                         "/home/solo/code/github/global_scripts/test/clion/frameworks/native",
-                         "/home/solo/code/github/global_scripts/test/clion/frameworks/av"
-                         ])
+    work(project, root, get_dirs(project))
 
     return 0
 
