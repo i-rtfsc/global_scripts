@@ -1,0 +1,13 @@
+qcom/vendor/xingji/app/app_override,vendor/xingji/app/app_override
+qcom/vendor/xingji/app/sar,vendor/xingji/app/sar
+qcom/vendor/xingji/app/scLog,vendor/xingji/app/scLog
+qcom/vendor/xingji/hal/meizu_charging,vendor/xingji/hal/meizu_charging
+qcom/vendor/xingji/hal/star_core,vendor/xingji/hal/star_core
+qcom/vendor/xingji/interfaces,vendor/xingji/interfaces
+qcom/vendor/xingji/kernel/devicetree,vendor/xingji/kernel/devicetree
+qcom/vendor/xingji/kernel/modules,vendor/xingji/kernel/modules
+qcom/vendor/xingji/multimedia,vendor/xingji/multimedia
+qcom/vendor/xingji/provision,vendor/xingji/provision
+qcom/vendor/xingji/utils/ctags,vendor/xingji/utils/ctags
+qcom/vendor/xingji/utils/minidump-parser,vendor/xingji/utils/minidump-parser
+qcom/vendor/xingji/xingji-telephony,vendor/xingji/xingji-telephony
