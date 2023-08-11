@@ -56,6 +56,8 @@ function hookFunc(targetClass, targetMethod, showStack = false) {
                 output = output.concat("\n")
 
                 //打印方法
+                output = output.concat(clazz);
+                output = output.concat("\n");
                 output = output.concat(overloads[i]);
                 output = output.concat("\n");
 

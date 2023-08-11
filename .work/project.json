@@ -1,0 +1,248 @@
+[
+  {
+    "remote": "gerrit",
+    "project": "device/meizu/common",
+    "path": "device/meizu/common",
+    "branch": "QSSI_QUF10_base"
+  },
+  {
+    "remote": "gerrit",
+    "project": "platform/art",
+    "path": "art",
+    "branch": "QSSI_QUF10_base"
+  },
+  {
+    "remote": "gerrit",
+    "project": "platform/bionic",
+    "path": "bionic",
+    "branch": "QSSI_QUF10_base"
+  },
+  {
+    "remote": "gerrit",
+    "project": "platform/bootable/libbootloader",
+    "path": "bootable/libbootloader",
+    "branch": "QSSI_QUF10_base"
+  },
+  {
+    "remote": "gerrit",
+    "project": "platform/bootable/recovery",
+    "path": "bootable/recovery",
+    "branch": "QSSI_QUF10_base"
+  },
+  {
+    "remote": "gerrit",
+    "project": "platform/frameworks/av",
+    "path": "frameworks/av",
+    "branch": "QSSI_QUF10_base"
+  },
+  {
+    "remote": "gerrit",
+    "project": "platform/frameworks/base",
+    "path": "frameworks/base",
+    "branch": "QSSI_QUF10_base"
+  },
+  {
+    "remote": "gerrit",
+    "project": "platform/frameworks/native",
+    "path": "frameworks/native",
+    "branch": "QSSI_QUF10_base"
+  },
+  {
+    "remote": "gerrit",
+    "project": "platform/hardware/interfaces",
+    "path": "hardware/interfaces",
+    "branch": "QSSI_QUF10_base"
+  },
+  {
+    "remote": "gerrit",
+    "project": "platform/hardware/libhardware",
+    "path": "hardware/libhardware",
+    "branch": "QSSI_QUF10_base"
+  },
+  {
+    "remote": "gerrit",
+    "project": "platform/libnativehelper",
+    "path": "libnativehelper",
+    "branch": "QSSI_QUF10_base"
+  },
+  {
+    "remote": "gerrit",
+    "project": "platform/packages/apps/Settings",
+    "path": "packages/apps/Settings",
+    "branch": "QSSI_QUF10_base"
+  },
+  {
+    "remote": "gerrit",
+    "project": "platform/packages/apps/SystemUI",
+    "path": "packages/apps/SystemUI",
+    "branch": "QSSI_QUF10_base"
+  },
+  {
+    "remote": "gerrit",
+    "project": "platform/system/core",
+    "path": "system/core",
+    "branch": "QSSI_QUF10_base"
+  },
+  {
+    "remote": "gerrit",
+    "project": "platform/system/libbase",
+    "path": "system/libbase",
+    "branch": "QSSI_QUF10_base"
+  },
+  {
+    "remote": "gerrit",
+    "project": "platform/system/libfmq",
+    "path": "system/libfmq",
+    "branch": "QSSI_QUF10_base"
+  },
+  {
+    "remote": "gerrit",
+    "project": "platform/system/libhidl",
+    "path": "system/libhidl",
+    "branch": "QSSI_QUF10_base"
+  },
+  {
+    "remote": "gerrit",
+    "project": "platform/system/libhwbinder",
+    "path": "system/libhwbinder",
+    "branch": "QSSI_QUF10_base"
+  },
+  {
+    "remote": "gerrit",
+    "project": "platform/system/libvintf",
+    "path": "system/libvintf",
+    "branch": "QSSI_QUF10_base"
+  },
+  {
+    "remote": "gerrit",
+    "project": "platform/system/logging",
+    "path": "system/logging",
+    "branch": "QSSI_QUF10_base"
+  },
+  {
+    "remote": "gerrit",
+    "project": "platform/system/media",
+    "path": "system/media",
+    "branch": "QSSI_QUF10_base"
+  },
+  {
+    "remote": "gerrit",
+    "project": "platform/system/memory/lmkd",
+    "path": "system/memory/lmkd",
+    "branch": "QSSI_QUF10_base"
+  },
+  {
+    "remote": "gerrit",
+    "project": "platform/system/server_configurable_flags",
+    "path": "system/server_configurable_flags",
+    "branch": "QSSI_QUF10_base"
+  },
+  {
+    "remote": "gerrit",
+    "project": "platform/system/tools/aidl",
+    "path": "system/tools/aidl",
+    "branch": "QSSI_QUF10_base"
+  },
+  {
+    "remote": "gerrit",
+    "project": "platform/system/tools/hidl",
+    "path": "system/tools/hidl",
+    "branch": "QSSI_QUF10_base"
+  },
+  {
+    "remote": "gerrit",
+    "project": "vendor/flyme/frameworks/av",
+    "path": "vendor/flyme/frameworks/av",
+    "branch": "QSSI_QUF10_base"
+  },
+  {
+    "remote": "gerrit",
+    "project": "vendor/flyme/frameworks/base",
+    "path": "vendor/flyme/frameworks/base",
+    "branch": "QSSI_QUF10_base"
+  },
+  {
+    "remote": "gerrit",
+    "project": "vendor/xjsd/frameworks",
+    "path": "vendor/xjsd/frameworks",
+    "branch": "Mars_QTF10_base"
+  },
+  {
+    "remote": "review",
+    "project": "SystemUITools",
+    "path": "packages/apps/SystemUITools",
+    "branch": "flyme10_base"
+  },
+  {
+    "remote": "review",
+    "project": "FMS",
+    "path": "packages/apps/FMS",
+    "branch": "flyme10_base_xj"
+  },
+  {
+    "remote": "upuphone",
+    "project": "qcom/vendor/xingji/app/app_override",
+    "path": "vendor/xingji/app/app_override",
+    "branch": "androidt"
+  },
+  {
+    "remote": "upuphone",
+    "project": "qcom/vendor/xingji/app/sar",
+    "path": "vendor/xingji/app/sar",
+    "branch": "androidt"
+  },
+  {
+    "remote": "upuphone",
+    "project": "qcom/vendor/xingji/app/scLog",
+    "path": "vendor/xingji/app/scLog",
+    "branch": "androidt"
+  },
+  {
+    "remote": "upuphone",
+    "project": "qcom/vendor/xingji/hal/meizu_charging",
+    "path": "vendor/xingji/hal/meizu_charging",
+    "branch": "androidt"
+  },
+  {
+    "remote": "upuphone",
+    "project": "qcom/vendor/xingji/hal/star_core",
+    "path": "vendor/xingji/hal/star_core",
+    "branch": "androidt"
+  },
+  {
+    "remote": "upuphone",
+    "project": "qcom/vendor/xingji/interfaces",
+    "path": "vendor/xingji/interfaces",
+    "branch": "androidt"
+  },
+  {
+    "remote": "upuphone",
+    "project": "qcom/vendor/xingji/kernel/devicetree",
+    "path": "vendor/xingji/kernel/devicetree",
+    "branch": "androidt"
+  },
+  {
+    "remote": "upuphone",
+    "project": "qcom/vendor/xingji/kernel/modules",
+    "path": "vendor/xingji/kernel/modules",
+    "branch": "androidt"
+  },
+  {
+    "remote": "upuphone",
+    "project": "qcom/vendor/xingji/utils/ctags",
+    "path": "vendor/xingji/utils/ctags",
+    "branch": "androidt"
+  },
+  {
+    "remote": "upuphone",
+    "project": "qcom/vendor/xingji/utils/minidump-parser",
+    "path": "vendor/xingji/utils/minidump-parser",
+    "branch": "androidt"
+  },
+  {
+    "remote": "upuphone",
+    "project": "qcom/vendor/xingji/xingji-telephony",
+    "path": "vendor/xingji/xingji-telephony",
+    "branch": "androidt"
+  }
+]
