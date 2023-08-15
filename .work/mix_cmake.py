@@ -28,9 +28,9 @@ project(${project_name})
 # set(CMAKE_CXX_STANDARD 20)
 
 set(ANDROID_ROOT ${BUILD_NATIVE_ROOT})
+#set(ANDROID_ROOT "/home/solo/code/aosp")
 
 set(AOSP_SYSTEM_COMMON true)
-set(AOSP_OUT false)
 set(AOSP_AV false)
 set(AOSP_ART false)
 set(AOSP_BIONIC false)
@@ -38,9 +38,9 @@ set(AOSP_SYSTEM false)
 set(AOSP_EXTERNAL false)
 set(AOSP_PACKAGES false)
 set(AOSP_BOOTABLE false)
-set(AOSP_PREBUILTS false)
+# set(AOSP_PREBUILTS false)
 set(AOSP_HARDWARE false)
-set(AOSP_VENDOR false)
+set(AOSP_OUT false)
 
 file(GLOB SOURCE_FILES${code_files})
 
@@ -48,221 +48,7 @@ include_directories(${include_directories})
 
 file (GLOB_RECURSE HEADERS${header_files})
 
-# add aosp system common
-if (${AOSP_SYSTEM_COMMON})
-    message("enable aosp system common")
-
-    # add aosp system common src
-    file(GLOB SOURCE_FILES_SYSTEM_COMMON${code_files_system_common})
-    # append aosp system common src
-    list (APPEND SOURCE_FILES ${SOURCE_FILES_SYSTEM_COMMON})
-    
-    # add aosp system common header dir
-    include_directories(${include_directories_system_common})
-
-    # add aosp system common header file
-    file (GLOB_RECURSE HEADERS_SYSTEM_COMMON${header_files_system_common})    
-    # append aosp system common header
-    list (APPEND HEADERS ${HEADERS_SYSTEM_COMMON})    
-endif ()
-
-# add aosp system
-if (${AOSP_SYSTEM})
-    message("enable aosp system")
-
-    # add aosp system src
-    file(GLOB SOURCE_FILES_SYSTEM${code_files_system})
-    # append aosp system common src
-    list (APPEND SOURCE_FILES ${SOURCE_FILES_SYSTEM})
-    
-    # add aosp system header dir
-    include_directories(${include_directories_system})
-
-    # add aosp system header file
-    file (GLOB_RECURSE HEADERS_SYSTEM${header_files_system})    
-    # append aosp system header
-    list (APPEND HEADERS ${HEADERS_SYSTEM})    
-endif ()
-
-# add aosp av
-if (${AOSP_AV})
-    message("enable aosp av")
-
-    # add aosp av src
-    file(GLOB SOURCE_FILES_AV${code_files_av})
-    # append aosp av src
-    list (APPEND SOURCE_FILES ${SOURCE_FILES_AV})
-    
-    # add aosp av header dir
-    include_directories(${include_directories_av})
-
-    # add aosp av header file
-    file (GLOB_RECURSE HEADERS_AV${header_files_av})    
-    # append aosp av header
-    list (APPEND HEADERS ${HEADERS_AV})    
-endif ()
-
-# add aosp out
-if (${AOSP_OUT})
-    message("enable aosp out")
-
-    # add aosp out src
-    file(GLOB SOURCE_FILES_OUT${code_files_out})
-    # append aosp out src
-    list (APPEND SOURCE_FILES ${SOURCE_FILES_OUT})
-    
-    # add aosp out header dir
-    include_directories(${include_directories_out})
-
-    # add aosp out header file
-    file (GLOB_RECURSE HEADERS_OUT${header_files_out})    
-    # append aosp out header
-    list (APPEND HEADERS ${HEADERS_OUT})    
-endif ()
-
-# add aosp art
-if (${AOSP_ART})
-    message("enable aosp art")
-
-    # add aosp art src
-    file(GLOB SOURCE_FILES_ART${code_files_art})
-    # append aosp art src
-    list (APPEND SOURCE_FILES ${SOURCE_FILES_ART})
-    
-    # add aosp art header dir
-    include_directories(${include_directories_art})
-
-    # add aosp art header file
-    file (GLOB_RECURSE HEADERS_ART${header_files_art})    
-    # append aosp art header
-    list (APPEND HEADERS ${HEADERS_ART})    
-endif ()
-
-# add aosp external
-if (${AOSP_BIONIC})
-    message("enable aosp bionic")
-
-    # add aosp bionic src
-    file(GLOB SOURCE_FILES_BIONIC${code_files_bionic})
-    # append aosp bionic src
-    list (APPEND SOURCE_FILES ${SOURCE_FILES_BIONIC})
-    
-    # add aosp bionic header dir
-    include_directories(${include_directories_bionic})
-
-    # add aosp bionic header file
-    file (GLOB_RECURSE HEADERS_BIONIC${header_files_bionic})    
-    # append aosp bionic header
-    list (APPEND HEADERS ${HEADERS_BIONIC})    
-endif ()
-
-# add aosp external
-if (${AOSP_EXTERNAL})
-    message("enable aosp external")
-
-    # add aosp external src
-    file(GLOB SOURCE_FILES_EXTERNAL${code_files_external})
-    # append aosp external src
-    list (APPEND SOURCE_FILES ${SOURCE_FILES_EXTERNAL})
-    
-    # add aosp external header dir
-    include_directories(${include_directories_external})
-
-    # add aosp external header file
-    file (GLOB_RECURSE HEADERS_EXTERNAL${header_files_external})    
-    # append aosp external header
-    list (APPEND HEADERS ${HEADERS_EXTERNAL})    
-endif ()
-
-# add aosp packages
-if (${AOSP_PACKAGES})
-    message("enable aosp packages")
-
-    # add aosp packages src
-    file(GLOB SOURCE_FILES_PACKAGES${code_files_packages})
-    # append aosp packages src
-    list (APPEND SOURCE_FILES ${SOURCE_FILES_PACKAGES})
-    
-    # add aosp packages header dir
-    include_directories(${include_directories_packages})
-
-    # add aosp packages header file
-    file (GLOB_RECURSE HEADERS_PACKAGES${header_files_packages})    
-    # append aosp packages header
-    list (APPEND HEADERS ${HEADERS_PACKAGES})    
-endif ()
-
-# add aosp bootable
-if (${AOSP_BOOTABLE})
-    message("enable aosp bootable")
-
-    # add aosp bootable src
-    file(GLOB SOURCE_FILES_BOOTABLE${code_files_bootable})
-    # append aosp bootable src
-    list (APPEND SOURCE_FILES ${SOURCE_FILES_BOOTABLE})
-
-    # add aosp bootable header dir
-    include_directories(${include_directories_bootable})
-
-    # add aosp bootable header file
-    file (GLOB_RECURSE HEADERS_BOOTABLE${header_files_bootable})
-    # append aosp bootable header
-    list (APPEND HEADERS ${HEADERS_BOOTABLE})
-endif ()
-
-# add aosp prebuilts
-if (${AOSP_PREBUILTS})
-    message("enable aosp prebuilts")
-
-    # add aosp prebuilts src
-    file(GLOB SOURCE_FILES_PREBUILTS${code_files_prebuilts})
-    # append aosp prebuilts src
-    list (APPEND SOURCE_FILES ${SOURCE_FILES_PREBUILTS})
-
-    # add aosp prebuilts header dir
-    include_directories(${include_directories_prebuilts})
-
-    # add aosp prebuilts header file
-    file (GLOB_RECURSE HEADERS_PREBUILTS${header_files_prebuilts})
-    # append aosp prebuilts header
-    list (APPEND HEADERS ${HEADERS_PREBUILTS})
-endif ()
-
-# add aosp hardware
-if (${AOSP_HARDWARE})
-    message("enable aosp hardware")
-
-    # add aosp hardware src
-    file(GLOB SOURCE_FILES_HARDWARE${code_files_hardware})
-    # append aosp hardware src
-    list (APPEND SOURCE_FILES ${SOURCE_FILES_HARDWARE})
-    
-    # add aosp hardware header dir
-    include_directories(${include_directories_hardware})
-
-    # add aosp hardware header file
-    file (GLOB_RECURSE HEADERS_HARDWARE${header_files_hardware})    
-    # append aosp hardware header
-    list (APPEND HEADERS ${HEADERS_HARDWARE})    
-endif ()
-
-# add aosp vendor
-if (${AOSP_VENDOR})
-    message("enable aosp vendor")
-
-    # add aosp vendor src
-    file(GLOB SOURCE_FILES_VENDOR${code_files_vendor})
-    # append aosp vendor src
-    list (APPEND SOURCE_FILES ${SOURCE_FILES_VENDOR})
-    
-    # add aosp vendor header dir
-    include_directories(${include_directories_vendor})
-
-    # add aosp vendor header file
-    file (GLOB_RECURSE HEADERS_VENDOR${header_files_vendor})    
-    # append aosp vendor header
-    list (APPEND HEADERS ${HEADERS_VENDOR})    
-endif ()
+${ext_template}
 
 add_executable(
         ${project_name}
@@ -271,204 +57,39 @@ add_executable(
 )
 """
 
-# 生成cmake文件模板
-cmake_template_mini = """cmake_minimum_required(VERSION 3.5)
-project(${project_name})
+ext_template_src = """
+# add aosp ${msg}
+if (${AOSP_${FEATURE}})
+    message("enable aosp ${msg}")
 
-# set(CMAKE_CXX_STANDARD 20)
+    # add aosp ${msg} src
+    file(GLOB SOURCE_FILES_${FEATURE}${code_files})
+    # append aosp ${msg} src
+    list (APPEND SOURCE_FILES ${SOURCE_FILES_${FEATURE}})
 
-set(ANDROID_ROOT ${BUILD_NATIVE_ROOT})
+    # add aosp ${msg} header dir
+    include_directories(${include_dirs})
 
-set(AOSP_SYSTEM_COMMON true)
-set(AOSP_OUT false)
-set(AOSP_AV false)
-set(AOSP_ART false)
-set(AOSP_BIONIC false)
-set(AOSP_SYSTEM false)
-set(AOSP_EXTERNAL false)
-set(AOSP_PACKAGES false)
-set(AOSP_BOOTABLE false)
-set(AOSP_PREBUILTS false)
-set(AOSP_HARDWARE false)
-set(AOSP_VENDOR false)
-
-file(GLOB SOURCE_FILES${code_files})
-
-include_directories(${include_directories})
-
-file (GLOB_RECURSE HEADERS${header_files})
-
-# add aosp system common
-if (${AOSP_SYSTEM_COMMON})
-    message("enable aosp system common")
-
-    # add aosp system common src
-    file(GLOB SOURCE_FILES_SYSTEM_COMMON${code_files_system_common})
-    # append aosp system common src
-    list (APPEND SOURCE_FILES ${SOURCE_FILES_SYSTEM_COMMON})
-
-    # add aosp system common header dir
-    include_directories(${include_directories_system_common})
-
-    # add aosp system common header file
-    file (GLOB_RECURSE HEADERS_SYSTEM_COMMON${header_files_system_common})    
-    # append aosp system common header
-    list (APPEND HEADERS ${HEADERS_SYSTEM_COMMON})    
+    # add aosp ${msg} header file
+    file (GLOB_RECURSE HEADERS_${FEATURE}${header_files})
+    # append aosp ${msg} header
+    list (APPEND HEADERS ${HEADERS_${FEATURE}})
 endif ()
+"""
 
-# add aosp system
-if (${AOSP_SYSTEM})
-    message("enable aosp system")
+ext_template = """
+# add aosp ${msg}
+if (${AOSP_${FEATURE}})
+    message("enable aosp ${msg}")
 
-    # add aosp system header dir
-    include_directories(${include_directories_system})
+    # add aosp ${msg} header dir
+    include_directories(${include_dirs})
 
-    # add aosp system header file
-    file (GLOB_RECURSE HEADERS_SYSTEM${header_files_system})    
-    # append aosp system header
-    list (APPEND HEADERS ${HEADERS_SYSTEM})    
+    # add aosp ${msg} header file
+    file (GLOB_RECURSE HEADERS_${FEATURE}${header_files})
+    # append aosp ${msg} header
+    list (APPEND HEADERS ${HEADERS_${FEATURE}})
 endif ()
-
-# add aosp av
-if (${AOSP_AV})
-    message("enable aosp av")
-
-    # add aosp av src
-    file(GLOB SOURCE_FILES_AV${code_files_av})
-    # append aosp av src
-    list (APPEND SOURCE_FILES ${SOURCE_FILES_AV})
-
-    # add aosp av header dir
-    include_directories(${include_directories_av})
-
-    # add aosp av header file
-    file (GLOB_RECURSE HEADERS_AV${header_files_av})    
-    # append aosp av header
-    list (APPEND HEADERS ${HEADERS_AV})    
-endif ()
-
-# add aosp out
-if (${AOSP_OUT})
-    message("enable aosp out")
-
-    # add aosp out header dir
-    include_directories(${include_directories_out})
-
-    # add aosp out header file
-    file (GLOB_RECURSE HEADERS_OUT${header_files_out})    
-    # append aosp out header
-    list (APPEND HEADERS ${HEADERS_OUT})    
-endif ()
-
-# add aosp art
-if (${AOSP_ART})
-    message("enable aosp art")
-
-    # add aosp art header dir
-    include_directories(${include_directories_art})
-
-    # add aosp art header file
-    file (GLOB_RECURSE HEADERS_ART${header_files_art})    
-    # append aosp art header
-    list (APPEND HEADERS ${HEADERS_ART})    
-endif ()
-
-# add aosp external
-if (${AOSP_BIONIC})
-    message("enable aosp bionic")
-
-    # add aosp bionic header dir
-    include_directories(${include_directories_bionic})
-
-    # add aosp bionic header file
-    file (GLOB_RECURSE HEADERS_BIONIC${header_files_bionic})    
-    # append aosp bionic header
-    list (APPEND HEADERS ${HEADERS_BIONIC})    
-endif ()
-
-# add aosp external
-if (${AOSP_EXTERNAL})
-    message("enable aosp external")
-
-    # add aosp external header dir
-    include_directories(${include_directories_external})
-
-    # add aosp external header file
-    file (GLOB_RECURSE HEADERS_EXTERNAL${header_files_external})    
-    # append aosp external header
-    list (APPEND HEADERS ${HEADERS_EXTERNAL})    
-endif ()
-
-# add aosp packages
-if (${AOSP_PACKAGES})
-    message("enable aosp packages")
-
-    # add aosp packages header dir
-    include_directories(${include_directories_packages})
-
-    # add aosp packages header file
-    file (GLOB_RECURSE HEADERS_PACKAGES${header_files_packages})    
-    # append aosp packages header
-    list (APPEND HEADERS ${HEADERS_PACKAGES})    
-endif ()
-
-# add aosp bootable
-if (${AOSP_BOOTABLE})
-    message("enable aosp bootable")
-
-    # add aosp bootable header dir
-    include_directories(${include_directories_bootable})
-
-    # add aosp bootable header file
-    file (GLOB_RECURSE HEADERS_BOOTABLE${header_files_bootable})
-    # append aosp bootable header
-    list (APPEND HEADERS ${HEADERS_BOOTABLE})
-endif ()
-
-# add aosp prebuilts
-if (${AOSP_PREBUILTS})
-    message("enable aosp prebuilts")
-
-    # add aosp prebuilts header dir
-    include_directories(${include_directories_prebuilts})
-
-    # add aosp prebuilts header file
-    file (GLOB_RECURSE HEADERS_PREBUILTS${header_files_prebuilts})
-    # append aosp prebuilts header
-    list (APPEND HEADERS ${HEADERS_PREBUILTS})
-endif ()
-
-# add aosp hardware
-if (${AOSP_HARDWARE})
-    message("enable aosp hardware")
-
-    # add aosp hardware header dir
-    include_directories(${include_directories_hardware})
-
-    # add aosp hardware header file
-    file (GLOB_RECURSE HEADERS_HARDWARE${header_files_hardware})    
-    # append aosp hardware header
-    list (APPEND HEADERS ${HEADERS_HARDWARE})    
-endif ()
-
-# add aosp vendor
-if (${AOSP_VENDOR})
-    message("enable aosp vendor")
-
-    # add aosp vendor header dir
-    include_directories(${include_directories_vendor})
-
-    # add aosp vendor header file
-    file (GLOB_RECURSE HEADERS_VENDOR${header_files_vendor})    
-    # append aosp vendor header
-    list (APPEND HEADERS ${HEADERS_VENDOR})    
-endif ()
-
-add_executable(
-        ${project_name}
-        ${SOURCE_FILES}
-        ${HEADERS}
-)
 """
 
 
@@ -585,7 +206,8 @@ def work(project_name, root, project_list):
             code_files_packages += "\t" + code
         elif "${ANDROID_ROOT}/vendor/" in code or "${ANDROID_ROOT}/device/" in code:
             code_files_vendor += "\t" + code
-        elif "${ANDROID_ROOT}/hardware/" in code:
+        elif "${ANDROID_ROOT}/hardware/" in code \
+                or "${ANDROID_ROOT}/frameworks/hardware/interfaces/" in code:
             code_files_hardware += "\t" + code
         elif "${ANDROID_ROOT}/bootable/" in code:
             code_files_bootable += "\t" + code
@@ -646,7 +268,8 @@ def work(project_name, root, project_list):
             header_files_packages += "\t" + header
         elif "${ANDROID_ROOT}/vendor/" in header or "${ANDROID_ROOT}/device/" in header:
             header_files_vendor += "\t" + header
-        elif "${ANDROID_ROOT}/hardware/" in header:
+        elif "${ANDROID_ROOT}/hardware/" in header \
+                or "${ANDROID_ROOT}/frameworks/hardware/interfaces/" in header:
             header_files_hardware += "\t" + header
         elif "${ANDROID_ROOT}/bootable/" in header:
             header_files_bootable += "\t" + header
@@ -707,7 +330,8 @@ def work(project_name, root, project_list):
             include_directories_packages += "\t" + project
         elif "${ANDROID_ROOT}/vendor/" in project or "${ANDROID_ROOT}/device/" in project:
             include_directories_vendor += "\t" + project
-        elif "${ANDROID_ROOT}/hardware/" in project:
+        elif "${ANDROID_ROOT}/hardware/" in project \
+                or "${ANDROID_ROOT}/frameworks/hardware/interfaces/" in project:
             include_directories_hardware += "\t" + project
         elif "${ANDROID_ROOT}/bootable/" in project:
             include_directories_bootable += "\t" + project
@@ -736,174 +360,213 @@ def work(project_name, root, project_list):
         else:
             include_directories += project
 
-    # cmake_file = os.path.join(os.path.dirname(__file__), project_name, "CMakeLists.txt")
     cmake_file = os.path.join(os.path.dirname(__file__), "../", project_name, "CMakeLists.txt")
-    # cmake_file_text = Template(cmake_template).substitute({'project_name': project_name,
-    #                                                        'code_files': code_files,
-    #                                                        'include_directories': include_directories,
-    #                                                        'header_files': header_files,
-    #                                                        'BUILD_NATIVE_ROOT': "${BUILD_NATIVE_ROOT}",
-    #                                                        'SOURCE_FILES': "${SOURCE_FILES}",
-    #                                                        'HEADERS': "${HEADERS}",
-    #                                                        # system common
-    #                                                        'AOSP_SYSTEM_COMMON': "${AOSP_SYSTEM_COMMON}",
-    #                                                        'SOURCE_FILES_SYSTEM_COMMON': "${SOURCE_FILES_SYSTEM_COMMON}",
-    #                                                        'HEADERS_SYSTEM_COMMON': "${HEADERS_SYSTEM_COMMON}",
-    #                                                        'code_files_system_common': code_files_system_common + "\t",
-    #                                                        'include_directories_system_common': include_directories_system_common + "\t",
-    #                                                        'header_files_system_common': header_files_system_common + "\t",
-    #                                                        # # system
-    #                                                        'AOSP_SYSTEM': "${AOSP_SYSTEM}",
-    #                                                        'SOURCE_FILES_SYSTEM': "${SOURCE_FILES_SYSTEM}",
-    #                                                        'HEADERS_SYSTEM': "${HEADERS_SYSTEM}",
-    #                                                        'code_files_system': code_files_system + "\t",
-    #                                                        'include_directories_system': include_directories_system + "\t",
-    #                                                        'header_files_system': header_files_system + "\t",
-    #                                                        # av
-    #                                                        'AOSP_AV': "${AOSP_AV}",
-    #                                                        'SOURCE_FILES_AV': "${SOURCE_FILES_AV}",
-    #                                                        'HEADERS_AV': "${HEADERS_AV}",
-    #                                                        'code_files_av': code_files_av + "\t",
-    #                                                        'include_directories_av': include_directories_av + "\t",
-    #                                                        'header_files_av': header_files_av + "\t",
-    #                                                        # out
-    #                                                        'AOSP_OUT': "${AOSP_OUT}",
-    #                                                        'SOURCE_FILES_OUT': "${SOURCE_FILES_OUT}",
-    #                                                        'HEADERS_OUT': "${HEADERS_OUT}",
-    #                                                        'code_files_out': code_files_out + "\t",
-    #                                                        'include_directories_out': include_directories_out + "\t",
-    #                                                        'header_files_out': header_files_out + "\t",
-    #                                                        # art
-    #                                                        'AOSP_ART': "${AOSP_ART}",
-    #                                                        'SOURCE_FILES_ART': "${SOURCE_FILES_ART}",
-    #                                                        'HEADERS_ART': "${HEADERS_ART}",
-    #                                                        'code_files_art': code_files_art + "\t",
-    #                                                        'include_directories_art': include_directories_art + "\t",
-    #                                                        'header_files_art': header_files_art + "\t",
-    #                                                        # bionic
-    #                                                        'AOSP_BIONIC': "${AOSP_BIONIC}",
-    #                                                        'SOURCE_FILES_BIONIC': "${SOURCE_FILES_BIONIC}",
-    #                                                        'HEADERS_BIONIC': "${HEADERS_BIONIC}",
-    #                                                        'code_files_bionic': code_files_bionic + "\t",
-    #                                                        'include_directories_bionic': include_directories_bionic + "\t",
-    #                                                        'header_files_bionic': header_files_bionic + "\t",
-    #                                                        # external
-    #                                                        'AOSP_EXTERNAL': "${AOSP_EXTERNAL}",
-    #                                                        'SOURCE_FILES_EXTERNAL': "${SOURCE_FILES_EXTERNAL}",
-    #                                                        'HEADERS_EXTERNAL': "${HEADERS_EXTERNAL}",
-    #                                                        'code_files_external': code_files_external + "\t",
-    #                                                        'include_directories_external': include_directories_external + "\t",
-    #                                                        'header_files_external': header_files_external + "\t",
-    #                                                        # packages
-    #                                                        'AOSP_PACKAGES': "${AOSP_PACKAGES}",
-    #                                                        'SOURCE_FILES_PACKAGES': "${SOURCE_FILES_PACKAGES}",
-    #                                                        'HEADERS_PACKAGES': "${HEADERS_PACKAGES}",
-    #                                                        'code_files_packages': code_files_packages + "\t",
-    #                                                        'include_directories_packages': include_directories_packages + "\t",
-    #                                                        'header_files_packages': header_files_packages + "\t",
-    #                                                        # hardware
-    #                                                        'AOSP_HARDWARE': "${AOSP_HARDWARE}",
-    #                                                        'SOURCE_FILES_HARDWARE': "${SOURCE_FILES_HARDWARE}",
-    #                                                        'HEADERS_HARDWARE': "${HEADERS_HARDWARE}",
-    #                                                        'code_files_hardware': code_files_hardware + "\t",
-    #                                                        'include_directories_hardware': include_directories_hardware + "\t",
-    #                                                        'header_files_hardware': header_files_hardware + "\t",
-    #                                                        # vendor
-    #                                                        'AOSP_VENDOR': "${AOSP_VENDOR}",
-    #                                                        'SOURCE_FILES_VENDOR': "${SOURCE_FILES_VENDOR}",
-    #                                                        'HEADERS_VENDOR': "${HEADERS_VENDOR}",
-    #                                                        'code_files_vendor': code_files_vendor + "\t",
-    #                                                        'include_directories_vendor': include_directories_vendor + "\t",
-    #                                                        'header_files_vendor': header_files_vendor + "\t",
-    #                                                        })
 
-    cmake_file_text = Template(cmake_template_mini).substitute({'project_name': project_name,
-                                                                'code_files': code_files,
-                                                                'include_directories': include_directories,
-                                                                'header_files': header_files,
-                                                                'BUILD_NATIVE_ROOT': "${BUILD_NATIVE_ROOT}",
-                                                                'SOURCE_FILES': "${SOURCE_FILES}",
-                                                                'HEADERS': "${HEADERS}",
-                                                                # system common
-                                                                'AOSP_SYSTEM_COMMON': "${AOSP_SYSTEM_COMMON}",
-                                                                'SOURCE_FILES_SYSTEM_COMMON': "${SOURCE_FILES_SYSTEM_COMMON}",
-                                                                'HEADERS_SYSTEM_COMMON': "${HEADERS_SYSTEM_COMMON}",
-                                                                'code_files_system_common': code_files_system_common + "\t",
-                                                                'include_directories_system_common': include_directories_system_common + "\t",
-                                                                'header_files_system_common': header_files_system_common + "\t",
-                                                                # # system
-                                                                'AOSP_SYSTEM': "${AOSP_SYSTEM}",
-                                                                'HEADERS_SYSTEM': "${HEADERS_SYSTEM}",
-                                                                'include_directories_system': include_directories_system + "\t",
-                                                                'header_files_system': header_files_system + "\t",
-                                                                # av
-                                                                'AOSP_AV': "${AOSP_AV}",
-                                                                'SOURCE_FILES_AV': "${SOURCE_FILES_AV}",
-                                                                'HEADERS_AV': "${HEADERS_AV}",
-                                                                'code_files_av': code_files_av + "\t",
-                                                                'include_directories_av': include_directories_av + "\t",
-                                                                'header_files_av': header_files_av + "\t",
-                                                                # out
-                                                                'AOSP_OUT': "${AOSP_OUT}",
-                                                                'HEADERS_OUT': "${HEADERS_OUT}",
-                                                                'include_directories_out': include_directories_out + "\t",
-                                                                'header_files_out': header_files_out + "\t",
-                                                                # art
-                                                                'AOSP_ART': "${AOSP_ART}",
-                                                                'HEADERS_ART': "${HEADERS_ART}",
-                                                                'include_directories_art': include_directories_art + "\t",
-                                                                'header_files_art': header_files_art + "\t",
-                                                                # bionic
-                                                                'AOSP_BIONIC': "${AOSP_BIONIC}",
-                                                                'HEADERS_BIONIC': "${HEADERS_BIONIC}",
-                                                                'include_directories_bionic': include_directories_bionic + "\t",
-                                                                'header_files_bionic': header_files_bionic + "\t",
-                                                                # external
-                                                                'AOSP_EXTERNAL': "${AOSP_EXTERNAL}",
-                                                                'HEADERS_EXTERNAL': "${HEADERS_EXTERNAL}",
-                                                                'include_directories_external': include_directories_external + "\t",
-                                                                'header_files_external': header_files_external + "\t",
-                                                                # packages
-                                                                'AOSP_PACKAGES': "${AOSP_PACKAGES}",
-                                                                'HEADERS_PACKAGES': "${HEADERS_PACKAGES}",
-                                                                'include_directories_packages': include_directories_packages + "\t",
-                                                                'header_files_packages': header_files_packages + "\t",
-                                                                # bootable
-                                                                'AOSP_BOOTABLE': "${AOSP_BOOTABLE}",
-                                                                'HEADERS_BOOTABLE': "${HEADERS_BOOTABLE}",
-                                                                'include_directories_bootable': include_directories_bootable + "\t",
-                                                                'header_files_bootable': header_files_bootable + "\t",
-                                                                # prebuilts
-                                                                'AOSP_PREBUILTS': "${AOSP_PREBUILTS}",
-                                                                'HEADERS_PREBUILTS': "${HEADERS_PREBUILTS}",
-                                                                'include_directories_prebuilts': include_directories_prebuilts + "\t",
-                                                                'header_files_prebuilts': header_files_prebuilts + "\t",
-                                                                # hardware
-                                                                'AOSP_HARDWARE': "${AOSP_HARDWARE}",
-                                                                'HEADERS_HARDWARE': "${HEADERS_HARDWARE}",
-                                                                'include_directories_hardware': include_directories_hardware + "\t",
-                                                                'header_files_hardware': header_files_hardware + "\t",
-                                                                # vendor
-                                                                'AOSP_VENDOR': "${AOSP_VENDOR}",
-                                                                'HEADERS_VENDOR': "${HEADERS_VENDOR}",
-                                                                'include_directories_vendor': include_directories_vendor + "\t",
-                                                                'header_files_vendor': header_files_vendor + "\t",
+    # system_common
+    ext_text = "\n"
+    if "${ANDROID_ROOT}" in code_files_system_common:
+        ext_text += Template(ext_template_src).safe_substitute({'FEATURE': "SYSTEM_COMMON",
+                                                                'msg': "system common",
+                                                                'code_files': code_files_system_common,
+                                                                'include_dirs': include_directories_system_common,
+                                                                'header_files': header_files_system_common
                                                                 })
+    else:
+        ext_text += Template(ext_template).safe_substitute({'FEATURE': "SYSTEM_COMMON",
+                                                            'msg': "system common",
+                                                            'include_dirs': include_directories_system_common,
+                                                            'header_files': header_files_system_common
+                                                            })
+    # av
+    ext_text += "\n"
+    if "${ANDROID_ROOT}" in code_files_av:
+        ext_text += Template(ext_template_src).safe_substitute({'FEATURE': "AV",
+                                                                'msg': "av",
+                                                                'code_files': code_files_av,
+                                                                'include_dirs': include_directories_av,
+                                                                'header_files': header_files_av
+                                                                })
+    else:
+        ext_text += Template(ext_template).safe_substitute({'FEATURE': "AV",
+                                                            'msg': "av",
+                                                            'include_dirs': include_directories_av,
+                                                            'header_files': header_files_av
+                                                            })
+
+    # art
+    ext_text += "\n"
+    if "${ANDROID_ROOT}" in code_files_art:
+        ext_text += Template(ext_template_src).safe_substitute({'FEATURE': "ART",
+                                                                'msg': "art",
+                                                                'code_files': code_files_art,
+                                                                'include_dirs': include_directories_art,
+                                                                'header_files': header_files_art
+                                                                })
+    else:
+        ext_text += Template(ext_template).safe_substitute({'FEATURE': "ART",
+                                                            'msg': "art",
+                                                            'include_dirs': include_directories_art,
+                                                            'header_files': header_files_art
+                                                            })
+
+    # bionic
+    ext_text += "\n"
+    if "${ANDROID_ROOT}" in code_files_bionic:
+        ext_text += Template(ext_template_src).safe_substitute({'FEATURE': "BIONIC",
+                                                                'msg': "bionic",
+                                                                'code_files': code_files_bionic,
+                                                                'include_dirs': include_directories_bionic,
+                                                                'header_files': header_files_bionic
+                                                                })
+    else:
+        ext_text += Template(ext_template).safe_substitute({'FEATURE': "BIONIC",
+                                                            'msg': "bionic",
+                                                            'include_dirs': include_directories_bionic,
+                                                            'header_files': header_files_bionic
+                                                            })
+
+    # system
+    ext_text += "\n"
+    if "${ANDROID_ROOT}" in code_files_system:
+        ext_text += Template(ext_template_src).safe_substitute({'FEATURE': "SYSTEM",
+                                                                'msg': "system",
+                                                                'code_files': code_files_system,
+                                                                'include_dirs': include_directories_system,
+                                                                'header_files': header_files_system
+                                                                })
+    else:
+        ext_text += Template(ext_template).safe_substitute({'FEATURE': "SYSTEM",
+                                                            'msg': "system",
+                                                            'include_dirs': include_directories_system,
+                                                            'header_files': header_files_system
+                                                            })
+
+    # external
+    ext_text += "\n"
+    if "${ANDROID_ROOT}" in code_files_external:
+        ext_text += Template(ext_template_src).safe_substitute({'FEATURE': "EXTERNAL",
+                                                                'msg': "external",
+                                                                'code_files': code_files_external,
+                                                                'include_dirs': include_directories_external,
+                                                                'header_files': header_files_external
+                                                                })
+    else:
+        ext_text += Template(ext_template).safe_substitute({'FEATURE': "EXTERNAL",
+                                                            'msg': "external",
+                                                            'include_dirs': include_directories_external,
+                                                            'header_files': header_files_external
+                                                            })
+
+    # packages
+    ext_text += "\n"
+    if "${ANDROID_ROOT}" in code_files_packages:
+        ext_text += Template(ext_template_src).safe_substitute({'FEATURE': "PACKAGES",
+                                                                'msg': "packages",
+                                                                'code_files': code_files_packages,
+                                                                'include_dirs': include_directories_packages,
+                                                                'header_files': header_files_packages
+                                                                })
+    else:
+        ext_text += Template(ext_template).safe_substitute({'FEATURE': "PACKAGES",
+                                                            'msg': "packages",
+                                                            'include_dirs': include_directories_packages,
+                                                            'header_files': header_files_packages
+                                                            })
+
+    # bootable
+    ext_text += "\n"
+    if "${ANDROID_ROOT}" in code_files_bootable:
+        ext_text += Template(ext_template_src).safe_substitute({'FEATURE': "BOOTABLE",
+                                                                'msg': "bootable",
+                                                                'code_files': code_files_bootable,
+                                                                'include_dirs': include_directories_bootable,
+                                                                'header_files': header_files_bootable
+                                                                })
+    else:
+        ext_text += Template(ext_template).safe_substitute({'FEATURE': "BOOTABLE",
+                                                            'msg': "bootable",
+                                                            'include_dirs': include_directories_bootable,
+                                                            'header_files': header_files_bootable
+                                                            })
+
+    # # prebuilts
+    # ext_text += "\n"
+    # if "${ANDROID_ROOT}" in code_files_prebuilts:
+    #     ext_text += Template(ext_template_src).safe_substitute({'FEATURE': "PREBUILTS",
+    #                                                             'msg': "prebuilts",
+    #                                                             'code_files': code_files_prebuilts,
+    #                                                             'include_dirs': include_directories_prebuilts,
+    #                                                             'header_files': header_files_prebuilts
+    #                                                             })
+    # else:
+    #     ext_text += Template(ext_template).safe_substitute({'FEATURE': "PREBUILTS",
+    #                                                         'msg': "prebuilts",
+    #                                                         'include_dirs': include_directories_prebuilts,
+    #                                                         'header_files': header_files_prebuilts
+    #                                                         })
+
+    # hardware
+    ext_text += "\n"
+    if "${ANDROID_ROOT}" in code_files_hardware:
+        ext_text += Template(ext_template_src).safe_substitute({'FEATURE': "HARDWARE",
+                                                                'msg': "hardware",
+                                                                'code_files': code_files_hardware,
+                                                                'include_dirs': include_directories_hardware,
+                                                                'header_files': header_files_hardware
+                                                                })
+    else:
+        ext_text += Template(ext_template).safe_substitute({'FEATURE': "HARDWARE",
+                                                            'msg': "hardware",
+                                                            'include_dirs': include_directories_hardware,
+                                                            'header_files': header_files_hardware
+                                                            })
+
+    # out
+    ext_text += "\n"
+    if "${ANDROID_ROOT}" in code_files_out:
+        ext_text += Template(ext_template_src).safe_substitute({'FEATURE': "OUT",
+                                                                'msg': "out",
+                                                                'code_files': code_files_out,
+                                                                'include_dirs': include_directories_out,
+                                                                'header_files': header_files_out
+                                                                })
+    else:
+        ext_text += Template(ext_template).safe_substitute({'FEATURE': "OUT",
+                                                            'msg': "out",
+                                                            'include_dirs': include_directories_out,
+                                                            'header_files': header_files_out
+                                                            })
+
+    cmake_file_text = Template(cmake_template).substitute({'project_name': project_name,
+                                                           'code_files': code_files,
+                                                           'include_directories': include_directories,
+                                                           'header_files': header_files,
+                                                           'BUILD_NATIVE_ROOT': "${BUILD_NATIVE_ROOT}",
+                                                           'SOURCE_FILES': "${SOURCE_FILES}",
+                                                           'HEADERS': "${HEADERS}",
+                                                           'ext_template': ext_text,
+                                                           })
 
     write_text(cmake_file, cmake_file_text)
 
 
 def get_dirs(project):
     dirs = []
+
     android_runtime = ["frameworks/base/core/jni"]
+
     android_services = ["frameworks/base/libs/services",
                         "frameworks/base/services/core/jni",
                         "frameworks/base/services/incremental"]
+
     inputflinger = ["frameworks/native/services/inputflinger"]
+
     surfaceflinger = ["frameworks/native/services/surfaceflinger"]
+
     aosp_native = ["frameworks/base",
                    "frameworks/native",
                    "frameworks/av",
+                   "frameworks/hardware/interfaces",
                    "system/core",
                    "system/libbase/",
                    "system/libfmq/",
@@ -913,6 +576,8 @@ def get_dirs(project):
                    "system/tools/aidl/",
                    "system/tools/hidl/",
                    "system/tools/sysprop/",
+                   "hardware/libhardware/",
+                   "hardware/interfaces/",
                    ]
 
     if project == "android_runtime":
