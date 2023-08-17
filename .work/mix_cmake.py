@@ -103,7 +103,7 @@ def parseargs():
                                 help="root dir", default="/home/solo/code/github/global_scripts/test/clion/")
     buildoptiongroup.add_option("-p", "--project", dest="project",
                                 help="project name(android_runtime,android_services,inputflinger,surfaceflinger), or aosp-native[all projects]",
-                                default="aosp-native")
+                                default="ExtServices")
 
     parser.add_option_group(buildoptiongroup)
 
@@ -580,6 +580,23 @@ def get_dirs(project):
                    "hardware/interfaces/",
                    ]
 
+    connectivity = [
+        "packages/modules/Connectivity",
+        "frameworks/libs/net"
+    ]
+
+    wifi = [
+        "packages/modules/Wifi"
+    ]
+
+    ExtServices = [
+        "packages/modules/ExtServices"
+    ]
+
+    NeuralNetworks = [
+        "packages/modules/NeuralNetworks"
+    ]
+
     if project == "android_runtime":
         dirs.extend(android_runtime)
     elif project == "android_services":
@@ -590,6 +607,14 @@ def get_dirs(project):
         dirs.extend(surfaceflinger)
     elif project == "aosp-native":
         dirs.extend(aosp_native)
+    elif project == "connectivity":
+        return connectivity
+    elif project == "wifi":
+        return wifi
+    elif project == "ExtServices":
+        return ExtServices
+    elif project == "NeuralNetworks":
+        return NeuralNetworks
     else:
         dirs.extend(aosp_native)
 
