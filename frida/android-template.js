@@ -90,6 +90,8 @@ function hookFunc(targetClass, targetMethod, showStack = false) {
 }
 
 function main() {
+    hookFunc('com.android.server.policy.PhoneWindowManager', 'getMaxMultiPressPowerCount');
+
     // hookFunc('com.android.server.policy.PhoneWindowManager', 'interceptKeyBeforeQueueing');
     // hookFunc('com.android.server.policy.PhoneWindowManager', 'isLongPressToAssistantEnabled');
 
