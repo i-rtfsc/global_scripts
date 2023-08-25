@@ -1,6 +1,6 @@
 # global scripts
 
-# 在 ~/.bashrc 里source gs_env.sh文件即可，比如我的工程目录在/Users/solo/code/github/global_scripts
+在 ~/.bashrc 里source gs_env.sh文件即可，比如我的工程目录在/Users/solo/code/github/global_scripts
 ```bash
 source $HOME/code/github/global_scripts/gs_env.sh
 ```
