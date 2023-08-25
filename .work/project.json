@@ -79,6 +79,12 @@
   },
   {
     "remote": "gerrit",
+    "project": "platform/frameworks/opt/car/services",
+    "path": "frameworks/opt/car/services",
+    "branch": "QSSI_QUF10_base"
+  },
+  {
+    "remote": "gerrit",
     "project": "platform/hardware/interfaces",
     "path": "hardware/interfaces",
     "branch": "QSSI_QUF10_base"
@@ -105,6 +111,12 @@
     "remote": "gerrit",
     "project": "platform/packages/apps/SystemUI",
     "path": "packages/apps/SystemUI",
+    "branch": "QSSI_QUF10_base"
+  },
+  {
+    "remote": "gerrit",
+    "project": "platform/packages/services/Car",
+    "path": "packages/services/Car",
     "branch": "QSSI_QUF10_base"
   },
   {
