@@ -97,6 +97,12 @@
   },
   {
     "remote": "gerrit",
+    "project": "platform/hardware/qcom/display",
+    "path": "hardware/qcom/display",
+    "branch": "SM8650-QU_bsp"
+  },
+  {
+    "remote": "gerrit",
     "project": "platform/libnativehelper",
     "path": "libnativehelper",
     "branch": "QSSI_QUF10_base"
@@ -225,6 +231,30 @@
     "remote": "gerrit",
     "project": "vendor/flyme/frameworks/base",
     "path": "vendor/flyme/frameworks/base",
+    "branch": "QSSI_QUF10_base"
+  },
+  {
+    "remote": "gerrit",
+    "project": "platform/vendor/meizu-telephony",
+    "path": "vendor/meizu-telephony",
+    "branch": "QSSI_QUF10_base"
+  },
+  {
+    "remote": "gerrit",
+    "project": "platform/vendor/meizu/aac",
+    "path": "vendor/meizu/aac",
+    "branch": "SM8650-QU_bsp"
+  },
+  {
+    "remote": "gerrit",
+    "project": "platform/vendor/meizu/build/tools",
+    "path": "vendor/meizu/build/tools",
+    "branch": "QSSI_QUF10_base"
+  },
+  {
+    "remote": "gerrit",
+    "project": "platform/vendor/meizu/interfaces",
+    "path": "vendor/meizu/interfaces",
     "branch": "QSSI_QUF10_base"
   },
   {

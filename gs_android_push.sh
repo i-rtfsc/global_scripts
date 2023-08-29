@@ -316,6 +316,44 @@ function gs_android_push_mediaserver {
     _gs_android_push_impl $target $module_dir $module $product $resume
 }
 
+function gs_android_push_systemui {
+    read gs_error target module_dir module product resume <<< $(_gs_android_push_parse_opts $*)
+    # 错误则打印help
+    if [[ ${gs_error} == 1 ]] ; then
+        _gs_android_push_help
+        return
+    fi
+
+    echo "target=${target}, module_dir=${module_dir}, module=${module}, product=${product}, resume=${resume}"
+
+    ##### 强制改成 SystemUI.apk #####
+    module_dir=system_ext/priv-app/SystemUI
+    module=SystemUI.apk
+    ##### 强制改成 SystemUI.apk #####
+    echo "update module_dir=${module_dir}, module=${module}"
+
+    _gs_android_push_impl $target $module_dir $module $product $resume
+}
+
+function gs_android_push_settings {
+    read gs_error target module_dir module product resume <<< $(_gs_android_push_parse_opts $*)
+    # 错误则打印help
+    if [[ ${gs_error} == 1 ]] ; then
+        _gs_android_push_help
+        return
+    fi
+
+    echo "target=${target}, module_dir=${module_dir}, module=${module}, product=${product}, resume=${resume}"
+
+    ##### 强制改成 Settings.apk #####
+    module_dir=system_ext/priv-app/Settings
+    module=Settings.apk
+    ##### 强制改成 Settings.apk #####
+    echo "update module_dir=${module_dir}, module=${module}"
+
+    _gs_android_push_impl $target $module_dir $module $product $resume
+}
+
 function gs_android_push_so {
     read gs_error target module_dir module product resume <<< $(_gs_android_push_parse_opts $*)
     # 错误则打印help
