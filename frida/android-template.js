@@ -36,12 +36,21 @@ function chooseClass(targetClass) {
 
 /**
  * 可以打印函数入参，返回值。
- * 【也可以改代码，改变返回值，入参等。】
- * @param targetClass 类名
- * @param targetMethod 方法名
- * @param showStack 打印出调用栈，默认不打印
+ * @param inject 为map，可以设置
+ * targetClass 类名
+ * targetMethod 方法名
+ * retval 返回值
+ * showStack 打印出调用栈
  */
-function hookFunc(targetClass, targetMethod, showStack = false) {
+function hookFunc(inject) {
+    // Logging map object to console
+    inject.forEach((value, key) => {
+        console.log(key + " = " + value)
+    })
+
+    var targetClass = inject.get('targetClass');
+    var targetMethod = inject.get('targetMethod');
+
     var clazz = Java.use(targetClass);
     var overloads = clazz[targetMethod].overloads;
     for (var i in overloads) {
@@ -75,11 +84,20 @@ function hookFunc(targetClass, targetMethod, showStack = false) {
                 output = output.concat("retval: " + retval);
                 output = output.concat("\n")
 
+                //打印出调用栈
+                if (inject.has('retval')) {
+                    retval = inject.get('retval');
+                    output = output.concat("update retval: " + retval);
+                    output = output.concat("\n")
+                }
+
                 console.log(output);
 
                 //打印出调用栈
-                if (showStack) {
-                    console.log(stackTrace());
+                if (inject.has('showStack')) {
+                    if (inject.get('showStack')) {
+                        console.log(stackTrace());
+                    }
                 }
 
                 //改变返回值
@@ -89,29 +107,64 @@ function hookFunc(targetClass, targetMethod, showStack = false) {
     }
 }
 
+
 function main() {
-    hookFunc('com.android.server.policy.PhoneWindowManager', 'getMaxMultiPressPowerCount');
+    let inject = new Map();
 
-    // hookFunc('com.android.server.policy.PhoneWindowManager', 'interceptKeyBeforeQueueing');
-    // hookFunc('com.android.server.policy.PhoneWindowManager', 'isLongPressToAssistantEnabled');
+    // inject.set('targetClass', 'com.android.server.policy.PhoneWindowManager');
+    // inject.set('targetMethod', 'interceptKeyBeforeQueueing');
+    // inject.set('retval', 0);
+    // inject.set('showStack', true);
 
-    // hookFunc('com.android.server.wm.PointerEventDispatcher', 'onInputEvent');
-    // hookFunc('com.android.internal.widget.PointerLocationView', 'onPointerEvent');
-    // hookFunc('com.android.internal.widget.PointerLocationView', 'onTouchEvent');
-    // hookFunc('com.android.internal.widget.PointerLocationView', 'onGenericMotionEvent');
-    // hookFunc('android.view.InputEventReceiver', 'dispatchInputEvent');
+    // inject.set('targetClass', 'com.android.server.policy.PhoneWindowManager');
+    // inject.set('targetMethod', 'getMaxMultiPressPowerCount');
 
-    // hookFunc('com.android.server.policy.PhoneWindowManager', 'hasVeryLongPressOnPowerBehavior');
+    // inject.set('targetClass', 'com.android.server.policy.PhoneWindowManager');
+    // inject.set('targetMethod', 'interceptKeyBeforeQueueing');
 
+    // inject.set('targetClass', 'com.android.server.policy.PhoneWindowManager');
+    // inject.set('targetMethod', 'isLongPressToAssistantEnabled');
 
-    // hookFunc('android.app.Activity', 'onKeyDown', false);
-    // hookFunc('android.app.Activity', 'onKeyUp', false);
-    // hookFunc('android.app.Activity', 'onKeyLongPress', false);
-    // hookFunc('android.view.View', 'onTouchEvent', false);
-    // hookFunc('android.view.View', 'onLongClick', false);
+    // inject.set('targetClass', 'com.android.server.policy.PhoneWindowManager');
+    // inject.set('targetMethod', 'hasVeryLongPressOnPowerBehavior');
 
-    // hookFunc('com.android.internal.widget.RecyclerView', 'onTouchEvent');
-    // hookFunc('android.view.GestureDetector', 'onLongPress');
+    // inject.set('targetClass', 'com.android.internal.widget.PointerLocationView');
+    // inject.set('targetMethod', 'onPointerEvent');
+
+    // inject.set('targetClass', 'com.android.internal.widget.PointerLocationView');
+    // inject.set('targetMethod', 'onTouchEvent');
+
+    // inject.set('targetClass', 'com.android.internal.widget.PointerLocationView');
+    // inject.set('targetMethod', 'onGenericMotionEvent');
+
+    // inject.set('targetClass', 'android.view.InputEventReceiver');
+    // inject.set('targetMethod', 'dispatchInputEvent');
+
+    // inject.set('targetClass', 'com.android.server.wm.PointerEventDispatcher');
+    // inject.set('targetMethod', 'onInputEvent');
+
+    // inject.set('targetClass', 'android.view.View');
+    // inject.set('targetMethod', 'onTouchEvent');
+
+    // inject.set('targetClass', 'android.view.View');
+    // inject.set('targetMethod', 'onLongClick');
+
+    // inject.set('targetClass', 'android.app.Activity');
+    // inject.set('targetMethod', 'onKeyDown');
+
+    // inject.set('targetClass', 'android.app.Activity');
+    // inject.set('targetMethod', 'onKeyUp');
+
+    // inject.set('targetClass', 'android.app.Activity');
+    // inject.set('targetMethod', 'onKeyLongPress');
+
+    // inject.set('targetClass', 'com.android.internal.widget.RecyclerView');
+    // inject.set('targetMethod', 'onTouchEvent');
+
+    // inject.set('targetClass', 'android.view.GestureDetector');
+    // inject.set('targetMethod', 'onLongPress');
+
+    hookFunc(inject);
 
 
     // //获取TelephonyManager实例化的对象
