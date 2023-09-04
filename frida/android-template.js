@@ -151,6 +151,7 @@ function main() {
 
     // inject.set('targetClass', 'android.app.Activity');
     // inject.set('targetMethod', 'onKeyDown');
+    // inject.set('showStack', true);
 
     // inject.set('targetClass', 'android.app.Activity');
     // inject.set('targetMethod', 'onKeyUp');
@@ -163,6 +164,10 @@ function main() {
 
     // inject.set('targetClass', 'android.view.GestureDetector');
     // inject.set('targetMethod', 'onLongPress');
+
+    inject.set('targetClass', 'android.view.ViewRootImpl$NativePreImeInputStage');
+    inject.set('targetMethod', 'onProcess');
+    inject.set('showStack', true);
 
     hookFunc(inject);
 
