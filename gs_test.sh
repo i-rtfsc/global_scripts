@@ -23,3 +23,16 @@ function gs_test() {
        echo "bash"
     fi
 }
+
+function gs_git_copy() {
+    local source_dir=`pwd`
+    local target_dir=`pwd`
+
+    files=($(git status --short --no-renames | awk '{print $(NF)}'))
+    #files=($(git ls-files -m))
+
+    for file in ${files}; do
+        echo ${source_dir}/${file} ${target_dir}/${file}
+        scp ${source_dir}/${file} solo@10.88.221.244:${target_dir}/${file}
+    done
+}

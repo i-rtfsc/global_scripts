@@ -130,6 +130,10 @@ function gs_init_cargo() {
    cp  ${_GS_CONFIG_PATH}/cargo_config $HOME/.cargo/config
 }
 
+function gs_init_tmux() {
+    cp ${_GS_CONFIG_PATH}/tmux/.tmux.conf $HOME/.tmux.conf
+}
+
 # gs update environment
 function _gs_update_env() {
     source ${_GS_ROOT_PATH}/gs_adb.sh
