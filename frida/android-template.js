@@ -165,18 +165,18 @@ function main() {
     // inject.set('targetClass', 'android.view.GestureDetector');
     // inject.set('targetMethod', 'onLongPress');
 
-    inject.set('targetClass', 'android.view.ViewRootImpl$NativePreImeInputStage');
-    inject.set('targetMethod', 'onProcess');
-    inject.set('showStack', true);
+    // inject.set('targetClass', 'android.view.ViewRootImpl$NativePreImeInputStage');
+    // inject.set('targetMethod', 'onProcess');
+    // inject.set('showStack', true);
 
-    hookFunc(inject);
+    // hookFunc(inject);
 
 
-    // //获取TelephonyManager实例化的对象
-    // let telephonyManager = chooseClass('android.telephony.TelephonyManager');
-    // //主动调用getDeviceId()查询imei
-    // let imei = telephonyManager.getImei();//telephonyManager.getDeviceId();
-    // console.log(telephonyManager,"getImei =", imei);
+    //获取TelephonyManager实例化的对象
+    let telephonyManager = chooseClass('android.telephony.TelephonyManager');
+    //主动调用getDeviceId()查询imei
+    let imei = telephonyManager.getImei();//telephonyManager.getDeviceId();
+    console.log(telephonyManager,"getImei =", imei);
 
 
     // let phoneWindowManager = chooseClass('com.android.server.policy.PhoneWindowManager');
