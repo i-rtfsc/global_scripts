@@ -17,14 +17,26 @@
 # limitations under the License.
 
 # zsh theme colors
-ZSH_COLOR_BLACK='%B%F{black}'    # Black
-ZSH_COLOR_RED='%B%F{red}'        # Red
-ZSH_COLOR_GREEN='%B%F{green}'    # Green
-ZSH_COLOR_YELLOW='%B%F{yellow}'  # Yellow
-ZSH_COLOR_BLUE='%B%F{blue}'      # Blue
-ZSH_COLOR_PURPLE='%B%F{magenta}' # Purple(magenta)
-ZSH_COLOR_CYAN='%B%F{cyan}'      # Cyan
 ZSH_COLOR_WHITE='%B%F{white}'    # White
+
+#for code in {000..255}; do print -P -- "$code: $FG[$code]Color"; done
+#for code in {000..255}; do print -P -- "$code: $BG[$code]Color"; done
+
+ZSH_COLOR_FG_HEAD=172
+ZSH_COLOR_FG_SPLIT=245
+ZSH_COLOR_FG_SYS_INFO=163
+ZSH_COLOR_FG_AT=190
+ZSH_COLOR_FG_PATH=014
+ZSH_COLOR_FG_TIME=069
+ZSH_COLOR_FG_ENV=039
+ZSH_COLOR_FG_GIT=213
+ZSH_COLOR_FG_BIG_ARROW=015
+
+ZSH_COLOR_FG_BIG_ARROW1=214
+ZSH_COLOR_FG_BIG_ARROW2=199
+ZSH_COLOR_FG_BIG_ARROW3=033
+
+ZSH_COLOR_BG_SYS_INFO=045
 
 machine="$(uname -s)"
 case "${machine}" in
@@ -34,30 +46,12 @@ case "${machine}" in
 esac
 
 function _gs_spilt_icon() {
-    echo " ${ZSH_COLOR_WHITE}➤ "
+    echo "$FG[$ZSH_COLOR_FG_BIG_ARROW] ➤ "
 }
 
 function _gs_big_arrows() {
-    local arrows="${ZSH_COLOR_YELLOW}❯${ZSH_COLOR_PURPLE}❯${ZSH_COLOR_CYAN}❯"
+    local arrows="$FG[$ZSH_COLOR_FG_BIG_ARROW1]❯$FG[$ZSH_COLOR_FG_BIG_ARROW2]❯$FG[$ZSH_COLOR_FG_BIG_ARROW3]❯"
     echo " $arrows$arrows "
-}
-
-function _gs_get_machine_info() {
-    local name="%n"
-    if $isMac ; then
-        local ip=$(ipconfig getifaddr en0)
-        if [ -z ${ip} ]; then
-            ip=$(ipconfig getifaddr en1)
-        fi
-    else
-        local ip=$(ip a | grep " `route | grep default | awk 'NR==1{print $NF}'`:" -A2 | tail -n1 | awk '{print $2}' | cut -f1 -d '/')
-    fi
-    echo "${ZSH_COLOR_PURPLE}[${ZSH_COLOR_RED}$name${ZSH_COLOR_YELLOW}@${ZSH_COLOR_RED}$ip${ZSH_COLOR_PURPLE}]"
-}
-
-function _gs_get_current_dir() {
-    local real_dir=${PWD/#$HOME/~}
-    echo "${ZSH_COLOR_PURPLE}[${ZSH_COLOR_CYAN}$real_dir${ZSH_COLOR_PURPLE}]"
 }
 
 function _gs_get_machine_info_with_current_dir() {
@@ -71,18 +65,18 @@ function _gs_get_machine_info_with_current_dir() {
         local ip=$(ip a | grep " `route | grep default | awk 'NR==1{print $NF}'`:" -A2 | tail -n1 | awk '{print $2}' | cut -f1 -d '/')
     fi
     local real_dir=${PWD/#$HOME/~}
-    echo "${ZSH_COLOR_PURPLE}[${ZSH_COLOR_RED}$name${ZSH_COLOR_YELLOW}@${ZSH_COLOR_RED}$ip:${ZSH_COLOR_CYAN}$real_dir${ZSH_COLOR_PURPLE}]"
+    echo "%B$FG[$ZSH_COLOR_FG_SPLIT][$FG[$ZSH_COLOR_FG_SYS_INFO]$name$FG[$ZSH_COLOR_FG_AT]@$FG[$ZSH_COLOR_FG_SYS_INFO]$ip:$FG[$ZSH_COLOR_FG_PATH]$real_dir$FG[$ZSH_COLOR_FG_SPLIT]]"
 }
 
 function _gs_get_time() {
-    echo "${ZSH_COLOR_PURPLE}[${ZSH_COLOR_BLUE}$(date "+%Y-%m-%d %H:%M:%S")${ZSH_COLOR_PURPLE}]"
+    echo "%B$FG[$ZSH_COLOR_FG_SPLIT][$FG[$ZSH_COLOR_FG_TIME]$(date "+%Y-%m-%d %H:%M:%S")$FG[$ZSH_COLOR_FG_SPLIT]]"
 }
 
 
 function _gs_system_cpu_men() {
-#    cpu_mem=$(ps -A -o %cpu,%mem | awk '{ cpu += $1; mem += $2} END {print "cpu : "cpu"%, memory : "mem"%"}')
-    cpu_mem=$(ps -A -o %cpu,%mem | awk '{ cpu += $1; mem += $2} END {print "cpu : "cpu" %" }')
-    echo "${ZSH_COLOR_PURPLE}[${ZSH_COLOR_RED}${cpu_mem}${ZSH_COLOR_PURPLE}]"
+    cpu_mem=$(ps -A -o %cpu,%mem | awk '{ cpu += $1; mem += $2} END {print "cpu : "cpu"%, memory : "mem"%"}')
+#    cpu_mem=$(ps -A -o %cpu,%mem | awk '{ cpu += $1; mem += $2} END {print "cpu : "cpu" %" }')
+    echo "%B$FG[$ZSH_COLOR_FG_SPLIT][%B$FG[$ZSH_COLOR_FG_SYS_INFO]${cpu_mem}%B$FG[$ZSH_COLOR_FG_SPLIT]]"
 }
 
 
@@ -99,23 +93,22 @@ function _gs_conda_or_py_info() {
             conda_or_py_name="$python_version"
         fi
 
-        echo "${ZSH_COLOR_PURPLE}(${ZSH_COLOR_BLUE}${conda_or_py_name}${ZSH_COLOR_PURPLE})"
+        echo "%B$FG[$ZSH_COLOR_FG_SPLIT]($FG[$ZSH_COLOR_FG_ENV]${conda_or_py_name}$FG[$ZSH_COLOR_FG_SPLIT])"
     fi
 }
 
 function _gs_right_display() {
-    echo '${ZSH_COLOR_PURPLE}$(git_prompt_info)'
+    echo '%B$FG[$ZSH_COLOR_FG_GIT]$(git_prompt_info)'
 }
 
 function _gs_prompt_start_line1() {
-    echo "${ZSH_COLOR_PURPLE}╭─"
+    echo "$FG[$ZSH_COLOR_FG_HEAD]╭─"
 }
 
 function _gs_prompt_start_line2() {
-    echo "${ZSH_COLOR_PURPLE}╰─"
+    echo "$FG[$ZSH_COLOR_FG_HEAD]╰─"
 }
 
-#PROMPT=$'$(_gs_prompt_start_line1)$(_gs_get_machine_info)$(_gs_spilt_icon)$(_gs_get_current_dir)$(_gs_spilt_icon)$(_gs_get_time)
 PROMPT=$'$(_gs_prompt_start_line1)$(_gs_get_machine_info_with_current_dir)$(_gs_spilt_icon)$(_gs_get_time)
 $(_gs_prompt_start_line2)$(_gs_conda_or_py_info)$(_gs_big_arrows)${ZSH_COLOR_WHITE}'
 RPROMPT=$(_gs_right_display)
@@ -125,3 +118,8 @@ RPROMPT=$(_gs_right_display)
 #TRAPALRM() {
 #    zle reset-prompt
 #}
+
+## powerlevel10k
+#source $HOME/.oh-my-zsh/custom/themes/powerlevel10k/powerlevel10k.zsh-theme
+## To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
+#[[ ! -f $HOME/.p10k.zsh ]] || source $HOME/.p10k.zsh
