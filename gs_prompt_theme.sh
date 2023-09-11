@@ -1,0 +1,182 @@
+#!/bin/bash
+# -*- coding: utf-8 -*-
+# -*- encoding: utf-8 -*-
+#
+# Copyright (c) 2022 anqi.huang@outlook.com
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+_color_prompt_head=245
+_color_fg_split=003
+_color_sys_info=200
+_color_at=226
+_color_path=183
+_color_time=225
+_color_env=069
+_color_git=110
+_color_big_arrow=163
+_color_big_arrow1=214
+_color_big_arrow2=199
+_color_big_arrow3=033
+
+if [ -n "$ZSH_VERSION" ]; then
+    COLOR_PROMPT_HEAD="%B$FG[${_color_prompt_head}]"
+    COLOR_FG_SPLIT="%B$FG[${_color_fg_split}]"
+    COLOR_SYS_INFO="%B$FG[${_color_sys_info}]"
+    COLOR_AT="%B$FG[${_color_at}]"
+    COLOR_PATH="%B$FG[${_color_path}]"
+    COLOR_TIME="%B$FG[${_color_time}]"
+    COLOR_ENV="%B$FG[${_color_env}]"
+    COLOR_GIT="%B$FG[${_color_git}]"
+    COLOR_BIG_ARROW="%B$FG[${_color_big_arrow}]"
+    COLOR_BIG_ARROW1="%B$FG[${_color_big_arrow1}]"
+    COLOR_BIG_ARROW2="%B$FG[${_color_big_arrow2}]"
+    COLOR_BIG_ARROW3="%B$FG[${_color_big_arrow3}]"
+    COLOR_WHITE='%B%F{white}'
+else
+    COLOR_PROMPT_HEAD="\e[01;38;5;${_color_prompt_head}m"
+    COLOR_FG_SPLIT="\e[01;38;5;${_color_fg_split}m"
+    COLOR_SYS_INFO="\033[01;38;5;${_color_sys_info}m"
+    COLOR_AT="\e[01;38;5;${_color_at}m"
+    COLOR_PATH="\e[01;38;5;${_color_path}m"
+    COLOR_TIME="\e[01;38;5;${_color_time}m"
+    COLOR_ENV="\e[01;38;5;${_color_env}m"
+    COLOR_GIT="\e[01;38;5;${_color_git}m"
+    COLOR_BIG_ARROW="\e[01;38;5;${_color_big_arrow}m"
+    COLOR_BIG_ARROW1="\e[01;38;5;${_color_big_arrow1}m"
+    COLOR_BIG_ARROW2="\e[01;38;5;${_color_big_arrow2}m"
+    COLOR_BIG_ARROW3="\e[01;38;5;${_color_big_arrow3}m"
+    COLOR_WHITE='\e[01;38;5;007m'
+fi
+
+SYMBOL_SPLIT_LEFT="["
+SYMBOL_SPLIT_RIGHT="]"
+SYMBOL_SPLIT_PARENTHESES_LEFT="("
+SYMBOL_SPLIT_PARENTHESES_RIGHT=")"
+SYMBOL_SPLIT_AT="@"
+SYMBOL_SPLIT_ARROW="➤"
+SYMBOL_SPLIT_ARROW_LITTLE="❯"
+
+machine="$(uname -s)"
+case "${machine}" in
+    Linux*)     isMac=false;;
+    Darwin*)    isMac=true;;
+    *)          isMac=false;;
+esac
+
+function _gs_spilt_icon() {
+    echo "$COLOR_BIG_ARROW $SYMBOL_SPLIT_ARROW "
+}
+
+function _gs_big_arrows() {
+    local arrows="$COLOR_BIG_ARROW1$SYMBOL_SPLIT_ARROW_LITTLE$COLOR_BIG_ARROW2$SYMBOL_SPLIT_ARROW_LITTLE$COLOR_BIG_ARROW3$SYMBOL_SPLIT_ARROW_LITTLE"
+    echo " $arrows$arrows "
+}
+
+function _gs_get_machine_info_with_current_dir() {
+    if [ -n "$ZSH_VERSION" ]; then
+       local name="%n"
+       local real_dir=${PWD/#$HOME/~}
+    else
+        local name="\u"
+        local real_dir="\$PWD"
+    fi
+
+    if $isMac ; then
+        local ip=$(ipconfig getifaddr en0)
+        if [ -z ${ip} ]; then
+            ip=$(ipconfig getifaddr en1)
+        fi
+    else
+        local ip=$(ip a | grep " `route | grep default | awk 'NR==1{print $NF}'`:" -A2 | tail -n1 | awk '{print $2}' | cut -f1 -d '/')
+    fi
+
+    echo "$COLOR_FG_SPLIT$SYMBOL_SPLIT_LEFT$COLOR_SYS_INFO$name$COLOR_AT$SYMBOL_SPLIT_AT$COLOR_SYS_INFO$ip:$COLOR_PATH$real_dir$COLOR_FG_SPLIT$SYMBOL_SPLIT_RIGHT"
+}
+
+function _gs_get_time() {
+    echo "$COLOR_FG_SPLIT$SYMBOL_SPLIT_LEFT$COLOR_TIME$(date "+%Y-%m-%d %H:%M:%S")$COLOR_FG_SPLIT$SYMBOL_SPLIT_RIGHT"
+}
+
+
+function _gs_system_cpu_men() {
+    cpu_mem=$(ps -A -o %cpu,%mem | awk '{ cpu += $1; mem += $2} END {print "cpu : "cpu"%, memory : "mem"%"}')
+#    cpu_mem=$(ps -A -o %cpu,%mem | awk '{ cpu += $1; mem += $2} END {print "cpu =",cpu, "mem =",mem}')
+    echo "$COLOR_FG_SPLIT$SYMBOL_SPLIT_LEFT$COLOR_SYS_INFO${cpu_mem}$COLOR_FG_SPLIT$SYMBOL_SPLIT_RIGHT"
+}
+
+
+# conda env or python version info
+function _gs_conda_or_py_info() {
+    conda_or_py_name=''
+    env="unknown"
+    if command -v python > /dev/null 2>&1; then
+        python_version="$(python -V 2>&1)"
+        python_version=${python_version/Python /Python}
+        python_version=${python_version/ */}
+        if [ -n "$CONDA_DEFAULT_ENV" ]; then
+            conda_or_py_name="$CONDA_DEFAULT_ENV"
+        else
+            conda_or_py_name="$python_version"
+        fi
+    fi
+
+    if [ -n "$ZSH_VERSION" ]; then
+       env="zsh"
+    elif [ -n "$BASH_VERSION" ]; then
+       env="bash"
+    fi
+
+    if [ -z ${conda_or_py_name} ]; then
+        echo "$COLOR_FG_SPLIT$SYMBOL_SPLIT_PARENTHESES_LEFT$COLOR_SYS_INFO${env}$COLOR_FG_SPLIT$SYMBOL_SPLIT_PARENTHESES_RIGHT"
+    else
+        echo "$COLOR_FG_SPLIT$SYMBOL_SPLIT_PARENTHESES_LEFT$COLOR_SYS_INFO${env} $COLOR_AT${SYMBOL_SPLIT_ARROW} $COLOR_ENV${conda_or_py_name}$COLOR_FG_SPLIT$SYMBOL_SPLIT_PARENTHESES_RIGHT"
+    fi
+}
+
+function _gs_right_display() {
+    echo "$COLOR_GIT$(git_prompt_info)"
+}
+
+function _gs_prompt_start_line1() {
+    echo "$COLOR_PROMPT_HEAD╭─"
+}
+
+function _gs_prompt_start_line2() {
+    echo "$COLOR_PROMPT_HEAD╰─"
+}
+
+function _gs_new_line() {
+    echo "\n"
+}
+
+if [ -n "$ZSH_VERSION" ]; then
+PROMPT="$(_gs_prompt_start_line1)$(_gs_get_machine_info_with_current_dir)$(_gs_spilt_icon)$(_gs_get_time)
+$(_gs_prompt_start_line2)$(_gs_conda_or_py_info)$(_gs_big_arrows)$COLOR_WHITE"
+RPROMPT=$'$(_gs_right_display)'
+else
+export PS1="$(_gs_prompt_start_line1)$(_gs_get_machine_info_with_current_dir)$(_gs_spilt_icon)$(_gs_get_time)$(_gs_new_line)$(_gs_prompt_start_line2)$(_gs_conda_or_py_info)$(_gs_big_arrows)$COLOR_WHITE"
+fi
+
+#TMOUT=1
+#
+#TRAPALRM() {
+#    zle reset-prompt
+#}
+
+## powerlevel10k
+#source $HOME/.oh-my-zsh/custom/themes/powerlevel10k/powerlevel10k.zsh-theme
+## To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
+#[[ ! -f $HOME/.p10k.zsh ]] || source $HOME/.p10k.zsh
+
