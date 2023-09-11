@@ -21,8 +21,8 @@ _color_prompt_head=245
 _color_fg_split=003
 _color_sys_info=200
 _color_at=226
-_color_path=183
-_color_time=225
+_color_path=075
+_color_time=169
 _color_env=069
 _color_git=110
 _color_big_arrow=163
@@ -65,6 +65,7 @@ SYMBOL_SPLIT_RIGHT="]"
 SYMBOL_SPLIT_PARENTHESES_LEFT="("
 SYMBOL_SPLIT_PARENTHESES_RIGHT=")"
 SYMBOL_SPLIT_AT="@"
+SYMBOL_SPLIT_COLON=":"
 SYMBOL_SPLIT_ARROW="➤"
 SYMBOL_SPLIT_ARROW_LITTLE="❯"
 
@@ -81,7 +82,7 @@ function _gs_spilt_icon() {
 
 function _gs_big_arrows() {
     local arrows="$COLOR_BIG_ARROW1$SYMBOL_SPLIT_ARROW_LITTLE$COLOR_BIG_ARROW2$SYMBOL_SPLIT_ARROW_LITTLE$COLOR_BIG_ARROW3$SYMBOL_SPLIT_ARROW_LITTLE"
-    echo " $arrows$arrows "
+    echo " $arrows$arrows$COLOR_WHITE "
 }
 
 function _gs_get_machine_info_with_current_dir() {
@@ -102,7 +103,7 @@ function _gs_get_machine_info_with_current_dir() {
         local ip=$(ip a | grep " `route | grep default | awk 'NR==1{print $NF}'`:" -A2 | tail -n1 | awk '{print $2}' | cut -f1 -d '/')
     fi
 
-    echo "$COLOR_FG_SPLIT$SYMBOL_SPLIT_LEFT$COLOR_SYS_INFO$name$COLOR_AT$SYMBOL_SPLIT_AT$COLOR_SYS_INFO$ip:$COLOR_PATH$real_dir$COLOR_FG_SPLIT$SYMBOL_SPLIT_RIGHT"
+    echo "$COLOR_FG_SPLIT$SYMBOL_SPLIT_LEFT$COLOR_SYS_INFO$name$COLOR_AT$SYMBOL_SPLIT_AT$COLOR_SYS_INFO$ip$COLOR_AT$SYMBOL_SPLIT_COLON$COLOR_PATH$real_dir$COLOR_FG_SPLIT$SYMBOL_SPLIT_RIGHT"
 }
 
 function _gs_get_time() {
@@ -157,16 +158,14 @@ function _gs_prompt_start_line2() {
     echo "$COLOR_PROMPT_HEAD╰─"
 }
 
-function _gs_new_line() {
-    echo "\n"
-}
 
 if [ -n "$ZSH_VERSION" ]; then
 PROMPT="$(_gs_prompt_start_line1)$(_gs_get_machine_info_with_current_dir)$(_gs_spilt_icon)$(_gs_get_time)
-$(_gs_prompt_start_line2)$(_gs_conda_or_py_info)$(_gs_big_arrows)$COLOR_WHITE"
+$(_gs_prompt_start_line2)$(_gs_conda_or_py_info)$(_gs_big_arrows)"
 RPROMPT=$'$(_gs_right_display)'
 else
-export PS1="$(_gs_prompt_start_line1)$(_gs_get_machine_info_with_current_dir)$(_gs_spilt_icon)$(_gs_get_time)$(_gs_new_line)$(_gs_prompt_start_line2)$(_gs_conda_or_py_info)$(_gs_big_arrows)$COLOR_WHITE"
+export PS1="$(_gs_prompt_start_line1)$(_gs_get_machine_info_with_current_dir)$(_gs_spilt_icon)$(_gs_get_time)
+$(_gs_prompt_start_line2)$(_gs_conda_or_py_info)$(_gs_big_arrows)"
 fi
 
 #TMOUT=1
