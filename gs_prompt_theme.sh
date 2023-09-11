@@ -25,7 +25,7 @@ _color_path=075
 _color_time=169
 _color_env=069
 _color_git=110
-_color_big_arrow=163
+_color_big_arrow=007
 _color_big_arrow1=214
 _color_big_arrow2=199
 _color_big_arrow3=033
@@ -66,7 +66,7 @@ SYMBOL_SPLIT_PARENTHESES_LEFT="("
 SYMBOL_SPLIT_PARENTHESES_RIGHT=")"
 SYMBOL_SPLIT_AT="@"
 SYMBOL_SPLIT_COLON=":"
-SYMBOL_SPLIT_ARROW="➤"
+SYMBOL_SPLIT_ARROW="➫"
 SYMBOL_SPLIT_ARROW_LITTLE="❯"
 
 machine="$(uname -s)"
@@ -77,11 +77,11 @@ case "${machine}" in
 esac
 
 function _gs_spilt_icon() {
-    echo "$COLOR_BIG_ARROW $SYMBOL_SPLIT_ARROW "
+    echo "$COLOR_BIG_ARROW${SYMBOL_SPLIT_ARROW}"
 }
 
 function _gs_big_arrows() {
-    local arrows="$COLOR_BIG_ARROW1$SYMBOL_SPLIT_ARROW_LITTLE$COLOR_BIG_ARROW2$SYMBOL_SPLIT_ARROW_LITTLE$COLOR_BIG_ARROW3$SYMBOL_SPLIT_ARROW_LITTLE"
+    local arrows="$COLOR_BIG_ARROW1${SYMBOL_SPLIT_ARROW_LITTLE}$COLOR_BIG_ARROW2${SYMBOL_SPLIT_ARROW_LITTLE}$COLOR_BIG_ARROW3${SYMBOL_SPLIT_ARROW_LITTLE}"
     echo " $arrows$arrows$COLOR_WHITE "
 }
 
@@ -103,18 +103,18 @@ function _gs_get_machine_info_with_current_dir() {
         local ip=$(ip a | grep " `route | grep default | awk 'NR==1{print $NF}'`:" -A2 | tail -n1 | awk '{print $2}' | cut -f1 -d '/')
     fi
 
-    echo "$COLOR_FG_SPLIT$SYMBOL_SPLIT_LEFT$COLOR_SYS_INFO$name$COLOR_AT$SYMBOL_SPLIT_AT$COLOR_SYS_INFO$ip$COLOR_AT$SYMBOL_SPLIT_COLON$COLOR_PATH$real_dir$COLOR_FG_SPLIT$SYMBOL_SPLIT_RIGHT"
+    echo "$COLOR_FG_SPLIT${SYMBOL_SPLIT_LEFT}$COLOR_SYS_INFO${name}$COLOR_AT${SYMBOL_SPLIT_AT}$COLOR_SYS_INFO$ip$COLOR_AT${SYMBOL_SPLIT_COLON}$COLOR_PATH${real_dir}$COLOR_FG_SPLIT${SYMBOL_SPLIT_RIGHT}"
 }
 
 function _gs_get_time() {
-    echo "$COLOR_FG_SPLIT$SYMBOL_SPLIT_LEFT$COLOR_TIME$(date "+%Y-%m-%d %H:%M:%S")$COLOR_FG_SPLIT$SYMBOL_SPLIT_RIGHT"
+    echo "$COLOR_FG_SPLIT${SYMBOL_SPLIT_LEFT}$COLOR_TIME$(date "+%Y-%m-%d %H:%M:%S")$COLOR_FG_SPLIT${SYMBOL_SPLIT_RIGHT}"
 }
 
 
 function _gs_system_cpu_men() {
     cpu_mem=$(ps -A -o %cpu,%mem | awk '{ cpu += $1; mem += $2} END {print "cpu : "cpu"%, memory : "mem"%"}')
 #    cpu_mem=$(ps -A -o %cpu,%mem | awk '{ cpu += $1; mem += $2} END {print "cpu =",cpu, "mem =",mem}')
-    echo "$COLOR_FG_SPLIT$SYMBOL_SPLIT_LEFT$COLOR_SYS_INFO${cpu_mem}$COLOR_FG_SPLIT$SYMBOL_SPLIT_RIGHT"
+    echo "$COLOR_FG_SPLIT${SYMBOL_SPLIT_LEFT}$COLOR_SYS_INFO${cpu_mem}$COLOR_FG_SPLIT${SYMBOL_SPLIT_RIGHT}"
 }
 
 
@@ -140,9 +140,9 @@ function _gs_conda_or_py_info() {
     fi
 
     if [ -z ${conda_or_py_name} ]; then
-        echo "$COLOR_FG_SPLIT$SYMBOL_SPLIT_PARENTHESES_LEFT$COLOR_SYS_INFO${env}$COLOR_FG_SPLIT$SYMBOL_SPLIT_PARENTHESES_RIGHT"
+        echo "$COLOR_FG_SPLIT${SYMBOL_SPLIT_PARENTHESES_LEFT}$COLOR_SYS_INFO${env}$COLOR_FG_SPLIT${SYMBOL_SPLIT_PARENTHESES_RIGHT}"
     else
-        echo "$COLOR_FG_SPLIT$SYMBOL_SPLIT_PARENTHESES_LEFT$COLOR_SYS_INFO${env} $COLOR_AT${SYMBOL_SPLIT_ARROW} $COLOR_ENV${conda_or_py_name}$COLOR_FG_SPLIT$SYMBOL_SPLIT_PARENTHESES_RIGHT"
+        echo "$COLOR_FG_SPLIT${SYMBOL_SPLIT_PARENTHESES_LEFT}$COLOR_SYS_INFO${env}$COLOR_AT${SYMBOL_SPLIT_ARROW}$COLOR_ENV${conda_or_py_name}$COLOR_FG_SPLIT${SYMBOL_SPLIT_PARENTHESES_RIGHT}"
     fi
 }
 
@@ -178,4 +178,3 @@ fi
 #source $HOME/.oh-my-zsh/custom/themes/powerlevel10k/powerlevel10k.zsh-theme
 ## To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 #[[ ! -f $HOME/.p10k.zsh ]] || source $HOME/.p10k.zsh
-
