@@ -17,6 +17,13 @@
 # limitations under the License.
 
 
+machine="$(uname -s)"
+case "${machine}" in
+    Linux*)     isMac=false;;
+    Darwin*)    isMac=true;;
+    *)          isMac=false;;
+esac
+
 _color_prompt_head=245
 _color_fg_split=003
 _color_sys_info=200
@@ -25,10 +32,10 @@ _color_path=075
 _color_time=169
 _color_env=069
 _color_git=110
-_color_big_arrow=007
-_color_big_arrow1=214
-_color_big_arrow2=199
-_color_big_arrow3=033
+_color_final=033
+_color_final1=214
+_color_final2=199
+_color_final3=033
 
 if [ -n "$ZSH_VERSION" ]; then
     COLOR_PROMPT_HEAD="%B$FG[${_color_prompt_head}]"
@@ -39,10 +46,10 @@ if [ -n "$ZSH_VERSION" ]; then
     COLOR_TIME="%B$FG[${_color_time}]"
     COLOR_ENV="%B$FG[${_color_env}]"
     COLOR_GIT="%B$FG[${_color_git}]"
-    COLOR_BIG_ARROW="%B$FG[${_color_big_arrow}]"
-    COLOR_BIG_ARROW1="%B$FG[${_color_big_arrow1}]"
-    COLOR_BIG_ARROW2="%B$FG[${_color_big_arrow2}]"
-    COLOR_BIG_ARROW3="%B$FG[${_color_big_arrow3}]"
+    COLOR_SPILT="%B$FG[${_color_final}]"
+    COLOR_FINAL1="%B$FG[${_color_final1}]"
+    COLOR_FINAL2="%B$FG[${_color_final2}]"
+    COLOR_FINAL3="%B$FG[${_color_final3}]"
     COLOR_WHITE='%B%F{white}'
 else
     COLOR_PROMPT_HEAD="\e[01;38;5;${_color_prompt_head}m"
@@ -53,10 +60,10 @@ else
     COLOR_TIME="\e[01;38;5;${_color_time}m"
     COLOR_ENV="\e[01;38;5;${_color_env}m"
     COLOR_GIT="\e[01;38;5;${_color_git}m"
-    COLOR_BIG_ARROW="\e[01;38;5;${_color_big_arrow}m"
-    COLOR_BIG_ARROW1="\e[01;38;5;${_color_big_arrow1}m"
-    COLOR_BIG_ARROW2="\e[01;38;5;${_color_big_arrow2}m"
-    COLOR_BIG_ARROW3="\e[01;38;5;${_color_big_arrow3}m"
+    COLOR_SPILT="\e[01;38;5;${_color_final}m"
+    COLOR_FINAL1="\e[01;38;5;${_color_final1}m"
+    COLOR_FINAL2="\e[01;38;5;${_color_final2}m"
+    COLOR_FINAL3="\e[01;38;5;${_color_final3}m"
     COLOR_WHITE='\e[01;38;5;007m'
 fi
 
@@ -66,35 +73,25 @@ SYMBOL_SPLIT_PARENTHESES_LEFT="("
 SYMBOL_SPLIT_PARENTHESES_RIGHT=")"
 SYMBOL_SPLIT_AT="@"
 SYMBOL_SPLIT_COLON=":"
-SYMBOL_SPLIT_ARROW="➫"
-SYMBOL_SPLIT_ARROW_LITTLE="❯"
+SYMBOL_SPLIT_FINAL="☺ "
 
-machine="$(uname -s)"
-case "${machine}" in
-    Linux*)     isMac=false;;
-    Darwin*)    isMac=true;;
-    *)          isMac=false;;
-esac
+if ${isMac} ; then
+    SYMBOL_SPLIT_ARROW="➬"
+else
+    SYMBOL_SPLIT_ARROW=" ➬ "
+fi
 
 function _gs_spilt_icon() {
-    echo "$COLOR_BIG_ARROW${SYMBOL_SPLIT_ARROW}"
+    echo "$COLOR_SPILT${SYMBOL_SPLIT_ARROW}"
 }
 
 function _gs_big_arrows() {
-    local arrows="$COLOR_BIG_ARROW1${SYMBOL_SPLIT_ARROW_LITTLE}$COLOR_BIG_ARROW2${SYMBOL_SPLIT_ARROW_LITTLE}$COLOR_BIG_ARROW3${SYMBOL_SPLIT_ARROW_LITTLE}"
-    echo " $arrows$arrows$COLOR_WHITE "
+    local arrows="$COLOR_FINAL1${SYMBOL_SPLIT_FINAL}$COLOR_FINAL2${SYMBOL_SPLIT_FINAL}$COLOR_FINAL3${SYMBOL_SPLIT_FINAL}"
+    echo " $arrows$COLOR_WHITE "
 }
 
 function _gs_get_machine_info_with_current_dir() {
-    if [ -n "$ZSH_VERSION" ]; then
-       local name="%n"
-       local real_dir=${PWD/#$HOME/~}
-    else
-        local name="\u"
-        local real_dir="\$PWD"
-    fi
-
-    if $isMac ; then
+    if ${isMac} ; then
         local ip=$(ipconfig getifaddr en0)
         if [ -z ${ip} ]; then
             ip=$(ipconfig getifaddr en1)
@@ -103,20 +100,23 @@ function _gs_get_machine_info_with_current_dir() {
         local ip=$(ip a | grep " `route | grep default | awk 'NR==1{print $NF}'`:" -A2 | tail -n1 | awk '{print $2}' | cut -f1 -d '/')
     fi
 
-    echo "$COLOR_FG_SPLIT${SYMBOL_SPLIT_LEFT}$COLOR_SYS_INFO${name}$COLOR_AT${SYMBOL_SPLIT_AT}$COLOR_SYS_INFO$ip$COLOR_AT${SYMBOL_SPLIT_COLON}$COLOR_PATH${real_dir}$COLOR_FG_SPLIT${SYMBOL_SPLIT_RIGHT}"
+    if [ -n "$ZSH_VERSION" ]; then
+        name="%n"
+        real_dir=${PWD/#$HOME/~}
+        echo $COLOR_FG_SPLIT${SYMBOL_SPLIT_LEFT}$COLOR_SYS_INFO${name}$COLOR_AT${SYMBOL_SPLIT_AT}$COLOR_SYS_INFO${ip}$COLOR_AT${SYMBOL_SPLIT_COLON}$COLOR_PATH${real_dir}$COLOR_FG_SPLIT${SYMBOL_SPLIT_RIGHT}
+    else
+        name="\u"
+        echo $COLOR_FG_SPLIT${SYMBOL_SPLIT_LEFT}$COLOR_SYS_INFO${name}$COLOR_AT${SYMBOL_SPLIT_AT}$COLOR_SYS_INFO${ip}$COLOR_AT${SYMBOL_SPLIT_COLON}$COLOR_PATH'${PWD}'$COLOR_FG_SPLIT${SYMBOL_SPLIT_RIGHT}
+    fi
 }
 
 function _gs_get_time() {
-    echo "$COLOR_FG_SPLIT${SYMBOL_SPLIT_LEFT}$COLOR_TIME$(date "+%Y-%m-%d %H:%M:%S")$COLOR_FG_SPLIT${SYMBOL_SPLIT_RIGHT}"
+    if [ -n "$ZSH_VERSION" ]; then
+        echo $COLOR_FG_SPLIT${SYMBOL_SPLIT_LEFT}$COLOR_TIME$(date "+%Y-%m-%d %H:%M:%S")$COLOR_FG_SPLIT${SYMBOL_SPLIT_RIGHT}
+    else
+        echo $COLOR_FG_SPLIT${SYMBOL_SPLIT_LEFT}$COLOR_TIME'$(date "+%Y-%m-%d %H:%M:%S")'$COLOR_FG_SPLIT${SYMBOL_SPLIT_RIGHT}
+    fi
 }
-
-
-function _gs_system_cpu_men() {
-    cpu_mem=$(ps -A -o %cpu,%mem | awk '{ cpu += $1; mem += $2} END {print "cpu : "cpu"%, memory : "mem"%"}')
-#    cpu_mem=$(ps -A -o %cpu,%mem | awk '{ cpu += $1; mem += $2} END {print "cpu =",cpu, "mem =",mem}')
-    echo "$COLOR_FG_SPLIT${SYMBOL_SPLIT_LEFT}$COLOR_SYS_INFO${cpu_mem}$COLOR_FG_SPLIT${SYMBOL_SPLIT_RIGHT}"
-}
-
 
 # conda env or python version info
 function _gs_conda_or_py_info() {
@@ -140,28 +140,28 @@ function _gs_conda_or_py_info() {
     fi
 
     if [ -z ${conda_or_py_name} ]; then
-        echo "$COLOR_FG_SPLIT${SYMBOL_SPLIT_PARENTHESES_LEFT}$COLOR_SYS_INFO${env}$COLOR_FG_SPLIT${SYMBOL_SPLIT_PARENTHESES_RIGHT}"
+        echo $COLOR_FG_SPLIT${SYMBOL_SPLIT_PARENTHESES_LEFT}$COLOR_SYS_INFO${env}$COLOR_FG_SPLIT${SYMBOL_SPLIT_PARENTHESES_RIGHT}
     else
-        echo "$COLOR_FG_SPLIT${SYMBOL_SPLIT_PARENTHESES_LEFT}$COLOR_SYS_INFO${env}$COLOR_AT${SYMBOL_SPLIT_ARROW}$COLOR_ENV${conda_or_py_name}$COLOR_FG_SPLIT${SYMBOL_SPLIT_PARENTHESES_RIGHT}"
+        echo $COLOR_FG_SPLIT${SYMBOL_SPLIT_PARENTHESES_LEFT}$COLOR_SYS_INFO${env}$(_gs_spilt_icon)$COLOR_ENV${conda_or_py_name}$COLOR_FG_SPLIT${SYMBOL_SPLIT_PARENTHESES_RIGHT}
     fi
 }
 
 function _gs_right_display() {
-    echo "$COLOR_GIT$(git_prompt_info)"
+    echo $COLOR_GIT$(git_prompt_info)
 }
 
 function _gs_prompt_start_line1() {
-    echo "$COLOR_PROMPT_HEAD╭─"
+    echo $COLOR_PROMPT_HEAD"╭─"
 }
 
 function _gs_prompt_start_line2() {
-    echo "$COLOR_PROMPT_HEAD╰─"
+    echo $COLOR_PROMPT_HEAD"╰─"
 }
 
 
 if [ -n "$ZSH_VERSION" ]; then
-PROMPT="$(_gs_prompt_start_line1)$(_gs_get_machine_info_with_current_dir)$(_gs_spilt_icon)$(_gs_get_time)
-$(_gs_prompt_start_line2)$(_gs_conda_or_py_info)$(_gs_big_arrows)"
+PROMPT=$'$(_gs_prompt_start_line1)$(_gs_get_machine_info_with_current_dir)$(_gs_spilt_icon)$(_gs_get_time)
+$(_gs_prompt_start_line2)$(_gs_conda_or_py_info)$(_gs_big_arrows)'
 RPROMPT=$'$(_gs_right_display)'
 else
 export PS1="$(_gs_prompt_start_line1)$(_gs_get_machine_info_with_current_dir)$(_gs_spilt_icon)$(_gs_get_time)
