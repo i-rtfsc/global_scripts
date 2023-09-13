@@ -146,10 +146,11 @@ function _gs_update_env() {
     source ${_GS_ROOT_PATH}/gs_system.sh
     source ${_GS_ROOT_PATH}/gs_test.sh
     source ${_GS_ROOT_PATH}/gs_prompt_theme.sh
-    # only for work
-    source ${_GS_ROOT_PATH}/.work/gs_work.sh
     source ${_GS_ROOT_PATH}/frida/gs_android_frida.sh
     source ${_GS_ROOT_PATH}/clash/gs_system_clash.sh
+
+    # only for work
+    source ${_GS_ROOT_PATH}/.work/gs_work.sh
 }
 
 function gs_init_all_config() {
