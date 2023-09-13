@@ -170,11 +170,17 @@ gs_android_push_input
 ```
 
 ## zsh自定义主题
-用户名、ip地址、当前目录绝对路径、当前时间
-git信息（分支、是否修改等）
-如果在conda环境中，还显示conda信息。
+
+- 用户名
+- ip地址
+- 当前目录绝对路径
+- 当前时间
+- git信息（分支、是否修改等）
+- bash环境 还是 zsh环境；py环境
 
 ![](./res-readme/zsh_theme.png)
+
+> zsh环境并且当前目录是git仓才显示git信息。
 
 
 ## gerrit提交脚本
