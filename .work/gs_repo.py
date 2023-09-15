@@ -18,10 +18,12 @@
 
 
 import json
+import logging
 import optparse
 import os
 import subprocess
-import time
+
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 def parseargs():
@@ -34,6 +36,8 @@ def parseargs():
                                 help="which remote", default=None)
     buildoptiongroup.add_option("-b", "--branch", dest="branch",
                                 help="what remote branch", default=None)
+    buildoptiongroup.add_option("-j", "--thread", dest="thread",
+                                help="work thread num", default=1)
     buildoptiongroup.add_option("-f", "--file", dest="file",
                                 help="project list file", default="project.json")
     buildoptiongroup.add_option("-c", "--config", dest="config",
@@ -46,57 +50,30 @@ def parseargs():
     return (options, args)
 
 
-def get_time_str():
-    return time.strftime("%Y-%m-%d %H:%M:%S ", time.localtime())
+class TerminalLogger(object):
+    def __init__(self, level=logging.INFO, log_file=None):
+        """Create a configured instance of logger."""
+        fmt = '[%(asctime)s] %(levelname)s : %(message)s'
+        date_fmt = '%Y-%m-%d %H:%M:%S'
+        formatter = logging.Formatter(fmt, datefmt=date_fmt)
 
+        logger = logging.getLogger()
 
-class Color():
-    BLACK = '\033[30m'
-    RED = '\033[31m'
-    GREEN = '\033[32m'
-    YELLOW = '\033[33m'
-    BLUE = '\033[34m'
-    MAGENTA = '\033[35m'
-    CYAN = '\033[36m'
-    WHITE = '\033[37m'
-    UNDERLINE = '\033[4m'
-    BLINK = '\33[5m'
-    RESET = '\033[0m'
+        if log_file:
+            if not os.path.exists(log_file):
+                pardir = os.path.abspath(os.path.join(log_file, os.pardir))
+                if not os.path.exists(pardir):
+                    os.makedirs(pardir)
+                file = open(log_file, 'w')
+                file.close()
+            fh = logging.FileHandler(filename=log_file, mode='a')
+            fh.setFormatter(formatter)
+            logger.addHandler(fh)
 
+        logger.setLevel(level)
+        logger.info("logger get or created.")
 
-class Log:
-
-    @staticmethod
-    def i(*message):
-        line = get_time_str()
-        for msg in message:
-            line += msg
-
-        print(Color.MAGENTA, line, Color.RESET)
-
-    @staticmethod
-    def d(*message):
-        line = get_time_str()
-        for msg in message:
-            line += msg
-
-        print(Color.WHITE, line, Color.RESET)
-
-    @staticmethod
-    def w(*message):
-        line = get_time_str()
-        for msg in message:
-            line += msg
-
-        print(Color.YELLOW, line, Color.RESET)
-
-    @staticmethod
-    def e(*message):
-        line = get_time_str()
-        for msg in message:
-            line += msg
-
-        print(Color.RED, line, Color.RESET)
+        self.logger = logger
 
 
 class Project(object):
@@ -119,6 +96,9 @@ class Options(object):
     branch = None
     configs = None
     projects = None
+    thread = None
+    pwd = os.getcwd()
+    logger = TerminalLogger(log_file=os.path.join(pwd, "repo.log")).logger
 
 
 def file_exists(file):
@@ -152,17 +132,20 @@ def parse_project(file):
     return projects
 
 
+def split_list(lst, size):
+    return [lst[i:i + size] for i in range(0, len(lst), size)]
+
+
 def other(opt):
-    Log.e("don't support cmd = " + opt.cmd)
+    opt.logger.error("don't support cmd = {}".format(opt.cmd))
 
 
-def init(opt):
-    pwd = os.getcwd()
+def do_init(opt, task_num, pwd, projects):
     os.chdir(pwd)
 
-    for pro in opt.projects:
-        print("")
-        Log.i("start init ", pro.project)
+    # for pro in tqdm(projects, desc="task={}".format(task_num)):
+    for pro in projects:
+        opt.logger.info("task = {}, start init project = {}".format(task_num, pro.project))
         remote = pro.remote
 
         check_remote = (opt.remote == remote) or (opt.remote is None or opt.remote == "all")
@@ -177,49 +160,70 @@ def init(opt):
             git_dir = os.path.join(pwd, path)
 
             if dir_exists(os.path.join(git_dir, ".git")):
-                Log.d(git_dir, " git project exists")
+                opt.logger.debug("git project exists, project = {}".format(task_num, pro.project))
                 os.chdir(git_dir)
 
                 ret, output = subprocess.getstatusoutput("git branch -r")
                 if ret != 0:
-                    Log.e("git branch --list fail:\n %s" % (output))
+                    opt.logger.error("project = {}, git branch --list fail {}".format(pro.project, output))
                 else:
                     for line in output.splitlines():
                         if line.split("/")[-1] == opt.branch:
                             os.system("git checkout -b {} {}".format(opt.branch, line))
 
             else:
-                Log.i("first init " + project)
+                opt.logger.info("first init project = {}".format(pro.project))
                 git_cmd = opt.configs[remote]
                 cmd = git_cmd.format(project=project, dir=path, branch=branch)
-                Log.d(cmd)
+                opt.logger.debug(cmd)
                 ret, output = subprocess.getstatusoutput(cmd)
                 if ret != 0:
-                    Log.e("git clone fail:\n %s" % (output))
+                    opt.logger.error("project = {}, git clone fail {}".format(pro.project, output))
         else:
-            Log.e("error, don't support remote = " + remote + ", project = " + pro.project)
+            opt.logger.error("project = {}, don't support remote = {}".format(pro.project, remote))
 
         os.chdir(pwd)
 
 
-def sync(opt):
-    pwd = os.getcwd()
+def init(opt):
+    if opt.thread <= 1:
+        do_init(opt, 0, opt.pwd, opt.projects)
+    else:
+        size = len(opt.projects)
+        split_size = size // opt.thread + 1
+        opt.logger.info("project size = {}, split size = {}".format(size, split_size))
 
-    for pro in opt.projects:
-        print("")
-        Log.i("start sync " + pro.project)
+        projects = split_list(opt.projects, split_size)
+        thread = len(projects)
+        opt.logger.info("thread = {}".format(thread))
+
+        executor = ThreadPoolExecutor(max_workers=thread)
+        tasks = []
+
+        task_num = 0
+        for sub_projects in projects:
+            task_num = task_num + 1
+            args = (opt, task_num, opt.pwd, sub_projects)
+            task = executor.submit(do_init, *args)
+            tasks.append(task)
+
+        as_completed(tasks)
+
+
+def do_sync(opt, task_num, pwd, projects):
+    # for pro in tqdm(projects, desc="task={}".format(task_num)):
+    for pro in projects:
+        opt.logger.info("task = {}, start sync project = {}".format(task_num, pro.project))
         dir = os.path.join(pwd, pro.path)
         if dir_exists(os.path.join(dir, ".git")):
-            Log.d(dir, " git project exists")
             os.chdir(dir)
-
             ret, output = subprocess.getstatusoutput("git branch --list|sed 's/\*//g'")
             if ret != 0:
-                Log.e("git branch --list fail:\n %s" % (output))
+                opt.logger.error("project = {}, git branch --list fail {}".format(pro.project, output))
             else:
                 for line in output.splitlines():
                     branch = line.strip()
-                    Log.d("fetching project " + branch)
+                    opt.logger.debug("fetching project = {}, branch = {}".format(pro.project, branch))
                     cmd = "git checkout " + branch
                     os.system(cmd)
                     os.system("git clean -dfx")
@@ -231,24 +235,73 @@ def sync(opt):
                 branch = pro.branch
 
             cmd = "git checkout " + branch
-            Log.d(cmd)
+            opt.logger.debug("project = {}, {}".format(pro.project, cmd))
             ret, output = subprocess.getstatusoutput(cmd)
             if ret != 0:
-                Log.e("git checkout fail:\n %s" % (output))
+                opt.logger.error("project = {}, git checkout fail {}".format(pro.project, output))
 
             os.chdir(pwd)
         else:
-            Log.e("run sync in root dir.")
+            opt.logger.error("run sync in root dir")
 
 
-def unlock(opt):
-    pwd = os.getcwd()
-    for pro in opt.projects:
+def sync(opt):
+    if opt.thread <= 1:
+        do_sync(opt, 0, opt.pwd, opt.projects)
+    else:
+        size = len(opt.projects)
+        split_size = size // opt.thread + 1
+        opt.logger.info("project size = {}, split size = {}".format(size, split_size))
+
+        projects = split_list(opt.projects, split_size)
+        thread = len(projects)
+        opt.logger.info("thread = {}".format(thread))
+
+        executor = ThreadPoolExecutor(max_workers=thread)
+        tasks = []
+
+        task_num = 0
+        for sub_projects in projects:
+            task_num = task_num + 1
+            args = (opt, task_num, opt.pwd, sub_projects)
+            task = executor.submit(do_sync, *args)
+            tasks.append(task)
+
+        as_completed(tasks)
+
+
+def do_unlock(opt, task_num, pwd, projects):
+    for pro in projects:
         dir = os.path.join(pwd, pro.path)
         file = os.path.join(dir, ".git", "index.lock")
         if file_exists(file):
-            Log.e("rm lock file " + file)
+            opt.logger.error("rm lock file = ".format(file))
             os.system("rm -rf {}".format(file))
+
+
+def unlock(opt):
+    if opt.thread <= 1:
+        do_unlock(opt, 0, opt.pwd, opt.projects)
+    else:
+        size = len(opt.projects)
+        split_size = size // opt.thread + 1
+        opt.logger.info("project size = {}, split size = {}".format(size, split_size))
+
+        projects = split_list(opt.projects, split_size)
+        thread = len(projects)
+        opt.logger.info("thread = {}".format(thread))
+
+        executor = ThreadPoolExecutor(max_workers=thread)
+        tasks = []
+
+        task_num = 0
+        for sub_projects in projects:
+            task_num = task_num + 1
+            args = (opt, task_num, opt.pwd, sub_projects)
+            task = executor.submit(do_unlock, *args)
+            tasks.append(task)
+
+        as_completed(tasks)
 
 
 def main():
@@ -259,6 +312,8 @@ def main():
 
     opt.remote = options.remote
     opt.branch = options.branch
+    opt.thread = int(options.thread)
+
     config_file_name = options.config.strip()
     project_file_name = options.file.strip()
 
@@ -274,11 +329,11 @@ def main():
             opt.projects = parse_project(file)
 
     if opt.configs is None:
-        Log.e("has not config file")
+        opt.logger.error("has not config file")
         return 0
 
     if opt.projects is None:
-        Log.e("has not project file")
+        opt.logger.error("has not project file")
         return 0
 
     if opt.cmd == "init":
