@@ -67,17 +67,20 @@ def parse_xml(file):
 
 
 def parse_link(src, dest):
-    print("rm -rf " + dest)
-    print("mkdir -p " + os.path.dirname(dest))
-    print("ln -s {} {}".format(src, dest))
+    cmd = "rm -rf " + dest + "\n"
+    cmd += "mkdir -p " + os.path.dirname(dest) + "\n"
+    cmd += "ln -s {} {}".format(src, dest) + "\n"
+    # print(cmd)
+    return cmd
 
 
 def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
 
-    down_dir = "/home/solo/workspace/code/flyme/"
+    down_dir = "/home/solo/code/aosp/"
     file_xml = os.path.join(script_dir, "../test/", "manifest-u.xml")
     file_json = os.path.join(script_dir, "../test/", "project-u.json")
+    file_link = os.path.join(script_dir, "../test/", "link-u.sh")
 
     projects, links = parse_xml(file_xml)
 
@@ -87,11 +90,14 @@ def main():
             f.write(project)
         f.write("]")
 
-    for link in links:
-        path = link['path']
-        src = link['src']
-        dest = link['dest']
-        parse_link(os.path.join(down_dir, path, src), os.path.join(down_dir, dest))
+    with open(file_link, 'w') as f:
+        PATH = "$DOWN_PATH/"
+        f.write("DOWN_PATH={}\n".format(down_dir))
+        for link in links:
+            path = link['path']
+            src = link['src']
+            dest = link['dest']
+            f.write(parse_link(os.path.join(PATH, path, src), os.path.join(PATH, dest)))
 
     return 0
 
