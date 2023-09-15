@@ -17,8 +17,10 @@ template = """{
 },
 """
 
+
 def parse_xml(file):
     projects = []
+    links = []
     tree = ET.parse(file)
 
     for global_elem in tree.iterfind('default'):
@@ -29,36 +31,67 @@ def parse_xml(file):
         project = elem.attrib["name"]
         try:
             path = elem.attrib["path"]
-            branch = global_elem.attrib["revision"]
         except Exception:
             path = project
+
+        try:
+            new_branch = elem.attrib["revision"]
+        except Exception:
+            new_branch = branch
 
         text = Template(template).substitute({'remote': "gerrit",
                                               'project': project,
                                               'path': path,
-                                              'branch': branch
+                                              'branch': new_branch
                                               })
 
         projects.append(text)
 
-    return projects
+        for link_elem in elem.iterfind('linkfile'):
+            dest = link_elem.attrib["dest"]
+            src = link_elem.attrib["src"]
+            links.append({'path': path,
+                          'dest': dest,
+                          'src': src})
+            # parse_link(down_dir + path + "/" + src, dest)
+
+        for link_elem in elem.iterfind('copyfile'):
+            dest = link_elem.attrib["dest"]
+            src = link_elem.attrib["src"]
+            # parse_link(down_dir + path + "/" + src, dest)
+            links.append({'path': path,
+                          'dest': dest,
+                          'src': src})
+
+    return projects, links
+
+
+def parse_link(src, dest):
+    print("rm -rf " + dest)
+    print("mkdir -p " + os.path.dirname(dest))
+    print("ln -s {} {}".format(src, dest))
 
 
 def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
 
-    # u_file = os.path.join(script_dir, "../test/", "manifest-u.xml")
-    # projects = parse_xml(u_file)
+    down_dir = "/home/solo/workspace/code/flyme/"
+    file_xml = os.path.join(script_dir, "../test/", "manifest-u.xml")
+    file_json = os.path.join(script_dir, "../test/", "project-u.json")
 
-    t_file = os.path.join(script_dir, "../test/", "manifest-t.xml")
-    projects = parse_xml(t_file)
+    projects, links = parse_xml(file_xml)
 
-    # 去重复
-    projects = list(dict.fromkeys(projects))
-    projects.sort()
+    with open(file_json, 'w') as f:
+        f.write("[")
+        for project in projects:
+            f.write(project)
+        f.write("]")
 
-    for project in projects:
-        print(project)
+    for link in links:
+        path = link['path']
+        src = link['src']
+        dest = link['dest']
+        parse_link(os.path.join(down_dir, path, src), os.path.join(down_dir, dest))
 
     return 0
 
