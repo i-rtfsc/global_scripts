@@ -191,11 +191,11 @@ def init(opt):
     else:
         size = len(opt.projects)
         split_size = size // opt.thread + 1
-        opt.logger.info("project size = {}, split size = {}".format(size, split_size))
+        opt.logger.info("[init]project size = {}, split size = {}".format(size, split_size))
 
         projects = split_list(opt.projects, split_size)
         thread = len(projects)
-        opt.logger.info("thread = {}".format(thread))
+        opt.logger.info("[init]thread = {}".format(thread))
 
         executor = ThreadPoolExecutor(max_workers=thread)
         tasks = []
@@ -251,11 +251,11 @@ def sync(opt):
     else:
         size = len(opt.projects)
         split_size = size // opt.thread + 1
-        opt.logger.info("project size = {}, split size = {}".format(size, split_size))
+        opt.logger.info("[sync]project size = {}, split size = {}".format(size, split_size))
 
         projects = split_list(opt.projects, split_size)
         thread = len(projects)
-        opt.logger.info("thread = {}".format(thread))
+        opt.logger.info("[sync]thread = {}".format(thread))
 
         executor = ThreadPoolExecutor(max_workers=thread)
         tasks = []
@@ -269,6 +269,53 @@ def sync(opt):
 
         as_completed(tasks)
 
+
+def do_undepth(opt, task_num, pwd, projects):
+    # for pro in tqdm(projects, desc="task={}".format(task_num)):
+    for pro in projects:
+        opt.logger.info("task = {}, start un-depth project = {}".format(task_num, pro.project))
+        dir = os.path.join(pwd, pro.path)
+        if dir_exists(os.path.join(dir, ".git")):
+            os.chdir(dir)
+
+            branch = opt.branch
+            if branch is None:
+                branch = pro.branch
+
+            cmd = "git fetch --unshallow origin " + branch
+            opt.logger.debug("project = {}, {}".format(pro.project, cmd))
+            ret, output = subprocess.getstatusoutput(cmd)
+            if ret != 0:
+                opt.logger.error("project = {}, git fetch fail {}".format(pro.project, output))
+
+            os.chdir(pwd)
+        else:
+            opt.logger.error("run un-depth in root dir")
+
+
+def undepth(opt):
+    if opt.thread <= 1:
+        do_undepth(opt, 0, opt.pwd, opt.projects)
+    else:
+        size = len(opt.projects)
+        split_size = size // opt.thread + 1
+        opt.logger.info("[un-depth]project size = {}, split size = {}".format(size, split_size))
+
+        projects = split_list(opt.projects, split_size)
+        thread = len(projects)
+        opt.logger.info("[un-depth]thread = {}".format(thread))
+
+        executor = ThreadPoolExecutor(max_workers=thread)
+        tasks = []
+
+        task_num = 0
+        for sub_projects in projects:
+            task_num = task_num + 1
+            args = (opt, task_num, opt.pwd, sub_projects)
+            task = executor.submit(do_undepth, *args)
+            tasks.append(task)
+
+        as_completed(tasks)
 
 def do_unlock(opt, task_num, pwd, projects):
     for pro in projects:
@@ -285,11 +332,11 @@ def unlock(opt):
     else:
         size = len(opt.projects)
         split_size = size // opt.thread + 1
-        opt.logger.info("project size = {}, split size = {}".format(size, split_size))
+        opt.logger.info("[unlock]project size = {}, split size = {}".format(size, split_size))
 
         projects = split_list(opt.projects, split_size)
         thread = len(projects)
-        opt.logger.info("thread = {}".format(thread))
+        opt.logger.info("[unlock]thread = {}".format(thread))
 
         executor = ThreadPoolExecutor(max_workers=thread)
         tasks = []
@@ -340,6 +387,8 @@ def main():
         init(opt)
     elif opt.cmd == "sync":
         sync(opt)
+    elif opt.cmd == "undepth":
+        undepth(opt)
     elif opt.cmd == "unlock":
         unlock(opt)
     else:
