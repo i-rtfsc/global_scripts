@@ -140,7 +140,7 @@ def other(opt):
     opt.logger.error("don't support cmd = {}".format(opt.cmd))
 
 
-def do_init(opt, task_num, pwd, projects):
+def init(opt, task_num, pwd, projects):
     os.chdir(pwd)
 
     # for pro in tqdm(projects, desc="task={}".format(task_num)):
@@ -185,32 +185,7 @@ def do_init(opt, task_num, pwd, projects):
         os.chdir(pwd)
 
 
-def init(opt):
-    if opt.thread <= 1:
-        do_init(opt, 0, opt.pwd, opt.projects)
-    else:
-        size = len(opt.projects)
-        split_size = size // opt.thread + 1
-        opt.logger.info("[init]project size = {}, split size = {}".format(size, split_size))
-
-        projects = split_list(opt.projects, split_size)
-        thread = len(projects)
-        opt.logger.info("[init]thread = {}".format(thread))
-
-        executor = ThreadPoolExecutor(max_workers=thread)
-        tasks = []
-
-        task_num = 0
-        for sub_projects in projects:
-            task_num = task_num + 1
-            args = (opt, task_num, opt.pwd, sub_projects)
-            task = executor.submit(do_init, *args)
-            tasks.append(task)
-
-        as_completed(tasks)
-
-
-def do_sync(opt, task_num, pwd, projects):
+def sync(opt, task_num, pwd, projects):
     # for pro in tqdm(projects, desc="task={}".format(task_num)):
     for pro in projects:
         opt.logger.info("task = {}, start sync project = {}".format(task_num, pro.project))
@@ -245,32 +220,7 @@ def do_sync(opt, task_num, pwd, projects):
             opt.logger.error("run sync in root dir")
 
 
-def sync(opt):
-    if opt.thread <= 1:
-        do_sync(opt, 0, opt.pwd, opt.projects)
-    else:
-        size = len(opt.projects)
-        split_size = size // opt.thread + 1
-        opt.logger.info("[sync]project size = {}, split size = {}".format(size, split_size))
-
-        projects = split_list(opt.projects, split_size)
-        thread = len(projects)
-        opt.logger.info("[sync]thread = {}".format(thread))
-
-        executor = ThreadPoolExecutor(max_workers=thread)
-        tasks = []
-
-        task_num = 0
-        for sub_projects in projects:
-            task_num = task_num + 1
-            args = (opt, task_num, opt.pwd, sub_projects)
-            task = executor.submit(do_sync, *args)
-            tasks.append(task)
-
-        as_completed(tasks)
-
-
-def do_undepth(opt, task_num, pwd, projects):
+def undepth(opt, task_num, pwd, projects):
     # for pro in tqdm(projects, desc="task={}".format(task_num)):
     for pro in projects:
         opt.logger.info("task = {}, start un-depth project = {}".format(task_num, pro.project))
@@ -293,31 +243,7 @@ def do_undepth(opt, task_num, pwd, projects):
             opt.logger.error("run un-depth in root dir")
 
 
-def undepth(opt):
-    if opt.thread <= 1:
-        do_undepth(opt, 0, opt.pwd, opt.projects)
-    else:
-        size = len(opt.projects)
-        split_size = size // opt.thread + 1
-        opt.logger.info("[un-depth]project size = {}, split size = {}".format(size, split_size))
-
-        projects = split_list(opt.projects, split_size)
-        thread = len(projects)
-        opt.logger.info("[un-depth]thread = {}".format(thread))
-
-        executor = ThreadPoolExecutor(max_workers=thread)
-        tasks = []
-
-        task_num = 0
-        for sub_projects in projects:
-            task_num = task_num + 1
-            args = (opt, task_num, opt.pwd, sub_projects)
-            task = executor.submit(do_undepth, *args)
-            tasks.append(task)
-
-        as_completed(tasks)
-
-def do_unlock(opt, task_num, pwd, projects):
+def unlock(opt, task_num, pwd, projects):
     for pro in projects:
         dir = os.path.join(pwd, pro.path)
         file = os.path.join(dir, ".git", "index.lock")
@@ -326,17 +252,26 @@ def do_unlock(opt, task_num, pwd, projects):
             os.system("rm -rf {}".format(file))
 
 
-def unlock(opt):
+def work(opt):
     if opt.thread <= 1:
-        do_unlock(opt, 0, opt.pwd, opt.projects)
+        if opt.cmd == "init":
+            init(opt, 0, opt.pwd, opt.projects)
+        elif opt.cmd == "sync":
+            sync(opt, 0, opt.pwd, opt.projects)
+        elif opt.cmd == "undepth":
+            undepth(opt, 0, opt.pwd, opt.projects)
+        elif opt.cmd == "unlock":
+            unlock(opt, 0, opt.pwd, opt.projects)
+        else:
+            other(opt, 0, opt.pwd, opt.projects)
     else:
         size = len(opt.projects)
         split_size = size // opt.thread + 1
-        opt.logger.info("[unlock]project size = {}, split size = {}".format(size, split_size))
+        opt.logger.info("[{}]project size = {}, split size = {}".format(opt.cmd, size, split_size))
 
         projects = split_list(opt.projects, split_size)
         thread = len(projects)
-        opt.logger.info("[unlock]thread = {}".format(thread))
+        opt.logger.info("[{}]thread = {}".format(opt.cmd, thread))
 
         executor = ThreadPoolExecutor(max_workers=thread)
         tasks = []
@@ -345,7 +280,18 @@ def unlock(opt):
         for sub_projects in projects:
             task_num = task_num + 1
             args = (opt, task_num, opt.pwd, sub_projects)
-            task = executor.submit(do_unlock, *args)
+
+            if opt.cmd == "init":
+                task = executor.submit(int, *args)
+            elif opt.cmd == "sync":
+                task = executor.submit(sync, *args)
+            elif opt.cmd == "undepth":
+                task = executor.submit(undepth, *args)
+            elif opt.cmd == "unlock":
+                task = executor.submit(unlock, *args)
+            else:
+                task = executor.submit(other, *args)
+
             tasks.append(task)
 
         as_completed(tasks)
@@ -364,14 +310,13 @@ def main():
     config_file_name = options.config.strip()
     project_file_name = options.file.strip()
 
-    pwd = os.getcwd()
     script_dir = os.path.dirname(os.path.abspath(__file__))
 
     config_file = os.path.join(script_dir, config_file_name)
     if file_exists(config_file):
         opt.configs = parse_config(config_file)
 
-    for file in [project_file_name, os.path.join(pwd, project_file_name), os.path.join(script_dir, project_file_name)]:
+    for file in [project_file_name, os.path.join(opt.pwd, project_file_name), os.path.join(script_dir, project_file_name)]:
         if file_exists(file):
             opt.projects = parse_project(file)
 
@@ -383,16 +328,7 @@ def main():
         opt.logger.error("has not project file")
         return 0
 
-    if opt.cmd == "init":
-        init(opt)
-    elif opt.cmd == "sync":
-        sync(opt)
-    elif opt.cmd == "undepth":
-        undepth(opt)
-    elif opt.cmd == "unlock":
-        unlock(opt)
-    else:
-        other(opt)
+    work(opt)
 
     return 0
 
