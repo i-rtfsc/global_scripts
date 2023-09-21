@@ -2,11 +2,7 @@
 **/*.db-shm
 **/*.db-wal
 
-frida/frida-inject
-frida/frida-server
-
-
-clash/logs
-clash/conf/cache.db
+plugins/system/clash/logs
+plugins/system/clash/conf/cache.db
 
 test

@@ -1,3 +1,6 @@
+StrictHostKeyChecking no
+UserKnownHostsFile=/dev/null
+
 host boxing
 Hostname gerrit-slave.upuphone.com
 Port 29418

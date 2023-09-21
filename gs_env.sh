@@ -16,157 +16,91 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-_GS_ROOT_PATH="$HOME/code/github/global_scripts"
+# step 1
+# 初始化 _GS_ROOT_PATH、_GS_CONFIG_PATH 路径
+#_GS_ROOT_PATH="$HOME/code/github/global_scripts"
+if [ -n "$ZSH_VERSION" ]; then
+    _GS_ROOT_PATH=`dirname ${(%):-%N}`
+elif [ -n "$BASH_VERSION" ]; then
+    _GS_ROOT_PATH=`dirname "$BASH_SOURCE"`
+fi
 _GS_CONFIG_PATH="${_GS_ROOT_PATH}/conf"
 
-# global python env
-function _gs_init_env() {
-    export _GS_ROOT_PATH=$_GS_ROOT_PATH
-    export PATH=$PATH:"$_GS_ROOT_PATH"
-    export PATH=$PATH:"$_GS_ROOT_PATH/bin/"
-    export PATH=$PATH:"$_GS_ROOT_PATH/git/"
-    export PATH=$PATH:"$_GS_ROOT_PATH/.work/"
-    export PATH=$PATH:"$_GS_ROOT_PATH/codestyle/"
 
-    if [ -d "$HOME/Android/Sdk/platform-tools" ] ; then
-        PATH="$HOME/Android/Sdk/platform-tools:$PATH"
+function _gs_init_path() {
+    local gs_path=$1
+
+    if [ ! -d ${gs_path} ]; then
+        verbose_error "${gs_path} don't exists"
+        return
     fi
+
+    if [[ ${PATH} == *"${gs_path}"* ]]; then
+        verbose_info "has been export, ${gs_path}"
+    else
+        export PATH=$PATH:"${gs_path}"
+    fi
+}
+
+# global python env
+function _gs_init_global_env() {
+    # step 2
+    # 设置 _GS_ROOT_PATH、_GS_CONFIG_PATH 环境变量
+    export _GS_ROOT_PATH=$_GS_ROOT_PATH
+    export _GS_CONFIG_PATH=$_GS_CONFIG_PATH
 
     export LC_ALL=en_US.UTF-8
     export LANG=en_US.UTF-8
-}
 
-function _gs_conda_initialize() {
-    # <<< conda initialize <<<
-    _GS_CONDA_ROOT_DIR="$HOME/anaconda3"
-
-    if [ ! -d ${_GS_CONDA_ROOT_DIR} ]; then
-        _GS_CONDA_ROOT_DIR="$HOME/miniconda3"
-    fi
-
-    if [ ! -d ${_GS_CONDA_ROOT_DIR} ]; then
-        _GS_CONDA_ROOT_DIR="$HOME/opt/miniconda3"
-    fi
-
-    if [ ! -d ${_GS_CONDA_ROOT_DIR} ]; then
-        return 0
-    fi
-
-    __conda_setup="$('$_GS_CONDA_ROOT_DIR/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
-    if [ $? -eq 0 ]; then
-        eval "$__conda_setup"
+    # step 3
+    # 加载 .gsrc 配置文件
+    local gs_config=$HOME/.gsrc
+    # check if the gs env exists
+    if [ ! -f ${gs_config} ]; then
+        source ${_GS_CONFIG_PATH}/.gsrc
     else
-        if [ -f "$_GS_CONDA_ROOT_DIR/etc/profile.d/conda.sh" ]; then
-            . "$_GS_CONDA_ROOT_DIR/etc/profile.d/conda.sh"
-        else
-            export PATH="$_GS_CONDA_ROOT_DIR/bin:$PATH"
+        source ${gs_config}
+    fi
+
+    # step 4
+    # 加载 env 下的配置
+    # 这个必须在 .gsrc 后接着马上加载，是因为里面配置了全局的颜色，func等
+    # 别的配置需要依赖
+    for file in ${_GS_ROOT_PATH}/env/gs_*.sh ; do
+        if [ -f ${file} ]; then
+            source $file
         fi
-    fi
-    unset __conda_setup
-    # <<< conda initialize <<<
+    done
 
-    conda config --set changeps1 False
+    # step 5
+    # 设置 PATH 环境变量
+    _gs_init_path $_GS_ROOT_PATH/bin/
+    _gs_init_path $_GS_ROOT_PATH/conf/
+    _gs_init_path $_GS_ROOT_PATH/tools/codestyle/
+    _gs_init_path $_GS_ROOT_PATH/.work/
+    _gs_init_path $HOME/Android/Sdk/platform-tools/
 
-    conda activate py39tf2.x
-}
-
-function _gs_cargo_initialize() {
-    # https://www.rust-lang.org/tools/install
-    _GS_CARGO_DIR="$HOME/.cargo/env"
-    if [ ! -d ${_GS_CARGO_DIR} ]; then
-        return 0
-    fi
-
-    source ${_GS_CARGO_DIR}
-}
-
-function gs_init_git() {
-    local gs_conf_dir=$HOME/bin/global_scripts/conf
-    # check if the gs conf dir exists
-    if [ ! -d ${gs_conf_dir} ]; then
-        mkdir -p ${gs_conf_dir}
+    # step 6
+    # 设置 zsh 特有的环境变量
+    if [ -n "$ZSH_VERSION" ]; then
+       for file in ${_GS_ROOT_PATH}/env/zsh_*.sh ; do
+            if [ -f ${file} ]; then
+                verbose_info $file
+                source $file
+            fi
+        done
     fi
 
-    local gs_conf_git_dir=$HOME/bin/global_scripts/conf/gs_git
-
-    if [ "${_GS_CONFIG_PATH}/gs_git" = "$gs_conf_dir/gs_git" ]; then
-        echo "don't need cp"
-    else
-        rm -rf $gs_conf_dir/gs_git
-        cp -r ${_GS_CONFIG_PATH}/gs_git $gs_conf_git_dir
-    fi
-
-    mv $gs_conf_git_dir/.gitconfig $HOME/.gitconfig
+    # step 6
+    # 根据 .gsrc 配置的插件加载插件
+    for plugin in ${plugins[@]}; do
+        for file in ${_GS_ROOT_PATH}/plugins/${plugin}/gs_*.sh ; do
+            if [ -f ${file} ]; then
+                verbose_info $file
+                source $file
+            fi
+        done
+    done
 }
 
-function gs_init_ssh() {
-    # conf or update ssh conf
-   rm -rf $HOME/.ssh
-   cp -r ${_GS_CONFIG_PATH}/gs_ssh $HOME/.ssh
-   chmod 700 $HOME/.ssh/id_rsa
-}
-
-function gs_init_vim() {
-    local gs_conf_dir=$HOME/bin/global_scripts/conf
-    # check if the gs conf dir exists
-    if [ ! -d ${gs_conf_dir} ]; then
-        mkdir -p ${gs_conf_dir}
-    fi
-
-    local gs_conf_vim_dir=$HOME/bin/global_scripts/conf/gs_vim
-
-    if [ "${_GS_CONFIG_PATH}/gs_vim" = "$gs_conf_dir/gs_vim" ]; then
-        echo "don't need cp"
-    else
-        rm -rf $gs_conf_dir/gs_vim
-        cp -r ${_GS_CONFIG_PATH}/gs_vim $gs_conf_vim_dir
-    fi
-
-    mv $gs_conf_vim_dir/.vimrc $HOME/.vimrc
-    source $HOME/.vimrc
-}
-
-function gs_init_cargo() {
-   cp  ${_GS_CONFIG_PATH}/cargo_config $HOME/.cargo/config
-}
-
-function gs_init_tmux() {
-    cp ${_GS_CONFIG_PATH}/tmux/.tmux.conf $HOME/.tmux.conf
-}
-
-# gs update environment
-function _gs_update_env() {
-    source ${_GS_ROOT_PATH}/gs_adb.sh
-    source ${_GS_ROOT_PATH}/gs_android_build.sh
-    source ${_GS_ROOT_PATH}/gs_android_grep.sh
-    source ${_GS_ROOT_PATH}/gs_android_push.sh
-    source ${_GS_ROOT_PATH}/gs_common_alias.sh
-    source ${_GS_ROOT_PATH}/gs_ext.sh
-    source ${_GS_ROOT_PATH}/gs_private_alias.sh
-    source ${_GS_ROOT_PATH}/gs_system.sh
-    source ${_GS_ROOT_PATH}/gs_test.sh
-    source ${_GS_ROOT_PATH}/gs_prompt_theme.sh
-    source ${_GS_ROOT_PATH}/frida/gs_android_frida.sh
-    source ${_GS_ROOT_PATH}/clash/gs_system_clash.sh
-
-    # only for work
-    source ${_GS_ROOT_PATH}/.work/gs_work.sh
-}
-
-function gs_init_all_config() {
-#    cp ${_GS_CONFIG_PATH}/.zshrc $HOME/.zshrc
-    gs_init_git
-    gs_init_ssh
-    gs_init_vim
-    gs_init_cargo
-}
-
-_gs_init_env
-# 我用 conda 我为了跑 py3.6以上，所以默认配置了py39tf2.x
-# 公司 repo 、编译 qssi 都不支持高版本py
-# 正好在 bash 情况下我没有用 conda 的需求，所以 bash 下不配置 conda
-if [ -n "$ZSH_VERSION" ]; then
-   _gs_conda_initialize
-fi
-_gs_cargo_initialize
-_gs_update_env
+_gs_init_global_env
