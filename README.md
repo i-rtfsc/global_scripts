@@ -61,10 +61,31 @@ source $HOME/code/github/global_scripts/gs_env.sh
 > git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
 
 
-# 重要
-gs_env.sh文件中，要把 _GS_ROOT_PATH 配置成正确的路径（也就是你下载global_scripts工程的路径）
+# 插件[重要]
+在加载 gs_env.sh 时，出来加载一些基本的配置以为；大部分的配置都改成插件的方案。
+
+可以在 home 目录下配置 .gsrc 文件，或者直接在本工程的 conf/.gsrc 文件下修改需要用到的插件。
+
+目前支持的插件如下：
+
 ```bash
-_GS_ROOT_PATH="$HOME/code/github/global_scripts"
+plugins=(
+         alias/common
+         alias/private
+         android/adb
+         android/build
+         android/frida
+         android/grep
+         android/push
+         common
+         git
+         system/brew
+         system/clash
+         system/proxy
+         system/repo         
+         themes
+         test
+        )
 ```
 
 # 脚本能力
