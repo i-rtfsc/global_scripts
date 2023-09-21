@@ -136,7 +136,7 @@ def split_list(lst, size):
     return [lst[i:i + size] for i in range(0, len(lst), size)]
 
 
-def other(opt):
+def other(opt, task_num, pwd, projects):
     opt.logger.error("don't support cmd = {}".format(opt.cmd))
 
 

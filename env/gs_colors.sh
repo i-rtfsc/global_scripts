@@ -95,19 +95,19 @@ echo_error() {
 }
 
 verbose_info() {
-	if [[ "$gs_env_verbose" == "1" ]]; then
+	if [[ "$gs_env_debug" == "1" ]]; then
 	  echo_info $@
 	fi
 }
 
 verbose_warn() {
-	if [[ "$gs_env_verbose" == "1" ]]; then
+	if [[ "$gs_env_debug" == "1" ]]; then
 	  echo_warn $@
 	fi
 }
 
 verbose_error() {
-	if [[ "$gs_env_verbose" == "1" ]]; then
+	if [[ "$gs_env_debug" == "1" ]]; then
 	  echo_error $@
 	fi
 }

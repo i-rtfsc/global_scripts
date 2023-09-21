@@ -16,8 +16,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-gs_env_verbose=1
+# 调试
+gs_env_debug=1
 
+# 是否加载工作配置
+gs_env_work=1
+
+# 插件
 plugins=(
          alias/common
          alias/private
