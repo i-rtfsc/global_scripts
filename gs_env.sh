@@ -36,7 +36,7 @@ function _gs_init_path() {
     fi
 
     if [[ ${PATH} == *"${gs_path}"* ]]; then
-        verbose_info "has been export, ${gs_path}"
+        verbose_warn "has been export, ${gs_path}"
     else
         export PATH=$PATH:"${gs_path}"
     fi
@@ -114,11 +114,9 @@ function _gs_init_global_env() {
         done
     fi
 
-    # debug情况下查看 PATH 环境变量
     if [[ "${gs_env_debug}" == "1" ]]; then
-        for path in $(echo ${PATH} | tr ":" " ") ;do
-             verbose_warn ${path}
-        done
+        gs_env_version=`cat $_GS_ROOT_PATH/VERSION`
+        verbose_warn "global scripts version = ${gs_env_version}"
     fi
 }
 

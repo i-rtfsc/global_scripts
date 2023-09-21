@@ -17,7 +17,7 @@
 # limitations under the License.
 
 # 调试
-gs_env_debug=1
+gs_env_debug=0
 
 # 是否加载工作配置
 gs_env_work=1
