@@ -37,6 +37,24 @@ else
     alias  l='ls --color=auto'
     alias  sl='ls --color=auto'
     alias grep='grep --color=auto'
+
+    alias meminfo='free -m -l -t'
+
+    ## get top process eating memory
+    alias psmem='ps auxf | sort -nr -k 4'
+    alias psmem10='ps auxf | sort -nr -k 4 | head -10'
+
+    ## get top process eating cpu ##
+    alias pscpu='ps auxf | sort -nr -k 3'
+    alias pscpu10='ps auxf | sort -nr -k 3 | head -10'
+
+    ## Get server cpu info ##
+    alias cpuinfo='lscpu'
+
+    #------------
+    # Disk
+    #------------
+    alias dfree='df -HPT'
 fi
 
 #alias python=/usr/bin/python3

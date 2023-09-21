@@ -77,7 +77,6 @@ function _gs_init_global_env() {
     _gs_init_path $_GS_ROOT_PATH/bin/
     _gs_init_path $_GS_ROOT_PATH/conf/
     _gs_init_path $_GS_ROOT_PATH/tools/codestyle/
-    _gs_init_path $_GS_ROOT_PATH/.work/
     _gs_init_path $HOME/Android/Sdk/platform-tools/
 
     # step 6
@@ -85,22 +84,42 @@ function _gs_init_global_env() {
     if [ -n "$ZSH_VERSION" ]; then
        for file in ${_GS_ROOT_PATH}/env/zsh_*.sh ; do
             if [ -f ${file} ]; then
-                verbose_info $file
-                source $file
+                verbose_info ${file}
+                source ${file}
             fi
         done
     fi
 
-    # step 6
-    # 根据 .gsrc 配置的插件加载插件
+    # step 7
+    # 根据 .gsrc 配置的插件加载对应的插件
     for plugin in ${plugins[@]}; do
         for file in ${_GS_ROOT_PATH}/plugins/${plugin}/gs_*.sh ; do
             if [ -f ${file} ]; then
-                verbose_info $file
-                source $file
+                verbose_info ${file}
+                source ${file}
             fi
         done
     done
+
+    # step 8
+    # 根据 .gsrc 加载工作配置
+    if [[ "${gs_env_work}" == "1" ]]; then
+        _gs_init_path $_GS_ROOT_PATH/.work/
+
+        for file in ${_GS_ROOT_PATH}/.work/gs_*.sh ; do
+            if [ -f ${file} ]; then
+                verbose_info ${file}
+                source ${file}
+            fi
+        done
+    fi
+
+    # debug情况下查看 PATH 环境变量
+    if [[ "${gs_env_debug}" == "1" ]]; then
+        for path in $(echo ${PATH} | tr ":" " ") ;do
+             verbose_warn ${path}
+        done
+    fi
 }
 
 _gs_init_global_env
