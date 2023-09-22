@@ -22,6 +22,9 @@ gs_env_debug=0
 # 是否加载工作配置
 gs_env_work=1
 
+# prompt 主题
+themes_prompt=smile
+
 # 插件
 plugins=(
          alias/common
@@ -37,6 +40,4 @@ plugins=(
          system/clash
          system/proxy
          system/repo
-         themes
-         test
         )

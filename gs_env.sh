@@ -16,6 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 # step 1
 # 初始化 _GS_ROOT_PATH、_GS_CONFIG_PATH 路径
 #_GS_ROOT_PATH="$HOME/code/github/global_scripts"
@@ -25,7 +26,6 @@ elif [ -n "$BASH_VERSION" ]; then
     _GS_ROOT_PATH=`dirname "$BASH_SOURCE"`
 fi
 _GS_CONFIG_PATH="${_GS_ROOT_PATH}/conf"
-
 
 function _gs_init_path() {
     local gs_path=$1
@@ -42,7 +42,6 @@ function _gs_init_path() {
     fi
 }
 
-# global python env
 function _gs_init_global_env() {
     # step 2
     # 设置 _GS_ROOT_PATH、_GS_CONFIG_PATH 环境变量
@@ -102,6 +101,25 @@ function _gs_init_global_env() {
     done
 
     # step 8
+    # 根据 .gsrc 配置的主题加载对应的主题
+    if [ -z ${themes_prompt} ]; then
+        verbose_warn "hasn't set prompt theme"
+    else
+        prompt_info_file=${_GS_ROOT_PATH}/themes/prompt/gs_prompt_info.sh
+        if [ -f ${prompt_info_file} ]; then
+            verbose_info ${prompt_info_file}
+            source ${prompt_info_file}
+        fi
+
+        for file in ${_GS_ROOT_PATH}/themes/prompt/${themes_prompt}/gs_*.sh ; do
+            if [ -f ${file} ]; then
+                verbose_info ${file}
+                source ${file}
+            fi
+        done
+    fi
+
+    # step 9
     # 根据 .gsrc 加载工作配置
     if [[ "${gs_env_work}" == "1" ]]; then
         _gs_init_path $_GS_ROOT_PATH/.work/
