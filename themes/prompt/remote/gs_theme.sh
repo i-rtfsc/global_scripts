@@ -16,6 +16,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+machine="$(uname -s)"
+case "${machine}" in
+    Linux*)     isMac=false;;
+    Darwin*)    isMac=true;;
+    *)          isMac=false;;
+esac
 
 COLOR_PROMPT_HEAD=245
 COLOR_FG_SPLIT=003
@@ -37,7 +43,12 @@ SYMBOL_SPLIT_PARENTHESES_RIGHT=")"
 SYMBOL_SPLIT_AT="@"
 SYMBOL_SPLIT_COLON=":"
 SYMBOL_SPLIT_ARROW="➬"
-SYMBOL_SPLIT_FINAL="☺"
+
+if ${isMac} ; then
+    SYMBOL_SPLIT_FINAL="⬡"
+else
+    SYMBOL_SPLIT_FINAL="☺"
+fi
 
 function _gs_prompt_start_line1() {
     _gs_theme_color_text $COLOR_PROMPT_HEAD "╭─"
@@ -85,7 +96,12 @@ function _gs_prompt_current_dir() {
 
 function _gs_prompt_spilt_icon() {
     text=$(_gs_theme_color_text $COLOR_SPILT ${SYMBOL_SPLIT_ARROW})
-    echo " $text "
+
+    if ${isMac} ; then
+        echo "$text"
+    else
+        echo " $text "
+    fi
 }
 
 function _gs_prompt_time() {
@@ -112,7 +128,12 @@ function _gs_prompt_smile() {
     text1=$(_gs_theme_color_text $COLOR_FINAL1 ${SYMBOL_SPLIT_FINAL})
     text2=$(_gs_theme_color_text $COLOR_FINAL2 ${SYMBOL_SPLIT_FINAL})
     text3=$(_gs_theme_color_text $COLOR_FINAL3 ${SYMBOL_SPLIT_FINAL})
-    echo "$text1 $text2 $text3 "
+
+    if ${isMac} ; then
+        echo " $text1$text2$text3 "
+    else
+        echo "$text1 $text2 $text3 "
+    fi
 }
 
 function _gs_prompt_right_display() {
