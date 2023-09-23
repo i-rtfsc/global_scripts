@@ -38,6 +38,7 @@ function _gs_init_path() {
     if [[ ${PATH} == *"${gs_path}"* ]]; then
         verbose_warn "has been export, ${gs_path}"
     else
+        verbose_info "export path = ${gs_path}"
         export PATH=$PATH:"${gs_path}"
     fi
 }
@@ -45,11 +46,19 @@ function _gs_init_path() {
 function _gs_init_global_env() {
     # step 2
     # 设置 _GS_ROOT_PATH、_GS_CONFIG_PATH 环境变量
-    export _GS_ROOT_PATH=$_GS_ROOT_PATH
+    export _GS_ROOT_PATH=${_GS_ROOT_PATH}
     export _GS_CONFIG_PATH=$_GS_CONFIG_PATH
 
     export LC_ALL=en_US.UTF-8
     export LANG=en_US.UTF-8
+
+    local gs_path_bin=${_GS_ROOT_PATH}/bin
+    local gs_path_env=${_GS_ROOT_PATH}/env
+    local gs_path_conf=${_GS_ROOT_PATH}/conf
+    local gs_path_plugins=${_GS_ROOT_PATH}/plugins
+    local gs_path_themes=${_GS_ROOT_PATH}/themes
+    local gs_path_codestyle=${_GS_ROOT_PATH}/tools/codestyle
+    local gs_path_work=${_GS_ROOT_PATH}/.work
 
     # step 3
     # 加载 .gsrc 配置文件
@@ -73,15 +82,15 @@ function _gs_init_global_env() {
 
     # step 5
     # 设置 PATH 环境变量
-    _gs_init_path $_GS_ROOT_PATH/bin/
-    _gs_init_path $_GS_ROOT_PATH/conf/
-    _gs_init_path $_GS_ROOT_PATH/tools/codestyle/
+    _gs_init_path ${gs_path_bin}
+    _gs_init_path ${gs_path_conf}
+    _gs_init_path ${gs_path_codestyle}
     _gs_init_path $HOME/Android/Sdk/platform-tools/
 
     # step 6
     # 设置 zsh 特有的环境变量
     if [ -n "$ZSH_VERSION" ]; then
-       for file in ${_GS_ROOT_PATH}/env/zsh_*.sh ; do
+       for file in ${gs_path_env}/zsh_*.sh ; do
             if [ -f ${file} ]; then
                 verbose_info ${file}
                 source ${file}
@@ -91,8 +100,8 @@ function _gs_init_global_env() {
 
     # step 7
     # 根据 .gsrc 配置的插件加载对应的插件
-    for plugin in ${plugins[@]}; do
-        for file in ${_GS_ROOT_PATH}/plugins/${plugin}/gs_*.sh ; do
+    for plugin in ${gs_plugins[@]}; do
+        for file in ${gs_path_plugins}/${plugin}/gs_*.sh ; do
             if [ -f ${file} ]; then
                 verbose_info ${file}
                 source ${file}
@@ -102,16 +111,16 @@ function _gs_init_global_env() {
 
     # step 8
     # 根据 .gsrc 配置的主题加载对应的主题
-    if [ -z ${themes_prompt} ]; then
-        verbose_warn "hasn't set prompt theme"
+    if [ -z ${gs_themes_prompt} ]; then
+        verbose_error "hasn't set prompt theme"
     else
-        prompt_info_file=${_GS_ROOT_PATH}/themes/prompt/gs_prompt_info.sh
+        prompt_info_file=${gs_path_themes}/prompt/gs_prompt_info.sh
         if [ -f ${prompt_info_file} ]; then
             verbose_info ${prompt_info_file}
             source ${prompt_info_file}
         fi
 
-        for file in ${_GS_ROOT_PATH}/themes/prompt/${themes_prompt}/gs_*.sh ; do
+        for file in ${gs_path_themes}/prompt/${gs_themes_prompt}/gs_*.sh ; do
             if [ -f ${file} ]; then
                 verbose_info ${file}
                 source ${file}
@@ -122,9 +131,9 @@ function _gs_init_global_env() {
     # step 9
     # 根据 .gsrc 加载工作配置
     if [[ "${gs_env_work}" == "1" ]]; then
-        _gs_init_path $_GS_ROOT_PATH/.work/
+        _gs_init_path ${gs_path_work}
 
-        for file in ${_GS_ROOT_PATH}/.work/gs_*.sh ; do
+        for file in ${gs_path_work}/gs_*.sh ; do
             if [ -f ${file} ]; then
                 verbose_info ${file}
                 source ${file}
@@ -133,7 +142,7 @@ function _gs_init_global_env() {
     fi
 
     if [[ "${gs_env_debug}" == "1" ]]; then
-        gs_env_version=`cat $_GS_ROOT_PATH/VERSION`
+        gs_env_version=`cat ${_GS_ROOT_PATH}/VERSION`
         verbose_warn "global scripts version = ${gs_env_version}"
     fi
 }
