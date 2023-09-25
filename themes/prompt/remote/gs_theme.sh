@@ -91,7 +91,11 @@ function _gs_prompt_ip() {
 }
 
 function _gs_prompt_current_dir() {
-    _gs_theme_color_text $COLOR_PATH $(_gs_theme_current_dir)
+    if [ -n "$ZSH_VERSION" ]; then
+        _gs_theme_color_text $COLOR_PATH "$(_gs_theme_current_dir)"
+    else
+        _gs_theme_color_text $COLOR_PATH '$(_gs_theme_current_dir)'
+    fi
 }
 
 function _gs_prompt_spilt_icon() {
@@ -113,7 +117,7 @@ function _gs_prompt_time() {
 }
 
 function _gs_prompt_conda_or_py_info() {
-    _gs_theme_color_text $COLOR_SYS_INFO $(_gs_theme_conda_or_py_info)
+    _gs_theme_color_text $COLOR_ENV $(_gs_theme_conda_or_py_info)
 }
 
 function _gs_prompt_env() {
@@ -121,7 +125,7 @@ function _gs_prompt_env() {
     if [ -n "$ZSH_VERSION" ]; then
         text=zsh
     fi
-    _gs_theme_color_text $COLOR_SYS_INFO $text
+    _gs_theme_color_text $COLOR_ENV $text
 }
 
 function _gs_prompt_smile() {
@@ -137,7 +141,7 @@ function _gs_prompt_smile() {
 }
 
 function _gs_prompt_right_display() {
-    _gs_theme_color_text $COLOR_SYS_INFO $(git_prompt_info)
+    _gs_theme_color_text $COLOR_GIT $(git_prompt_info)
 }
 
 if [ -n "$ZSH_VERSION" ]; then
