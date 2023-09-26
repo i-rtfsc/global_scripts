@@ -55,6 +55,12 @@
   },
   {
     "remote": "gerrit",
+    "project": "platform/frameworks/libs/modules-utils",
+    "path": "frameworks/libs/modules-utils",
+    "branch": "QSSI_QUF10_base"
+  },
+  {
+    "remote": "gerrit",
     "project": "platform/frameworks/hardware/interfaces",
     "path": "frameworks/hardware/interfaces",
     "branch": "QSSI_QUF10_base"
