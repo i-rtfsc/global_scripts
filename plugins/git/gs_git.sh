@@ -46,9 +46,6 @@ function gs_git_add_submodule() {
 }
 
 function gs_git_all_commits() {
-    set -e
-    shopt -s nullglob extglob
-
     cd "`git rev-parse --git-path objects`"
 
     # packed objects
@@ -99,18 +96,14 @@ function gs_git_delete_tag() {
 }
 
 function gs_git_whoami() {
-    set -e
-    shopt -s nullglob extglob
+    git config --get user.email
+    git config --get user.name
+}
 
-    cd "`git rev-parse --git-path objects`"
+function gs_git_author_commits_number() {
+    git shortlog -s -n
+}
 
-    # packed objects
-    for p in pack/pack-*([0-9a-f]).idx ; do
-        git show-index < $p | cut -f 2 -d ' '
-    done
-
-    # loose objects
-    for o in [0-9a-f][0-9a-f]/*([0-9a-f]) ; do
-        echo ${o/\/}
-    done
+function gs_git_commits_number() {
+    git rev-list HEAD --count
 }
