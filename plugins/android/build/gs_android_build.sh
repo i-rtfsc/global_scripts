@@ -227,6 +227,7 @@ function _gs_android_build_modules() {
         "libandroid_runtime"
         "libinputflinger"
         "libinputreader"
+        "libinputservice"
         "selinux_policy"
         "surfaceflinger"
         "update_engine"

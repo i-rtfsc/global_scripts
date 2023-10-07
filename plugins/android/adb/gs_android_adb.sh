@@ -46,7 +46,6 @@ function gs_android_adb_settings_provider() {
     adb shell dumpsys settings
 }
 
-
 function gs_android_adb_show_3rd_app {
     adb shell pm list packages -f -3
 }
@@ -196,6 +195,11 @@ function gs_android_adb_abx2xml() {
     # usage: abx2xml [-i] input [output]
     # usage: xml2abx [-i] input [output]
     adb shell cat $1 | adb shell abx2xml - -
+}
+
+function gs_android_adb_connect() {
+    adb tcpip 5555
+    adb connect $1
 }
 
 function gs_android_adb_j007engine_kill() {
