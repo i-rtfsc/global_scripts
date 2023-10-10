@@ -33,6 +33,7 @@ gs_plugins=(
          android/build
          android/frida
          android/grep
+         android/perfetto
          android/push
          common
          git
