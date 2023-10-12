@@ -31,7 +31,3 @@ function gs_system_repo_url_update_tsinghua() {
     unset REPO_URL
     export REPO_URL='https://mirrors.tuna.tsinghua.edu.cn/git/git-repo'
 }
-
-function gs_system_repo_upload() {
-    git push -u origin HEAD:$1
-}
