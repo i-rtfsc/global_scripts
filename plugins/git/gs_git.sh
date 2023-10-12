@@ -107,3 +107,9 @@ function gs_git_author_commits_number() {
 function gs_git_commits_number() {
     git rev-list HEAD --count
 }
+
+function gs_git_upload_current_branch() {
+    branch=$(git rev-parse --abbrev-ref HEAD)
+    echo ${branch}
+    git push -u origin HEAD:${branch}
+}
