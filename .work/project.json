@@ -127,6 +127,12 @@
   },
   {
     "remote": "gerrit",
+    "project": "platform/packages/apps/Launcher3",
+    "path": "packages/apps/Launcher3",
+    "branch": "QSSI_QUF10_base"
+  },
+  {
+    "remote": "gerrit",
     "project": "platform/packages/services/Car",
     "path": "packages/services/Car",
     "branch": "QSSI_QUF10_base"
