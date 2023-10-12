@@ -47,7 +47,7 @@ function _gs_init_global_env() {
     # step 2
     # 设置 _GS_ROOT_PATH、_GS_CONFIG_PATH 环境变量
     export _GS_ROOT_PATH=${_GS_ROOT_PATH}
-    export _GS_CONFIG_PATH=$_GS_CONFIG_PATH
+    export _GS_CONFIG_PATH=${_GS_CONFIG_PATH}
 
     export LC_ALL=en_US.UTF-8
     export LANG=en_US.UTF-8
@@ -74,7 +74,7 @@ function _gs_init_global_env() {
     # 加载 env 下的配置
     # 这个必须在 .gsrc 后接着马上加载，是因为里面配置了全局的颜色，func等
     # 别的配置需要依赖
-    for file in ${_GS_ROOT_PATH}/env/gs_*.sh ; do
+    for file in ${gs_path_env}/gs_*.sh ; do
         if [ -f ${file} ]; then
             source $file
         fi
