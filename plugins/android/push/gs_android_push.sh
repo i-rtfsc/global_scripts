@@ -111,6 +111,40 @@ function _gs_android_push_impl() {
     fi
 }
 
+function _gs_android_push_delete_oat {
+    oat=$1
+    if [[ `adb shell ls $oat 2 > /dev/null` ]]; then
+        adb shell rm -rf $oat
+        echo 1
+    else
+        echo 0
+    fi
+}
+
+function _gs_android_push_delete_fwk_ota {
+    oat=system/framework/oat
+    reboot=$(_gs_android_push_delete_oat $oat)
+    if [ "$reboot" = "1" ]; then
+        echo "[$oat] exists, delete it."
+    fi
+
+    arm=system/framework/arm
+    if [ "$(_gs_android_push_delete_oat $arm)" = "1" ]; then
+        reboot=1
+        echo "[$arm] exists, delete it."
+    fi
+
+    arm64=system/framework/arm64
+    if [ "$(_gs_android_push_delete_oat $arm64)" = "1" ]; then
+        reboot=1
+        echo "[$arm64] exists, delete it."
+    fi
+
+    if [ "$reboot" = "1" ]; then
+        adb reboot
+    fi
+}
+
 function gs_android_push_framework {
     read gs_error target module_dir module product resume <<< $(_gs_android_push_parse_opts $*)
     # 错误则打印help
@@ -128,6 +162,8 @@ function gs_android_push_framework {
     echo "update module_dir=${module_dir}, module=${module}"
 
     _gs_android_push_impl $target $module_dir $module $product $resume
+
+    _gs_android_push_delete_fwk_ota
 }
 
 function gs_android_push_services {
@@ -147,6 +183,8 @@ function gs_android_push_services {
     echo "update module_dir=${module_dir}, module=${module}"
 
     _gs_android_push_impl $target $module_dir $module $product $resume
+
+    _gs_android_push_delete_fwk_ota
 }
 
 function gs_android_push_ext_framework {
@@ -166,6 +204,8 @@ function gs_android_push_ext_framework {
     echo "update module_dir=${module_dir}, module=${module}"
 
     _gs_android_push_impl $target $module_dir $module $product $resume
+
+    _gs_android_push_delete_fwk_ota
 }
 
 function gs_android_push_ext_services {
@@ -185,6 +225,8 @@ function gs_android_push_ext_services {
     echo "update module_dir=${module_dir}, module=${module}"
 
     _gs_android_push_impl $target $module_dir $module $product $resume
+
+    _gs_android_push_delete_fwk_ota
 }
 
 function gs_android_push_flyme_services {
@@ -203,6 +245,9 @@ function gs_android_push_flyme_services {
     echo "update module_dir=${module_dir}, module=${module}"
 
     _gs_android_push_impl $target $module_dir $module $product $resume
+
+    _gs_android_push_delete_fwk_ota
+
     if [ "$resume" = "1" ]; then
         adb reboot
     fi
@@ -333,6 +378,13 @@ function gs_android_push_systemui {
     echo "update module_dir=${module_dir}, module=${module}"
 
     _gs_android_push_impl $target $module_dir $module $product $resume
+
+    oat=system_ext/priv-app/SystemUI/oat
+    reboot=$(_gs_android_push_delete_oat $oat)
+    if [ "$reboot" = "1" ]; then
+        echo "[$oat] exists, delete it."
+        adb reboot
+    fi
 }
 
 function gs_android_push_settings {
@@ -352,6 +404,13 @@ function gs_android_push_settings {
     echo "update module_dir=${module_dir}, module=${module}"
 
     _gs_android_push_impl $target $module_dir $module $product $resume
+
+    oat=system_ext/priv-app/Settings/oat
+    reboot=$(_gs_android_push_delete_oat $oat)
+    if [ "$reboot" = "1" ]; then
+        echo "[$oat] exists, delete it."
+        adb reboot
+    fi
 }
 
 function gs_android_push_so {
