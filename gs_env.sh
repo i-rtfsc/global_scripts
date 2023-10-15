@@ -85,7 +85,18 @@ function _gs_init_global_env() {
     _gs_init_path ${gs_path_bin}
     _gs_init_path ${gs_path_conf}
     _gs_init_path ${gs_path_codestyle}
-    _gs_init_path $HOME/Android/Sdk/platform-tools/
+    # 设置 android sdk platform-tools
+    platform="$(uname -s)"
+    case "$platform" in
+        Linux*)
+            _gs_init_path $HOME/Android/Sdk/platform-tools/
+            ;;
+        Darwin*)
+            _gs_init_path $HOME/Library/Android/sdk/platform-tools/
+            ;;
+        *)
+            verbose_info "unknown platform"
+    esac
 
     # step 6
     # 设置 zsh 特有的环境变量
