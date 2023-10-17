@@ -56,9 +56,6 @@ function _gs_android_build_parse_opts() {
     # error
     gs_error=0
 
-    # CMakeLists.txt project file generation is enabled via environment variable:
-    export SOONG_GEN_CMAKEFILES=1
-
     while getopts 't:j:m:c:b:h' opt;
     do
         case ${opt} in
@@ -184,6 +181,9 @@ function _gs_android_build_lunch() {
     fi
 
     export _GS_TARGET_PRODUCT=${_GS_TARGET_PRODUCT}
+
+    # CMakeLists.txt project file generation is enabled via environment variable:
+    export SOONG_GEN_CMAKEFILES=1
 
     source build/envsetup.sh
     lunch ${_GS_TARGET_PRODUCT}

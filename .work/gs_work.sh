@@ -29,6 +29,7 @@ function flyme-ssh() {
     ssh -oHostKeyAlgorithms=+ssh-dss x-huanganqi@fort.meizu.com
 }
 
+#https://linuxhint.com/mount-smb-shares-on-ubuntu/
 function flyme-share() {
     sudo mount -t cifs //172.16.204.113/share ~/share -o username=meizu,password=$1
 }
