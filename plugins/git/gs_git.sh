@@ -101,7 +101,7 @@ function gs_git_whoami() {
 }
 
 function gs_git_author_commits_number() {
-    git shortlog -s -n
+    git shortlog -s -n -e
 }
 
 function gs_git_commits_number() {
