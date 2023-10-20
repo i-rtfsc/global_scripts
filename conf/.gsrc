@@ -19,9 +19,6 @@
 # 调试
 gs_env_debug=0
 
-# 是否加载工作配置
-gs_env_work=1
-
 # prompt 主题
 gs_themes_prompt=remote
 
@@ -42,3 +39,8 @@ gs_plugins=(
          system/proxy
          system/repo
         )
+
+# custom 目录下的插件
+gs_custom_plugins=(
+    work
+)

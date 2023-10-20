@@ -58,7 +58,7 @@ function _gs_init_global_env() {
     local gs_path_plugins=${_GS_ROOT_PATH}/plugins
     local gs_path_themes=${_GS_ROOT_PATH}/themes
     local gs_path_codestyle=${_GS_ROOT_PATH}/tools/codestyle
-    local gs_path_work=${_GS_ROOT_PATH}/.work
+    local gs_path_custom_plugins=${_GS_ROOT_PATH}/custom
 
     # step 3
     # 加载 .gsrc 配置文件
@@ -151,6 +151,17 @@ function _gs_init_global_env() {
             fi
         done
     fi
+
+    # step 10
+    # 根据 .gsrc 配置的custom插件加载对应的插件
+    for plugin in ${gs_custom_plugins[@]}; do
+        for file in ${gs_path_custom_plugins}/${plugin}/gs_*.sh ; do
+            if [ -f ${file} ]; then
+                verbose_info ${file}
+                source ${file}
+            fi
+        done
+    done
 
     if [[ "${gs_env_debug}" == "1" ]]; then
         gs_env_version=`cat ${_GS_ROOT_PATH}/VERSION`
