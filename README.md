@@ -62,30 +62,48 @@ source $HOME/code/github/global_scripts/gs_env.sh
 
 
 # 插件[重要]
-在加载 gs_env.sh 时，出来加载一些基本的配置以为；大部分的配置都改成插件的方案。
+在加载 gs_env.sh 时，除了加载一些基本的配置以外；大部分的配置都改成插件的方案。
 
 可以在 home 目录下配置 .gsrc 文件，或者直接在本工程的 conf/.gsrc 文件下修改需要用到的插件。
 
 目前支持的插件如下：
 
 ```bash
-plugins=(
+# 插件
+gs_plugins=(
          alias/common
          alias/private
          android/adb
          android/build
          android/frida
          android/grep
+         android/perfetto
          android/push
          common
          git
          system/brew
          system/clash
          system/proxy
-         system/repo         
-         themes
-         test
+         system/repo
         )
+```
+
+此外，还可以通过 gs_themes_prompt 配置 prompt 主题，或者通过 gs_custom_plugins 配置 custom 目录下的插件（用户自己扩展的插件目录）。
+
+甚至还可以 gs_env_debug 来打开或者关闭调试信息。
+
+```bash
+# 调试
+gs_env_debug=0
+
+# prompt 主题
+gs_themes_prompt=remote
+
+# custom 目录下的插件
+gs_custom_plugins=(
+    work
+    ...
+)
 ```
 
 # 脚本能力
@@ -153,27 +171,21 @@ adb快捷键命令
 > 暂时用到这些命令，后续有常用的再补充
 ```bash
 ╭─[solo@10.0.12.7:/Users/solo/code/github/global_scripts] ➤ [2023-09-10 14:18:29]
-╰─(py39tf2.x) ❯❯❯❯❯❯ gs_adb_
-gs_adb_abx2xml                gs_adb_key_back
-gs_adb_clear_package          gs_adb_key_home
-gs_adb_dump_version           gs_adb_key_menu
-gs_adb_dump_version_settings  gs_adb_kill_grep
-gs_adb_hidden_api_disable     gs_adb_kill_package
-gs_adb_hidden_api_enable      gs_adb_log_grep
-gs_adb_i007service_clear      gs_adb_ps_grep
-gs_adb_i007service_kill       gs_adb_rm_dex2oat
-gs_adb_i007service_log        gs_adb_screencap
-gs_adb_i007service_version    gs_adb_screenrecord
-gs_adb_imei                   gs_adb_selinux_disable
-gs_adb_input_disable          gs_adb_settings_provider
-gs_adb_input_enable           gs_adb_sf_dump_refresh_rate
-gs_adb_j007engine_kill        gs_adb_sf_set_refresh_rate
-gs_adb_j007engine_log         gs_adb_sf_show_refresh_rate
-gs_adb_j007service_clear      gs_adb_show_3rd_app
-gs_adb_j007service_kill       gs_adb_show_log
-gs_adb_j007service_log        gs_adb_show_system_app
-gs_adb_j007service_version    gs_adb_shutdown_emulator
-gs_adb_key                    gs_adb_systrace
+╰─(py39tf2.x) ❯❯❯❯❯❯ gs_android_adb_
+gs_android_adb_abx2xml                gs_android_adb_j007engine_kill        gs_android_adb_rm_dex2oat           
+gs_android_adb_clear_package          gs_android_adb_j007engine_log         gs_android_adb_screencap            
+gs_android_adb_connect                gs_android_adb_j007service_clear      gs_android_adb_screenrecord         
+gs_android_adb_dump_version           gs_android_adb_j007service_kill       gs_android_adb_selinux_disable      
+gs_android_adb_dump_version_settings  gs_android_adb_j007service_log        gs_android_adb_settings_provider    
+gs_android_adb_hidden_api_disable     gs_android_adb_j007service_version    gs_android_adb_sf_dump_refresh_rate 
+gs_android_adb_hidden_api_enable      gs_android_adb_key                    gs_android_adb_sf_set_refresh_rate  
+gs_android_adb_i007service_clear      gs_android_adb_key_back               gs_android_adb_sf_show_refresh_rate 
+gs_android_adb_i007service_kill       gs_android_adb_key_home               gs_android_adb_show_3rd_app         
+gs_android_adb_i007service_log        gs_android_adb_key_menu               gs_android_adb_show_log             
+gs_android_adb_i007service_version    gs_android_adb_kill_grep              gs_android_adb_show_system_app      
+gs_android_adb_imei                   gs_android_adb_kill_package           gs_android_adb_shutdown_emulator    
+gs_android_adb_input_disable          gs_android_adb_log_grep               gs_android_adb_systrace             
+gs_android_adb_input_enable           gs_android_adb_ps_grep
 ```
 
 ## gs_android_push.sh
@@ -181,13 +193,11 @@ gs_adb_key                    gs_adb_systrace
 ```bash
 ╭─[solo@10.0.12.7:/Users/solo/code/github/global_scripts] ➤ [2023-09-10 14:19:45]
 ╰─(py39tf2.x) ❯❯❯❯❯❯ gs_android_push_
-gs_android_push_args            gs_android_push_mediaserver
-gs_android_push_ext_framework   gs_android_push_services
-gs_android_push_ext_services    gs_android_push_settings
-gs_android_push_flyme_services  gs_android_push_so
-gs_android_push_framework       gs_android_push_surfaceflinger
-gs_android_push_framework_jni   gs_android_push_systemui
-gs_android_push_input
+gs_android_push_args            gs_android_push_framework_jni   gs_android_push_so            
+gs_android_push_ext_framework   gs_android_push_input           gs_android_push_surfaceflinger
+gs_android_push_ext_services    gs_android_push_mediaserver     gs_android_push_systemui      
+gs_android_push_flyme_services  gs_android_push_services                                      
+gs_android_push_framework       gs_android_push_settings
 ```
 
 ## zsh自定义主题
