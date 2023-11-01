@@ -16,8 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#LUNCH_TARGET_DEFAULT="sdk_phone_x86_64"
-LUNCH_TARGET_DEFAULT="qssi-userdebug-mars"
+LUNCH_TARGET_DEFAULT="sdk_phone_x86_64"
 
 function _gs_android_build_help() {
     echo "Usage:"
@@ -51,7 +50,7 @@ function _gs_android_build_parse_opts() {
     esac
 
     # 飞书机器人
-    local gs_bot="93c6a139-2a53-44ec-9711-850dd3a1e6f4"
+    local gs_bot=""
 
     # error
     gs_error=0
@@ -114,7 +113,16 @@ function _gs_android_build_strip_escape_codes() {
 
 function _gs_android_build_bot() {
     gs_bot=$2
+    # 检测脚本内部是否设置了机器人token
     if [ -z ${gs_bot} ]; then
+        echo "android build script don't set im bot token"
+        gs_bot=$_GS_BOT
+    fi
+
+    # 再次检测环境变量是否设置了机器人token
+    if [ -z ${gs_bot} ]; then
+        echo "environment don't set im bot token"
+        # 没有都没有配置则无需通过机器人通知
         return 0
     fi
 
@@ -437,7 +445,6 @@ function gs_android_build_qssi() {
     build_time=$(date "+%Y-%m-%d-%H-%M-%S")
     build_log=${gs_build_log_dir}/build_full_${build_time}.log
 
-    # full build
     # full build
     bash build.sh -j ${gs_build_thread} dist --qssi_only 2>&1 | tee ${build_log}
     _gs_android_build_bot ${build_log} ${gs_bot}
