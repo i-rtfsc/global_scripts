@@ -123,9 +123,9 @@ def checkout(opt):
                             os.system(cmd)
 
             # 根据 .repo 中 每个仓的 revision ，切回到默认分支
-            branch = project_branch.get("ExtFrameworks")
+            branch = project_branch.get(project)
             if branch is None:
-                cmd = "git checkout " + branch
+                cmd = "git checkout {}".format(branch)
                 os.system(cmd)
 
             os.chdir(opt.pwd)
@@ -155,9 +155,9 @@ def sync(opt):
                     os.system("git pull --rebase")
 
             # 根据 .repo 中 每个仓的 revision ，切回到默认分支
-            branch = project_branch.get("ExtFrameworks")
+            branch = project_branch.get(project)
             if branch is None:
-                cmd = "git checkout " + branch
+                cmd = "git checkout {}".format(branch)
                 os.system(cmd)
 
             os.chdir(opt.pwd)
