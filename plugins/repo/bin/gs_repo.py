@@ -21,6 +21,11 @@ import optparse
 import os
 import subprocess
 
+try:
+    import xml.etree.cElementTree as ET
+except ImportError:
+    import xml.etree.ElementTree as ET
+
 
 def parseargs():
     usage = "usage: %prog [options] arg1 arg2"
@@ -64,7 +69,37 @@ def parse_project(file):
     return projects
 
 
+def parse_branch(dir):
+    project = dict()
+
+    file_manifest = os.path.join(dir, ".repo/manifest.xml")
+    if file_exists(file_manifest):
+        tree = ET.parse(file_manifest)
+        for elem in tree.iterfind('include'):
+            # 获取文件名
+            file_name = elem.attrib["name"]
+
+        file_project = os.path.join(dir, ".repo/manifests", file_name)
+        if file_exists(file_project):
+            tree = ET.parse(file_project)
+            for global_elem in tree.iterfind('default'):
+                global_revision = global_elem.attrib["revision"]
+
+            for elem in tree.iterfind('project'):
+                path = elem.attrib["path"]
+                try:
+                    revision = elem.attrib["revision"]
+                except Exception:
+                    revision = global_revision
+
+                project[path] = revision
+
+    return project
+
+
 def checkout(opt):
+    project_branch = parse_branch(opt.pwd)
+
     for project in opt.projects:
         print("start checkout project = {}".format(project))
         dir = os.path.join(opt.pwd, project)
@@ -87,8 +122,11 @@ def checkout(opt):
                             print("checkout project = {}, branch = {}".format(project, real_branch))
                             os.system(cmd)
 
-            # TODO
             # 根据 .repo 中 每个仓的 revision ，切回到默认分支
+            branch = project_branch.get("ExtFrameworks")
+            if branch is None:
+                cmd = "git checkout " + branch
+                os.system(cmd)
 
             os.chdir(opt.pwd)
         else:
@@ -96,6 +134,8 @@ def checkout(opt):
 
 
 def sync(opt):
+    project_branch = parse_branch(opt.pwd)
+
     for project in opt.projects:
         print("start sync project = {}".format(project))
         dir = os.path.join(opt.pwd, project)
@@ -114,8 +154,11 @@ def sync(opt):
                     os.system("git reset --hard")
                     os.system("git pull --rebase")
 
-            # TODO
             # 根据 .repo 中 每个仓的 revision ，切回到默认分支
+            branch = project_branch.get("ExtFrameworks")
+            if branch is None:
+                cmd = "git checkout " + branch
+                os.system(cmd)
 
             os.chdir(opt.pwd)
         else:
