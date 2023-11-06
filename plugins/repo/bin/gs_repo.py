@@ -124,7 +124,7 @@ def checkout(opt):
 
             # 根据 .repo 中 每个仓的 revision ，切回到默认分支
             branch = project_branch.get(project)
-            if branch is None:
+            if branch is not None:
                 cmd = "git checkout {}".format(branch)
                 os.system(cmd)
 
@@ -156,7 +156,7 @@ def sync(opt):
 
             # 根据 .repo 中 每个仓的 revision ，切回到默认分支
             branch = project_branch.get(project)
-            if branch is None:
+            if branch is not None:
                 cmd = "git checkout {}".format(branch)
                 os.system(cmd)
 
