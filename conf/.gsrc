@@ -34,6 +34,7 @@ gs_plugins=(
          android/push
          common
          git
+         repo
          system/brew
          system/clash
          system/proxy
