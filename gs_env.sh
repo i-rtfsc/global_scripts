@@ -89,10 +89,10 @@ function _gs_init_global_env() {
     platform="$(uname -s)"
     case "$platform" in
         Linux*)
-            _gs_init_path $HOME/Android/Sdk/platform-tools/
+            _gs_init_path $HOME/Android/Sdk/platform-tools
             ;;
         Darwin*)
-            _gs_init_path $HOME/Library/Android/sdk/platform-tools/
+            _gs_init_path $HOME/Library/Android/sdk/platform-tools
             ;;
         *)
             verbose_info "unknown platform"
@@ -112,12 +112,20 @@ function _gs_init_global_env() {
     # step 7
     # 根据 .gsrc 配置的插件加载对应的插件
     for plugin in ${gs_plugins[@]}; do
-        for file in ${gs_path_plugins}/${plugin}/gs_*.sh ; do
-            if [ -f ${file} ]; then
-                verbose_info ${file}
-                source ${file}
-            fi
-        done
+        if [ -z "$(find ${gs_path_plugins}/${plugin}/ -maxdepth 1 -type f)" ]; then
+            verbose_error "${gs_path_plugins}/${plugin}/ has no files"
+        else
+            for file in ${gs_path_plugins}/${plugin}/gs_*.sh ; do
+                if [ -f ${file} ]; then
+                    verbose_info ${file}
+                    source ${file}
+                fi
+            done
+        fi
+
+        if [ -d ${gs_path_plugins}/${plugin}/bin ]; then
+            _gs_init_path ${gs_path_plugins}/${plugin}/bin
+        fi
     done
 
     # step 8
@@ -140,27 +148,22 @@ function _gs_init_global_env() {
     fi
 
     # step 9
-    # 根据 .gsrc 加载工作配置
-    if [[ "${gs_env_work}" == "1" ]]; then
-        _gs_init_path ${gs_path_work}
-
-        for file in ${gs_path_work}/gs_*.sh ; do
-            if [ -f ${file} ]; then
-                verbose_info ${file}
-                source ${file}
-            fi
-        done
-    fi
-
-    # step 10
     # 根据 .gsrc 配置的custom插件加载对应的插件
     for plugin in ${gs_custom_plugins[@]}; do
-        for file in ${gs_path_custom_plugins}/${plugin}/gs_*.sh ; do
-            if [ -f ${file} ]; then
-                verbose_info ${file}
-                source ${file}
-            fi
-        done
+        if [ -z "$(find ${gs_path_custom_plugins}/${plugin}/ -maxdepth 1 -type f)" ]; then
+            verbose_error "${gs_path_plugins}/${plugin}/ has no files"
+        else
+            for file in ${gs_path_custom_plugins}/${plugin}/*.sh ; do
+                if [ -f ${file} ]; then
+                    verbose_info ${file}
+                    source ${file}
+                fi
+            done
+        fi
+
+        if [ -d ${gs_path_custom_plugins}/${plugin}/bin ]; then
+            _gs_init_path ${gs_path_custom_plugins}/${plugin}/bin
+        fi
     done
 
     if [[ "${gs_env_debug}" == "1" ]]; then
