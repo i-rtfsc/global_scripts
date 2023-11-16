@@ -43,11 +43,40 @@ def parseargs():
     return (options, args)
 
 
+class switch(object):
+    value = None
+
+    def __new__(class_, value):
+        class_.value = value
+        return True
+
+
+def case(*args):
+    return any((arg == switch.value for arg in args))
+
+
 class Options(object):
     pwd = os.getcwd()
     cmd = None
     branch = None
     projects = None
+    clean = False
+
+    def parse(self, args):
+        self.cmd = args[0]
+        while switch(self.cmd):
+            if case("sync"):
+                if len(args) > 1:
+                    if args[1].lower() == "c" or args[1].lower() == "clean":
+                        self.clean = True
+                    else:
+                        self.clean = False
+                else:
+                    self.clean = False
+                break
+            if case("checkout"):
+                print("TODO")
+                break
 
 
 def file_exists(file):
@@ -150,8 +179,11 @@ def sync(opt):
                     print("fetching project = {}, branch = {}".format(project, branch))
                     cmd = "git checkout " + branch
                     os.system(cmd)
-                    os.system("git clean -dfx")
-                    os.system("git reset --hard")
+                    if opt.clean:
+                        os.system("git clean -dfx")
+                        os.system("git reset --hard")
+                    else:
+                        os.system("git checkout .")
                     os.system("git pull --rebase")
 
             # 根据 .repo 中 每个仓的 revision ，切回到默认分支
@@ -176,7 +208,7 @@ def main():
     opt = Options()
 
     (options, args) = parseargs()
-    opt.cmd = args[0]
+    opt.parse(args)
 
     opt.branch = options.branch
 
