@@ -16,33 +16,41 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# 调试
-gs_env_debug=0
+code=$HOME/code
+githuh=$HOME/code/github
 
-# prompt 主题
-gs_themes_prompt=remote
+function gs_goto_house() {
+    cd ${githuh}/house
+}
 
-# 插件
-gs_plugins=(
-         alias/common
-         alias/private
-         android/adb
-         android/build
-         android/frida
-         android/grep
-         android/perfetto
-         android/push
-         common
-         git
-         goto
-         repo
-         system/brew
-         system/clash
-         system/proxy
-         system/repo
-        )
+function gs_goto_global_scripts(){
+    cd ${githuh}/global_scripts
+}
 
-# custom 目录下的插件
-gs_custom_plugins=(
-    work
-)
+function gs_goto_as-aosp(){
+    cd ${githuh}/as-aosp
+}
+
+function gs_goto_aosp(){
+    cd ${code}/aosp
+}
+
+function gs_goto_lineage(){
+    cd ${code}/lineage
+}
+
+function gs_goto_flyme(){
+    cd ${code}/flyme
+}
+
+function gs_goto_miui(){
+   cd ${code}/miui
+}
+
+function gs_goto_oppo(){
+   cd ${code}/oppo
+}
+
+function gs_goto_vivo(){
+   cd ${code}/vivo
+}
