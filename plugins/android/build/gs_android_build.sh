@@ -449,3 +449,35 @@ function gs_android_build_qssi() {
     bash build.sh -j ${gs_build_thread} dist --qssi_only 2>&1 | tee ${build_log}
     _gs_android_build_bot ${build_log} ${gs_bot}
 }
+
+# 编译 vendor
+# 可以带上编译的 target ，否则从默认配置 _GS_BUILD_TARGET_DEFAULT 获取
+function gs_android_build_vendor() {
+    read gs_error gs_target gs_build_thread gs_ccache gs_bot gs_module <<< $(_gs_android_build_parse_opts $*)
+
+    # 错误则打印help
+    if [[ ${gs_error} == 1 ]] ; then
+        _gs_android_build_help
+        return
+    fi
+
+    echo "error=${gs_error}, target=${gs_target}, thread=${gs_build_thread}, ccache=${gs_ccache}, bot=${gs_bot}, module=${gs_module}"
+
+    # lunch target
+    _gs_android_build_lunch ${gs_target}
+    # 校准target
+    gs_target=$_GS_TARGET_PRODUCT
+    gs_build_log_dir=$_GS_BUILD_LOG_DIR
+    echo "update target=${gs_target}"
+
+    # 设置ccache
+    _gs_android_build_with_ccache ${gs_ccache} ${gs_target}
+
+    # log file
+    build_time=$(date "+%Y-%m-%d-%H-%M-%S")
+    build_log=${gs_build_log_dir}/build_vendor_${build_time}.log
+
+    # build vendor
+    bash build.sh -j ${gs_build_thread} dist --target_only 2>&1 | tee ${build_log}
+    _gs_android_build_bot ${build_log} ${gs_bot}
+}
