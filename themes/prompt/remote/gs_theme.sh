@@ -99,12 +99,16 @@ function _gs_prompt_current_dir() {
 }
 
 function _gs_prompt_spilt_icon() {
-    text=$(_gs_theme_color_text $COLOR_SPILT ${SYMBOL_SPLIT_ARROW})
+    if [ -n "$ZSH_VERSION" ]; then
+        text=$(_gs_theme_color_text $COLOR_SPILT ${SYMBOL_SPLIT_ARROW})
 
-    if ${isMac} ; then
-        echo "$text"
+        if ${isMac} ; then
+            echo "$text"
+        else
+            echo " $text "
+        fi
     else
-        echo " $text "
+        echo ""
     fi
 }
 
@@ -121,9 +125,9 @@ function _gs_prompt_conda_or_py_info() {
 }
 
 function _gs_prompt_env() {
-    text=bash
+    text=bash-
     if [ -n "$ZSH_VERSION" ]; then
-        text=zsh
+        text=zsh-
     fi
     _gs_theme_color_text $COLOR_ENV $text
 }
@@ -146,9 +150,9 @@ function _gs_prompt_right_display() {
 
 if [ -n "$ZSH_VERSION" ]; then
 PROMPT=$'$(_gs_prompt_start_line1)$(_gs_prompt_symbol_split_left)$(_gs_prompt_name)$(_gs_prompt_symbol_at)$(_gs_prompt_ip)$(_gs_prompt_symbol_split_colon)$(_gs_prompt_current_dir)$(_gs_prompt_symbol_split_right)$(_gs_prompt_spilt_icon)$(_gs_prompt_symbol_split_left)$(_gs_prompt_time)$(_gs_prompt_symbol_split_right)
-$(_gs_prompt_start_line2)$(_gs_prompt_symbol_split_parentheses_left)$(_gs_prompt_env)$(_gs_prompt_spilt_icon)$(_gs_prompt_conda_or_py_info)$(_gs_prompt_symbol_split_parentheses_right)$(_gs_prompt_smile)'
+$(_gs_prompt_start_line2)$(_gs_prompt_symbol_split_parentheses_left)$(_gs_prompt_env)$(_gs_prompt_conda_or_py_info)$(_gs_prompt_symbol_split_parentheses_right)$(_gs_prompt_smile)'
 RPROMPT=$'$(_gs_prompt_right_display)'
 else
 export PS1="$(_gs_prompt_start_line1)$(_gs_prompt_symbol_split_left)$(_gs_prompt_name)$(_gs_prompt_symbol_at)$(_gs_prompt_ip)$(_gs_prompt_symbol_split_colon)$(_gs_prompt_current_dir)$(_gs_prompt_symbol_split_right)$(_gs_prompt_spilt_icon)$(_gs_prompt_symbol_split_left)$(_gs_prompt_time)$(_gs_prompt_symbol_split_right)
-$(_gs_prompt_start_line2)$(_gs_prompt_symbol_split_parentheses_left)$(_gs_prompt_env)$(_gs_prompt_spilt_icon)$(_gs_prompt_conda_or_py_info)$(_gs_prompt_symbol_split_parentheses_right)$(_gs_prompt_smile)"
+$(_gs_prompt_start_line2)$(_gs_prompt_symbol_split_parentheses_left)$(_gs_prompt_env)$(_gs_prompt_conda_or_py_info)$(_gs_prompt_symbol_split_parentheses_right)$(_gs_prompt_smile)"
 fi
