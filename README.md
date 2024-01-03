@@ -10,6 +10,7 @@ global scripts工程是我在工作、生活中把常用到的命令、脚本等
 - aosp grep 命令（无需lunch）
 - frida（android 相关）
 - clash（linux 下使用 vpn）
+- winscope（android sf、wms相关，懂的都懂）
 - code style
 - git 快捷键
 - im bot(企业微信、钉钉、飞书)
@@ -79,6 +80,7 @@ gs_plugins=(
          android/grep
          android/perfetto
          android/push
+         android/winscope
          common
          git
          system/brew

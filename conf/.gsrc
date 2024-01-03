@@ -32,6 +32,7 @@ gs_plugins=(
          android/grep
          android/perfetto
          android/push
+         android/winscope
          common
          git
          goto
