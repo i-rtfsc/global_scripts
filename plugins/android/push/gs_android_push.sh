@@ -431,6 +431,63 @@ function gs_android_push_so {
     _gs_android_push_impl $target $module_dir $module $product $resume
 }
 
+function gs_android_push_car_android-car {
+    read gs_error target module_dir module product resume <<< $(_gs_android_push_parse_opts $*)
+    # 错误则打印help
+    if [[ ${gs_error} == 1 ]] ; then
+        _gs_android_push_help
+        return
+    fi
+
+    echo "target=${target}, module_dir=${module_dir}, module=${module}, product=${product}, resume=${resume}"
+
+    ##### 强制改成 car 的 android.car.jar #####
+    module_dir=system/framework
+    module=android.car.jar
+    ##### 强制改成 car 的 android.car.jar #####
+    echo "update module_dir=${module_dir}, module=${module}"
+
+    _gs_android_push_impl $target $module_dir $module $product $resume
+}
+
+function gs_android_push_car_car-frameworks-service {
+    read gs_error target module_dir module product resume <<< $(_gs_android_push_parse_opts $*)
+    # 错误则打印help
+    if [[ ${gs_error} == 1 ]] ; then
+        _gs_android_push_help
+        return
+    fi
+
+    echo "target=${target}, module_dir=${module_dir}, module=${module}, product=${product}, resume=${resume}"
+
+    ##### 强制改成 car 的 car-frameworks-service.jar #####
+    module_dir=system/framework
+    module=car-frameworks-service.jar
+    ##### 强制改成 car 的 car-frameworks-service.jar #####
+    echo "update module_dir=${module_dir}, module=${module}"
+
+    _gs_android_push_impl $target $module_dir $module $product $resume
+}
+
+function gs_android_push_car_CarService {
+    read gs_error target module_dir module product resume <<< $(_gs_android_push_parse_opts $*)
+    # 错误则打印help
+    if [[ ${gs_error} == 1 ]] ; then
+        _gs_android_push_help
+        return
+    fi
+
+    echo "target=${target}, module_dir=${module_dir}, module=${module}, product=${product}, resume=${resume}"
+
+    ##### 强制改成 car 的 CarService.apk #####
+    module_dir=system/priv-app/CarService
+    module=CarService.apk
+    ##### 强制改成 car 的 CarService.apk #####
+    echo "update module_dir=${module_dir}, module=${module}"
+
+    _gs_android_push_impl $target $module_dir $module $product $resume
+}
+
 # 任何组合参数
 function gs_android_push_args {
     read gs_error target module_dir module product resume <<< $(_gs_android_push_parse_opts $*)

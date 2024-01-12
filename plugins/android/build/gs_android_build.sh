@@ -50,7 +50,7 @@ function _gs_android_build_parse_opts() {
     esac
 
     # 飞书机器人
-    local gs_bot=""
+    local gs_bot="NONE"
 
     # error
     gs_error=0
@@ -87,6 +87,10 @@ function _gs_android_build_parse_opts() {
 
     # gs_module有可能为空, 所以必须放在最后面
     echo "${gs_error} ${gs_target} ${gs_build_thread} ${gs_ccache} ${gs_bot} ${gs_module}"
+}
+
+function _gs_android_build_echo_and_run() {
+    echo "----------[$*]----------" ; "$@" ;
 }
 
 # remove colors
@@ -150,23 +154,13 @@ function _gs_android_build_bot() {
     echo ""
 }
 
-function _gs_android_build_print_info() {
-    echo "------------------------------"
-    # Android平台的版本号
-    echo "Android platform version = $PLATFORM_VERSION"
-    echo "build product = $TARGET_PRODUCT"
-    echo "build variant = $TARGET_BUILD_VARIANT"
-    echo "build type = $TARGET_BUILD_TYPE"
-    echo "------------------------------"
-}
-
 function _gs_android_build_lunch() {
     TOP=$(pwd)
     # 创建log目录
     gs_build_log_dir=$TOP/out/build_log
     # check if the building log dir exists
     if [ ! -d ${gs_build_log_dir} ]; then
-        mkdir -p ${gs_build_log_dir}
+        _gs_android_build_echo_and_run mkdir -p ${gs_build_log_dir}
     fi
     _GS_BUILD_LOG_DIR=${gs_build_log_dir}
 
@@ -188,13 +182,13 @@ function _gs_android_build_lunch() {
         _GS_TARGET_PRODUCT=$1
     fi
 
-    export _GS_TARGET_PRODUCT=${_GS_TARGET_PRODUCT}
+    _gs_android_build_echo_and_run export _GS_TARGET_PRODUCT=${_GS_TARGET_PRODUCT}
 
     # CMakeLists.txt project file generation is enabled via environment variable:
-    export SOONG_GEN_CMAKEFILES=1
+    _gs_android_build_echo_and_run export SOONG_GEN_CMAKEFILES=1
 
-    source build/envsetup.sh
-    lunch ${_GS_TARGET_PRODUCT}
+    _gs_android_build_echo_and_run source build/envsetup.sh
+    _gs_android_build_echo_and_run lunch ${_GS_TARGET_PRODUCT}
 }
 
 function _gs_android_build_with_ccache() {
@@ -202,8 +196,8 @@ function _gs_android_build_with_ccache() {
     gs_target_product=$2
 
     if [ "$gs_ccache" = "1" ]; then
-        export USE_CCACHE=1
-        export CCACHE_EXEC=/usr/bin/ccache
+        _gs_android_build_echo_and_run export USE_CCACHE=1
+        _gs_android_build_echo_and_run export CCACHE_EXEC=/usr/bin/ccache
 
 #        ccache_dir=$HOME/code/.ccache/$gs_target_product
         # 如果是qssi, 在只获取前面的字符串
@@ -216,13 +210,13 @@ function _gs_android_build_with_ccache() {
 
         # check if the ccache dir exists
         if [ ! -d ${ccache_dir} ]; then
-            mkdir -p ${ccache_dir}
+            _gs_android_build_echo_and_run mkdir -p ${ccache_dir}
         fi
         #set ccache dir
-        export CCACHE_DIR=${ccache_dir}
-        ccache --set-config=cache_dir=${ccache_dir}
-        export CCACHE_CONFIGPATH=${ccache_dir}/ccache.conf
-        ccache -M 100G
+        _gs_android_build_echo_and_run export CCACHE_DIR=${ccache_dir}
+        _gs_android_build_echo_and_run ccache --set-config=cache_dir=${ccache_dir}
+        _gs_android_build_echo_and_run export CCACHE_CONFIGPATH=${ccache_dir}/ccache.conf
+        _gs_android_build_echo_and_run ccache -M 100G
     fi
 }
 
@@ -244,14 +238,16 @@ function _gs_android_build_modules() {
         "libaudioflinger"
         "libcameraservice"
         "toolbox"
-        "com.journeyOS.J007engine.hidl@1.0-service"
-        "com.journeyOS.J007engine.hidl@1.0"
         "J007Service"
         "jos-framework"
         "jos-services"
         "watermark"
-        "xj-framework"
-        "xj-services"
+        "android.car"
+        "car-frameworks-service"
+        "CarService"
+        "CarServiceUpdatable"
+        "com.journeyOS.J007engine.hidl@1.0-service"
+        "com.journeyOS.J007engine.hidl@1.0"
         "com.flyme.runtime"
     )
     for item in ${modules[@]}; do
@@ -304,11 +300,11 @@ function _gs_android_build_show_and_choose_combo() {
         selection=${answer}
     fi
 
-    export _GS_BUILD_COMBO=${selection}
+    _gs_android_build_echo_and_run export _GS_BUILD_COMBO=${selection}
 }
 
 function gs_android_build_ninja_clean() {
-    time prebuilts/build-tools/linux-x86/bin/ninja -j ${_GS_BUILD_THREAD} -f out/combined-${TARGET_PRODUCT}.ninja -t clean
+    _gs_android_build_echo_and_run time prebuilts/build-tools/linux-x86/bin/ninja -j ${_GS_BUILD_THREAD} -f out/combined-${TARGET_PRODUCT}.ninja -t clean
 }
 
 # ninja编译模块
@@ -345,7 +341,7 @@ function gs_android_build_ninja() {
     echo "selection = "${selection} ", building log =" ${build_log}
 
     # ninja build
-    time prebuilts/build-tools/linux-x86/bin/ninja -j ${gs_build_thread} -f out/combined-${TARGET_PRODUCT}.ninja ${selection} | tee ${build_log}
+    _gs_android_build_echo_and_run time prebuilts/build-tools/linux-x86/bin/ninja -j ${gs_build_thread} -f out/combined-${TARGET_PRODUCT}.ninja ${selection} | tee ${build_log}
     _gs_android_build_bot ${build_log} ${gs_bot}
 }
 
@@ -383,7 +379,7 @@ function gs_android_build_make() {
     echo "selection = "${selection} ", building log =" ${build_log}
 
     # make build
-    make ${selection} -j ${gs_build_thread} | tee ${build_log}
+    _gs_android_build_echo_and_run make ${selection} -j ${gs_build_thread} | tee ${build_log}
     _gs_android_build_bot ${build_log} ${gs_bot}
 }
 
@@ -414,7 +410,7 @@ function gs_android_build() {
     build_log=${gs_build_log_dir}/build_full_${build_time}.log
 
     # full build
-    m -j ${gs_build_thread} 2>&1 | tee ${build_log}
+    _gs_android_build_echo_and_run m -j ${gs_build_thread} 2>&1 | tee ${build_log}
     _gs_android_build_bot ${build_log} ${gs_bot}
 }
 
@@ -446,7 +442,7 @@ function gs_android_build_qssi() {
     build_log=${gs_build_log_dir}/build_full_${build_time}.log
 
     # full build
-    bash build.sh -j ${gs_build_thread} dist --qssi_only 2>&1 | tee ${build_log}
+    _gs_android_build_echo_and_run bash build.sh -j ${gs_build_thread} dist --qssi_only 2>&1 | tee ${build_log}
     _gs_android_build_bot ${build_log} ${gs_bot}
 }
 
@@ -478,7 +474,7 @@ function gs_android_build_vendor() {
     build_log=${gs_build_log_dir}/build_vendor_${build_time}.log
 
     # build vendor
-    bash build.sh -j ${gs_build_thread} dist --target_only 2>&1 | tee ${build_log}
+    _gs_android_build_echo_and_run bash build.sh -j ${gs_build_thread} dist --target_only 2>&1 | tee ${build_log}
     _gs_android_build_bot ${build_log} ${gs_bot}
 }
 
@@ -512,9 +508,9 @@ function gs_android_build_car() {
     build_log=${gs_build_log_dir}/build_full_${build_time}.log
 
     # 下载app
-    python3 dependence -b master_p417_cn
+    _gs_android_build_echo_and_run python3 dependence -b master_p417_cn
 
     # full build
-    make -j ${gs_build_thread} 2>&1 | tee ${build_log}
+    _gs_android_build_echo_and_run make -j ${gs_build_thread} 2>&1 | tee ${build_log}
     _gs_android_build_bot ${build_log} ${gs_bot}
 }
