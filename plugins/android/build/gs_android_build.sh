@@ -16,7 +16,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+#build/make/target/product/sdk_phone_x86_64.mk
 LUNCH_TARGET_DEFAULT="sdk_phone_x86_64"
+#LUNCH_TARGET_DEFAULT="sdk_car_x86_64-trunk_staging-eng"
 
 function _gs_android_build_help() {
     echo "Usage:"
@@ -245,10 +247,13 @@ function _gs_android_build_modules() {
         "android.car"
         "car-frameworks-service"
         "CarService"
-        "CarServiceUpdatable"
+        "android.hardware.automotive.vehicle@2.0-service"
         "com.journeyOS.J007engine.hidl@1.0-service"
         "com.journeyOS.J007engine.hidl@1.0"
         "com.flyme.runtime"
+        "vendor.ecarx.xma.automotive.vehicle@2.0-service"
+        "libvhal-scheduler"
+        "libvhal-property-impl"
     )
     for item in ${modules[@]}; do
         echo ${item}

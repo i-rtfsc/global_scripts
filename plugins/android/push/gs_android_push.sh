@@ -488,6 +488,57 @@ function gs_android_push_car_CarService {
     _gs_android_push_impl $target $module_dir $module $product $resume
 }
 
+function gs_android_push_car_vehicle-service {
+    read gs_error target module_dir module product resume <<< $(_gs_android_push_parse_opts $*)
+    # 错误则打印help
+    if [[ ${gs_error} == 1 ]] ; then
+        _gs_android_push_help
+        return
+    fi
+
+    echo "target=${target}, module_dir=${module_dir}, module=${module}, product=${product}, resume=${resume}"
+
+    ##### 强制改成 car 的 android.hardware.automotive.vehicle@2.0-service #####
+    module_dir=vendor/bin/hw
+    module=android.hardware.automotive.vehicle@2.0-service
+    ##### 强制改成 car 的 android.hardware.automotive.vehicle@2.0-service #####
+    echo "update module_dir=${module_dir}, module=${module}"
+
+    _gs_android_push_impl $target $module_dir $module $product $resume
+}
+
+function gs_android_push_car_vehicle-service-ecarx {
+    read gs_error target module_dir module product resume <<< $(_gs_android_push_parse_opts $*)
+    # 错误则打印help
+    if [[ ${gs_error} == 1 ]] ; then
+        _gs_android_push_help
+        return
+    fi
+
+    echo "target=${target}, module_dir=${module_dir}, module=${module}, product=${product}, resume=${resume}"
+
+    ##### 强制改成 car 的 vendor.ecarx.xma.automotive.vehicle@2.0-service #####
+    module_dir=vendor/bin/hw
+    module=vendor.ecarx.xma.automotive.vehicle@2.0-service
+    echo "update module_dir=${module_dir}, module=${module}"
+    _gs_android_push_impl $target $module_dir $module $product 0
+    ##### 强制改成 car 的 vendor.ecarx.xma.automotive.vehicle@2.0-service #####
+
+    ##### 强制改成 car 的 libvhal-scheduler.so #####
+    module_dir=vendor/lib64
+    module=libvhal-scheduler.so
+    echo "update module_dir=${module_dir}, module=${module}"
+    _gs_android_push_impl $target $module_dir $module $product 0
+    ##### 强制改成 car 的 libvhal-scheduler.so #####
+
+    ##### 强制改成 car 的 libvhal-property-impl.so #####
+    module_dir=vendor/lib64
+    module=libvhal-property-impl.so
+    echo "update module_dir=${module_dir}, module=${module}"
+    _gs_android_push_impl $target $module_dir $module $product $resume
+    ##### 强制改成 car 的 libvhal-property-impl.so #####
+}
+
 # 任何组合参数
 function gs_android_push_args {
     read gs_error target module_dir module product resume <<< $(_gs_android_push_parse_opts $*)
