@@ -535,8 +535,9 @@ function gs_android_push_car_vehicle-service-ecarx {
     module_dir=vendor/lib64
     module=libvhal-property-impl.so
     echo "update module_dir=${module_dir}, module=${module}"
-    _gs_android_push_impl $target $module_dir $module $product $resume
+    _gs_android_push_impl $target $module_dir $module $product 0
     ##### 强制改成 car 的 libvhal-property-impl.so #####
+    adb shell killall vendor.ecarx.xma.automotive.vehicle@2.0-service
 }
 
 # 任何组合参数
