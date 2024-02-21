@@ -91,8 +91,23 @@ function _gs_android_build_parse_opts() {
     echo "${gs_error} ${gs_target} ${gs_build_thread} ${gs_ccache} ${gs_bot} ${gs_module}"
 }
 
+function _gs_android_build_echo() {
+    YELLOW='\033[1;33m'
+    NC='\033[0m'
+    echo -e "${YELLOW}$*${NC}"
+}
+
+function _gs_android_build_echo_error() {
+    RED='\033[0;31m'
+    NC='\033[0m'
+    echo -e "${RED}$*${NC}"
+}
+
 function _gs_android_build_echo_and_run() {
-    echo "----------[$*]----------" ; "$@" ;
+    RED='\033[0;31m'
+    YELLOW='\033[1;33m'
+    NC='\033[0m'
+    echo -e "${YELLOW}---------- [$*] ----------${NC}" ; "$@" ;
 }
 
 # remove colors
@@ -117,43 +132,104 @@ function _gs_android_build_strip_escape_codes() {
     done
 }
 
-function _gs_android_build_bot() {
+function _gs_android_build_notify_im_bot() {
+    info=$1
     gs_bot=$2
     # 检测脚本内部是否设置了机器人token
-    if [ -z ${gs_bot} ]; then
-        echo "android build script don't set im bot token"
+    if [ -z ${gs_bot} ] || [ "${gs_bot}" == "NONE"  ] ; then
+        _gs_android_build_echo "android build script don't set im bot token"
         gs_bot=$_GS_BOT
     fi
 
     # 再次检测环境变量是否设置了机器人token
-    if [ -z ${gs_bot} ]; then
-        echo "environment don't set im bot token"
+    if [ -z ${gs_bot} ] || [ "${gs_bot}" == "NONE"  ]; then
+        _gs_android_build_echo "environment don't set im bot token"
         # 没有都没有配置则无需通过机器人通知
         return 0
     fi
 
-    build_log=$1
-    if test -f "$build_log"; then
-        info=$(tail -1 $build_log)
-
-        if [ -z "$info" ]; then
-            info=$(tail -2 $build_log)
-        fi
-
-        if [ -z "$info" ]; then
-            info=$(tail -3 $build_log)
-        fi
-    fi
-
-    if [ -z "$info" ]; then
-        info="build finish"
-    fi
-
-    _gs_android_build_strip_escape_codes "${info}" info
-#    echo $info
-    curl -X POST https://open.feishu.cn/open-apis/bot/v2/hook/${gs_bot} -H "Content-Type: application/json" -d '{"msg_type":"text","content":{"text":"'"$info"'"}}'
+#    _gs_android_build_strip_escape_codes "${info}" info
+#    curl -X POST https://open.feishu.cn/open-apis/bot/v2/hook/${gs_bot} -H "Content-Type: application/json" -d '{"msg_type":"text","content":{"text":"'"$info"'"}}'
+    curl -X POST -H "Content-Type: application/json" \
+    -d '{"msg_type":"text","content":{"text":"'"$info"'"}}' \
+    https://open.feishu.cn/open-apis/bot/v2/hook/${gs_bot}
     echo ""
     echo ""
+}
+
+# Return success if adb is up and not in recovery
+function _gs_android_build_adb_connected {
+    {
+        if [[ "$(adb get-state)" == device ]]
+        then
+            # 电脑连上手机，返回0
+            return 0
+        fi
+    # 不让终端打印
+    # error: no devices/emulators found
+    } 2>/dev/null
+
+    # 电脑没连上手机，返回1
+    return 1
+}
+
+function _gs_android_build_notify_im_bot_and_push() {
+    log_file=$1
+    install_files=()
+    notify_lines=""
+    while IFS= read -r line; do
+        if [[ ${line} == *Install:* ]]; then
+            result=$(echo ${line} | awk -F 'Install: ' '{print $2}')
+            install_files+=("${result}")
+            notify_lines+="${result}\n"
+            _gs_android_build_echo "${result}"
+        fi
+    done < $log_file
+    echo ""
+
+    _gs_android_build_notify_im_bot ${notify_lines} $3
+
+    if [ "$2" = "1" ]; then
+        connected=0
+        TIME=10
+        # 判断电脑是否连上手机
+        if _gs_android_build_adb_connected; then
+            connected=1
+        else
+            connected=0
+            _gs_android_build_echo_error "No device is online. Waiting for $TIME sec..."
+            _gs_android_build_echo_error "Please connect USB and/or enable USB debugging"
+            # 倒计时10秒，不停判断是否有手机连上电脑
+            for ((i = 0; i < $TIME; i++)); do
+                if ! _gs_android_build_adb_connected; then
+                    connected=0
+                else
+                    connected=1
+                    break
+                fi
+                sleep 1
+            done
+        fi
+
+        if [ "$connected" -ne 1 ]; then
+            _gs_android_build_echo_error "Device not found!"
+            _gs_android_build_echo "***** Just show push command *****"
+        fi
+
+        for file in "${install_files[@]}"; do
+            suffix="${file##*.}"
+            if [ "${suffix}" = "vdex" ] || [ "${suffix}" = "oat" ] ||[ "${suffix}" = "art" ]; then
+                continue
+            else
+                result=$(echo ${file} | awk -F '/' '{print $(NF-2)"/"$(NF-1)"/"$NF}')
+                if [ "$connected" -eq 1 ]; then
+                    _gs_android_build_echo_and_run adb push $(pwd)/${file} ${result}
+                else
+                    _gs_android_build_echo "adb push $(pwd)/${file} ${result}"
+                fi
+            fi
+        done
+    fi
 }
 
 function _gs_android_build_lunch() {
@@ -251,6 +327,8 @@ function _gs_android_build_modules() {
         "com.journeyOS.J007engine.hidl@1.0-service"
         "com.journeyOS.J007engine.hidl@1.0"
         "com.flyme.runtime"
+        "framework-flyme"
+        "service-flyme"
         "vendor.ecarx.xma.automotive.vehicle@2.0-service"
         "libvhal-scheduler"
         "libvhal-property-impl"
@@ -347,7 +425,7 @@ function gs_android_build_ninja() {
 
     # ninja build
     _gs_android_build_echo_and_run time prebuilts/build-tools/linux-x86/bin/ninja -j ${gs_build_thread} -f out/combined-${TARGET_PRODUCT}.ninja ${selection} | tee ${build_log}
-    _gs_android_build_bot ${build_log} ${gs_bot}
+    _gs_android_build_notify_im_bot_and_push ${build_log} "1" ${gs_bot}
 }
 
 # make编译模块
@@ -385,7 +463,7 @@ function gs_android_build_make() {
 
     # make build
     _gs_android_build_echo_and_run make ${selection} -j ${gs_build_thread} | tee ${build_log}
-    _gs_android_build_bot ${build_log} ${gs_bot}
+    _gs_android_build_notify_im_bot_and_push ${build_log} "1" ${gs_bot}
 }
 
 # 全编译
@@ -416,7 +494,7 @@ function gs_android_build() {
 
     # full build
     _gs_android_build_echo_and_run m -j ${gs_build_thread} 2>&1 | tee ${build_log}
-    _gs_android_build_bot ${build_log} ${gs_bot}
+    _gs_android_build_notify_im_bot_and_push ${build_log} "0" ${gs_bot}
 }
 
 # 编译qssi(高通特有)
@@ -448,7 +526,7 @@ function gs_android_build_qssi() {
 
     # full build
     _gs_android_build_echo_and_run bash build.sh -j ${gs_build_thread} dist --qssi_only 2>&1 | tee ${build_log}
-    _gs_android_build_bot ${build_log} ${gs_bot}
+    _gs_android_build_notify_im_bot_and_push ${build_log} "0" ${gs_bot}
 }
 
 # 编译 vendor
@@ -480,7 +558,7 @@ function gs_android_build_vendor() {
 
     # build vendor
     _gs_android_build_echo_and_run bash build.sh -j ${gs_build_thread} dist --target_only 2>&1 | tee ${build_log}
-    _gs_android_build_bot ${build_log} ${gs_bot}
+    _gs_android_build_notify_im_bot_and_push ${build_log} "0" ${gs_bot}
 }
 
 # 非通用，后续可能删除掉
@@ -517,5 +595,5 @@ function gs_android_build_car() {
 
     # full build
     _gs_android_build_echo_and_run make -j ${gs_build_thread} 2>&1 | tee ${build_log}
-    _gs_android_build_bot ${build_log} ${gs_bot}
+    _gs_android_build_notify_im_bot_and_push ${build_log} "0" ${gs_bot}
 }
