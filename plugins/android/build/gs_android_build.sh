@@ -137,7 +137,7 @@ function _gs_android_build_notify_im_bot() {
     gs_bot=$2
     # 检测脚本内部是否设置了机器人token
     if [ -z ${gs_bot} ] || [ "${gs_bot}" == "NONE"  ] ; then
-        _gs_android_build_echo "android build script don't set im bot token"
+        _gs_android_build_echo "android build script don't set im bot token, try to get from environment."
         gs_bot=$_GS_BOT
     fi
 
@@ -221,7 +221,7 @@ function _gs_android_build_notify_im_bot_and_push() {
             if [ "${suffix}" = "vdex" ] || [ "${suffix}" = "oat" ] ||[ "${suffix}" = "art" ]; then
                 continue
             else
-                result=$(echo ${file} | awk -F '/' '{print $(NF-2)"/"$(NF-1)"/"$NF}')
+                result=$(echo ${file} | cut -d'/' -f5-)
                 if [ "$connected" -eq 1 ]; then
                     _gs_android_build_echo_and_run adb push $(pwd)/${file} ${result}
                 else
