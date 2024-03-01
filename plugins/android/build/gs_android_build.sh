@@ -20,6 +20,9 @@
 LUNCH_TARGET_DEFAULT="sdk_phone_x86_64"
 #LUNCH_TARGET_DEFAULT="sdk_car_x86_64-trunk_staging-eng"
 
+# 获取起始时间戳
+mStartTime=$(date +%s)
+
 function _gs_android_build_help() {
     echo "Usage:"
     echo "      -t: 编译的target，如 sdk_phone_x86_64、qssi。"
@@ -148,6 +151,8 @@ function _gs_android_build_notify_im_bot() {
         return 0
     fi
 
+    info+="\n$(_gs_android_build_calculate_time_diff)"
+
 #    _gs_android_build_strip_escape_codes "${info}" info
 #    curl -X POST https://open.feishu.cn/open-apis/bot/v2/hook/${gs_bot} -H "Content-Type: application/json" -d '{"msg_type":"text","content":{"text":"'"$info"'"}}'
     curl -X POST -H "Content-Type: application/json" \
@@ -173,8 +178,37 @@ function _gs_android_build_adb_connected {
     return 1
 }
 
+function _gs_android_build_calculate_time_diff() {
+    # 获取结束时间戳
+    end_time=$(date +%s)
+    # 计算时间差（单位：秒）
+    time_diff=$((end_time - mStartTime))
+
+    # 计算天数
+    days=$((time_diff / 86400))
+    # 计算剩余小时数
+    hours=$(( (time_diff % 86400) / 3600 ))
+    # 计算剩余分钟数
+    minutes=$(( (time_diff % 3600) / 60 ))
+    # 计算剩余秒数
+    seconds=$((time_diff % 60))
+
+    # 根据时间差的大小显示天、小时、分钟和秒
+    if [ $days -gt 0 ]; then
+        echo "#### build time (${days} ${hours}:${minutes}:${seconds}(d h:m:s)) ####"
+    elif [ $hours -gt 0 ]; then
+        echo "#### build time (${hours}:${minutes}:${seconds}(h:m:s)) ####"
+    elif [ $minutes -gt 0 ]; then
+        echo "#### build time (${minutes}:${seconds}(m:s)) ####"
+    else
+        echo "#### build time (${seconds}(s)) ####"
+    fi
+}
+
 function _gs_android_build_notify_im_bot_and_push() {
     log_file=$1
+    install=$2
+    gs_bot=$3
     install_files=()
     notify_lines=""
     while IFS= read -r line; do
@@ -187,9 +221,14 @@ function _gs_android_build_notify_im_bot_and_push() {
     done < $log_file
     echo ""
 
-    _gs_android_build_notify_im_bot ${notify_lines} $3
+    # 判断数组元素数量是否大于10
+    if [ ${#install_files[@]} -gt 10 ]; then
+        _gs_android_build_notify_im_bot "***** install files more than 10 lines *****" $gs_bot
+    else
+        _gs_android_build_notify_im_bot $notify_lines $gs_bot
+    fi
 
-    if [ "$2" = "1" ]; then
+    if [ "$install" = "1" ]; then
         connected=0
         TIME=10
         # 判断电脑是否连上手机
@@ -234,6 +273,8 @@ function _gs_android_build_notify_im_bot_and_push() {
 
 function _gs_android_build_lunch() {
     TOP=$(pwd)
+    # 获取起始时间戳
+    mStartTime=$(date +%s)
     # 创建log目录
     gs_build_log_dir=$TOP/out/build_log
     # check if the building log dir exists
