@@ -1,17 +1,19 @@
 /**
- * hook __system_property_get 接口，打印系统属性key, value
+ * hook __system_property_xxx 接口，打印系统属性key, value等
  */
-function hookSystemProperty() {
-    Interceptor.attach(Module.findExportByName(null, '__system_property_get'), {
+function hookSystemProperty(func_name) {
+    // bionic/libc/bionic/system_property_api.cpp
+    Interceptor.attach(Module.findExportByName(null, func_name), {
         onEnter: function (args) {
             this._name = args[0].readCString();
             this._value = args[1];
         },
         onLeave: function (retval) {
             console.log(JSON.stringify({
-                result_length: retval,
+                func_name: func_name,
                 name: this._name,
-                val: this._value.readCString()
+                val: this._value.readCString(),
+                result_length: retval
             }));
         }
     });
@@ -19,6 +21,7 @@ function hookSystemProperty() {
 
 setImmediate(function () {
     Java.perform(function () {
-        hookSystemProperty();
+        // hookSystemProperty('__system_property_get');
+        hookSystemProperty('__system_property_find');
     });
 });
