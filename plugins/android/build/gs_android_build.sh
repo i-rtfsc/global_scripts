@@ -16,16 +16,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 #build/make/target/product/sdk_phone_x86_64.mk
-LUNCH_TARGET_DEFAULT="sdk_phone_x86_64"
-#LUNCH_TARGET_DEFAULT="sdk_car_x86_64-trunk_staging-eng"
+#最新版本已经没有sdk_phone_x86_64了
+
+# full_x86-trunk_staging-userdebug
+LUNCH_TARGET_DEFAULT="sdk_pc_x86_64-userdebug"
+#LUNCH_TARGET_DEFAULT="sdk_car_x86_64-userdebug"
 
 # 获取起始时间戳
 mStartTime=$(date +%s)
 
 function _gs_android_build_help() {
     echo "Usage:"
-    echo "      -t: 编译的target，如 sdk_phone_x86_64、qssi。"
+    echo "      -t: 编译的target，如 sdk_pc_x86_64-userdebug、qssi。"
     echo "      -j: 编译线程数。"
     echo "      -m: 需要编译的模块，如framework。"
     echo "      -c: 是否启用ccache，1启用、0不启用；linux环境下默认使用。"
