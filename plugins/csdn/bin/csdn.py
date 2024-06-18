@@ -392,7 +392,8 @@ class CSDN(object):
         text = Tomd(content).markdown
         text = self.update_local_pic_content(text)
 
-        file_path = os.path.join(self.out_dir, "{}.md".format(title))
+        # 解决文件名包含特殊字符导致无法读写问题
+        file_path = os.path.join(self.out_dir, "{}.md".format(re.sub(r'[\/:：*?"<>|\n]', '-', title)))
         with open(file_path, mode="w", encoding="utf-8") as f:
             f.write(self.metadata(title, url))
             f.write(text)
