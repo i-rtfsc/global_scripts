@@ -16,170 +16,74 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Standard library imports
 import argparse
 import hashlib
+import logging
 import os
 import re
+import signal
 import time
-
-from datetime import datetime
+from concurrent.futures import TimeoutError
 from enum import Enum
+from functools import wraps
 from logging import getLogger, Logger, StreamHandler
-from string import Template
-from typing import Dict
 from urllib.parse import urlparse
 
+# Third-party library imports
 import parsel
 import requests
 from bs4 import BeautifulSoup
 
-MARKDOWN = {
-    'h1': ('\n# ', '\n'),
-    'h2': ('\n## ', '\n'),
-    'h3': ('\n### ', '\n'),
-    'h4': ('\n#### ', '\n'),
-    'h5': ('\n##### ', '\n'),
-    'h6': ('\n###### ', '\n'),
-    'code': ('`', '`'),
-    'ul': ('', ''),
-    'ol': ('', ''),
-    'li': ('- ', ''),
-    'blockquote': ('\n> ', '\n'),
-    'em': ('**', '**'),
-    'strong': ('**', '**'),
-    'block_code': ('\n```\n', '\n```\n'),
-    'span': ('', ''),
-    'p': ('\n', '\n'),
-    'p_with_out_class': ('\n', '\n'),
-    'inline_p': ('', ''),
-    'inline_p_with_out_class': ('', ''),
-    'b': ('**', '**'),
-    'i': ('*', '*'),
-    'del': ('~~', '~~'),
-    'hr': ('\n---', '\n\n'),
-    'thead': ('\n', '|------\n'),
-    'tbody': ('\n', '\n'),
-    'td': ('|', ''),
-    'th': ('|', ''),
-    'tr': ('', '\n')
-}
 
-BlOCK_ELEMENTS = {
-    'h1': '<h1.*?>(.*?)</h1>',
-    'h2': '<h2.*?>(.*?)</h2>',
-    'h3': '<h3.*?>(.*?)</h3>',
-    'h4': '<h4.*?>(.*?)</h4>',
-    'h5': '<h5.*?>(.*?)</h5>',
-    'h6': '<h6.*?>(.*?)</h6>',
-    'hr': '<hr/>',
-    'blockquote': '<blockquote.*?>(.*?)</blockquote>',
-    'ul': '<ul.*?>(.*?)</ul>',
-    'ol': '<ol.*?>(.*?)</ol>',
-    'block_code': '<pre.*?><code.*?>(.*?)</code></pre>',
-    'p': '<p\s.*?>(.*?)</p>',
-    'p_with_out_class': '<p>(.*?)</p>',
-    'thead': '<thead.*?>(.*?)</thead>',
-    'tr': '<tr>(.*?)</tr>'
-}
+def timeout(seconds=10):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            def _handle_timeout(signum, frame):
+                raise TimeoutError(f"Function {func.__name__} took too long to execute.")
 
-INLINE_ELEMENTS = {
-    'td': '<td>(.*?)</td>',
-    'tr': '<tr>(.*?)</tr>',
-    'th': '<th>(.*?)</th>',
-    'b': '<b>(.*?)</b>',
-    'i': '<i>(.*?)</i>',
-    'del': '<del>(.*?)</del>',
-    'inline_p': '<p\s.*?>(.*?)</p>',
-    'inline_p_with_out_class': '<p>(.*?)</p>',
-    'code': '<code.*?>(.*?)</code>',
-    'span': '<span.*?>(.*?)</span>',
-    'ul': '<ul.*?>(.*?)</ul>',
-    'ol': '<ol.*?>(.*?)</ol>',
-    'li': '<li.*?>(.*?)</li>',
-    'img': '<img.*?src="(.*?)".*?>(.*?)</img>',
-    'a': '<a.*?href="(.*?)".*?>(.*?)</a>',
-    'em': '<em.*?>(.*?)</em>',
-    'strong': '<strong.*?>(.*?)</strong>'
-}
+            old_handler = signal.signal(signal.SIGALRM, _handle_timeout)
+            signal.alarm(seconds)
+            try:
+                return func(*args, **kwargs)
+            finally:
+                signal.alarm(0)
+                signal.signal(signal.SIGALRM, old_handler)
 
-DELETE_ELEMENTS = ['<span.*?>', '</span>', '<div.*?>', '</div>']
+        return wrapper
+
+    return decorator
 
 
-class Element:
-    def __init__(self, start_pos, end_pos, content, tag, is_block=False):
-        self.start_pos = start_pos
-        self.end_pos = end_pos
-        self.content = content
-        self._elements = []
-        self.is_block = is_block
-        self.tag = tag
-        self._result = None
+class Markdownify:
+    from markdownify import MarkdownConverter
 
-        if self.is_block:
-            self.parse_inline()
+    def __init__(self, html):
+        self.html = self.remove_elements(html, [r'<span.*?>', r'</span>', r'<div.*?>', r'</div>'])
 
-    def __str__(self):
-        wrapper = MARKDOWN.get(self.tag)
-        self._result = '{}{}{}'.format(wrapper[0], self.content, wrapper[1])
-        return self._result
+    def remove_elements(self, html, elements):
+        for element in elements:
+            html = re.sub(element, '', html, flags=re.DOTALL)
+        return html
 
-    def parse_inline(self):
-        for tag, pattern in INLINE_ELEMENTS.items():
+    class CustomMarkdownConverter(MarkdownConverter):
+        # def convert_pre(self, el, text, convert_as_inline):
+        #     # 处理 <pre><code> 标签
+        #     code_content = el.text
+        #     return f'```\n{code_content}\n```\n'
 
-            if tag == 'a':
-                self.content = re.sub(pattern, '[\g<2>](\g<1>)', self.content)
-            elif tag == 'img':
-                self.content = re.sub(pattern, '![\g<2>](\g<1>)', self.content)
-            elif self.tag == 'ul' and tag == 'li':
-                self.content = re.sub(pattern, '- \g<1>', self.content)
-            elif self.tag == 'ol' and tag == 'li':
-                self.content = re.sub(pattern, '1. \g<1>', self.content)
-            elif self.tag == 'thead' and tag == 'tr':
-                self.content = re.sub(pattern, '\g<1>\n', self.content.replace('\n', ''))
-            elif self.tag == 'tr' and tag == 'th':
-                self.content = re.sub(pattern, '|\g<1>', self.content.replace('\n', ''))
-            elif self.tag == 'tr' and tag == 'td':
-                self.content = re.sub(pattern, '|\g<1>', self.content.replace('\n', ''))
-            else:
-                wrapper = MARKDOWN.get(tag)
-                self.content = re.sub(pattern, '{}\g<1>{}'.format(wrapper[0], wrapper[1]), self.content)
-
-
-class Tomd:
-    def __init__(self, html='', options=None):
-        self.html = html
-        self.options = options
-        self._markdown = ''
-
-    def convert(self, html, options=None):
-        elements = []
-        for tag, pattern in BlOCK_ELEMENTS.items():
-            for m in re.finditer(pattern, html, re.I | re.S | re.M):
-                element = Element(start_pos=m.start(),
-                                  end_pos=m.end(),
-                                  content=''.join(m.groups()),
-                                  tag=tag,
-                                  is_block=True)
-                can_append = True
-                for e in elements:
-                    if e.start_pos < m.start() and e.end_pos > m.end():
-                        can_append = False
-                    elif e.start_pos > m.start() and e.end_pos < m.end():
-                        elements.remove(e)
-                if can_append:
-                    elements.append(element)
-
-        elements.sort(key=lambda element: element.start_pos)
-        self._markdown = ''.join([str(e) for e in elements])
-
-        for index, element in enumerate(DELETE_ELEMENTS):
-            self._markdown = re.sub(element, '', self._markdown)
-        return self._markdown
+        # Markdownify默认行为：
+        # 下划线前默认加斜杠，比如 a_b 就默认 a\_b
+        # 加上这个能改掉这些默认行为
+        def escape(self, text):
+            return text  # 覆盖默认的转义行为
 
     @property
     def markdown(self):
-        self.convert(self.html, self.options)
-        return self._markdown
+        return self.CustomMarkdownConverter().convert(self.html)
+        # from markdownify import markdownify as md
+        # return md(self.html)
 
 
 class Utils:
@@ -225,42 +129,37 @@ class DebugManager:
     _COLOR_BLUE = "\u001B[34m"
     _COLOR_YELLOW = "\u001B[33m"
 
-    _DATE_TEMPLATE = "date"
-
     _logger: Logger
 
     @staticmethod
-    def create_logger(level: str):
+    def create_logger(level: int):
         DebugManager._logger = getLogger(__name__)
         DebugManager._logger.setLevel(level)
         DebugManager._logger.addHandler(StreamHandler())
 
     @staticmethod
-    def _process_template(message: str, kwargs: Dict) -> str:
-        if DebugManager._DATE_TEMPLATE in kwargs:
-            kwargs[
-                DebugManager._DATE_TEMPLATE] = f"{datetime.strftime(kwargs[DebugManager._DATE_TEMPLATE], '%d-%m-%Y %H:%M:%S:%f')}"
-
-        return Template(message).substitute(kwargs)
+    def _process_template(message: str) -> str:
+        date = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+        return "[" + date + "] " + message
 
     @staticmethod
-    def i(message: str, **kwargs):
-        message = DebugManager._process_template(message, kwargs)
+    def i(message: str):
+        message = DebugManager._process_template(message)
         DebugManager._logger.info(f"{DebugManager._COLOR_GREEN}{message}{DebugManager._COLOR_RESET}")
 
     @staticmethod
-    def d(message: str, **kwargs):
-        message = DebugManager._process_template(message, kwargs)
+    def d(message: str):
+        message = DebugManager._process_template(message)
         DebugManager._logger.debug(f"{DebugManager._COLOR_BLUE}{message}{DebugManager._COLOR_RESET}")
 
     @staticmethod
-    def w(message: str, **kwargs):
-        message = DebugManager._process_template(message, kwargs)
+    def w(message: str):
+        message = DebugManager._process_template(message)
         DebugManager._logger.warning(f"{DebugManager._COLOR_YELLOW}{message}{DebugManager._COLOR_RESET}")
 
     @staticmethod
-    def e(message: str, **kwargs):
-        message = DebugManager._process_template(message, kwargs)
+    def e(message: str):
+        message = DebugManager._process_template(message)
         DebugManager._logger.error(message)
 
 
@@ -300,7 +199,7 @@ class CSDN(object):
         request_headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36 Edg/84.0.522.52",
             "Referer": "https://blog.csdn.net/",
-            "Connection": "keep-alive"
+            # "Connection": "keep-alive"
         }
         if cookie is not None:
             request_headers["Cookie"] = cookie
@@ -319,20 +218,59 @@ class CSDN(object):
                 soup = BeautifulSoup(html, "html.parser")
                 articles = soup.find_all('div', attrs={"class": "article-item-box csdn-tracking-statistics"})
                 for article in articles:
-                    self.TaskQueue.append(article.a['href'])
+                    article_title = article.a.text.strip().replace('\n', '').replace('原创', '').replace('        ',
+                                                                                                         '').strip()
+                    article_href = article.a['href']
+                    self.TaskQueue.append((article_title, article_href))
         elif self.flags == Flags.SINGLE:
-            self.TaskQueue.append(self.url)
+            self.TaskQueue.append((None, self.url))
         else:
             DebugManager.e("解析url错误，请输入正确的url")
 
     def process(self):
+        size = len(self.TaskQueue)
         while len(self.TaskQueue) > 0:
-            article_href = self.TaskQueue.pop()
-            DebugManager.d("正在处理URL：{}".format(article_href))
-            self.spider_article(article_href)
+            (article_title, article_href) = self.TaskQueue.pop()
+            current_size = size - len(self.TaskQueue)
+            DebugManager.i("正在处理 {}/{} , url = {}".format(str(current_size), str(size), article_href))
+            self.spider_article(article_href, article_title)
 
-    def debug(self):
-        DebugManager.d(str(['%s:%s' % item for item in self.__dict__.items()]))
+    def spider_article(self, url, title=None):
+        # 创建目录
+        if not os.path.exists(self.out_dir):
+            os.makedirs(self.out_dir)
+
+        html = requests.get(url=url, headers=self.headers).text
+        page = parsel.Selector(html)
+
+        if title is None:
+            title = page.css(".title-article::text").get().strip()
+
+        content = page.css("article").get()
+        content = re.sub("<a.*?a>", "", content)
+        content = re.sub("<br>", "", content)
+
+        try:
+            text = self.content2markdown(content)
+            text = self.update_local_pic_content(text)
+            # 解决文件名包含特殊字符导致无法读写问题
+            file_path = os.path.join(self.out_dir, "{}.md".format(re.sub(r'[\/:：*?"<>|\n]', '-', title)))
+            DebugManager.i(f"{file_path}\n")
+            with open(file_path, mode="w", encoding="utf-8") as f:
+                f.write(self.metadata(title, url))
+                f.write(text)
+        except TimeoutError:
+            DebugManager.e(f"content to markdown timed out for {url}")
+            # 转化成 md 超时，直接保存 html 格式
+            file_path = os.path.join(self.out_dir, "ERROR-{}.md".format(re.sub(r'[\/:：*?"<>|\n]', '-', title)))
+            with open(file_path, mode="w", encoding="utf-8") as f:
+                f.write(url)
+                f.write("\n\n")
+                f.write(content)
+
+    @timeout(10)
+    def content2markdown(self, content):
+        return Markdownify(content).markdown
 
     def update_local_pic_content(self, text):
         if self.local == 1:
@@ -373,30 +311,8 @@ class CSDN(object):
         data += "---\n"
         return data
 
-    def spider_article(self, url):
-        # 创建目录
-        if not os.path.exists(self.out_dir):
-            os.makedirs(self.out_dir)
-
-        html = requests.get(url=url, headers=self.headers).text
-        page = parsel.Selector(html)
-        # 创建解释器
-        title = page.css(".title-article::text").get()
-        content = page.css("article").get()
-        content = re.sub("<a.*?a>", "", content)
-        content = re.sub("<br>", "", content)
-        content = re.sub("&lt;", "<", content)  # 新增
-        content = re.sub("&gt;", ">", content)  # 新增
-        # import tomd
-        # text = tomd.Tomd(content).markdown
-        text = Tomd(content).markdown
-        text = self.update_local_pic_content(text)
-
-        # 解决文件名包含特殊字符导致无法读写问题
-        file_path = os.path.join(self.out_dir, "{}.md".format(re.sub(r'[\/:：*?"<>|\n]', '-', title)))
-        with open(file_path, mode="w", encoding="utf-8") as f:
-            f.write(self.metadata(title, url))
-            f.write(text)
+    def debug(self):
+        DebugManager.d(str(['%s:%s' % item for item in self.__dict__.items()]))
 
 
 class Options(object):
@@ -436,6 +352,16 @@ def work(opt):
     csdn.process()
 
 
+def check_and_install_library():
+    try:
+        import markdownify
+        return 1
+    except ImportError:
+        DebugManager.e("markdownify 未安装，请使用命令：pip install markdownify 进行安装")
+        # subprocess.check_call([sys.executable, "-m", "pip", "install", "markdownify"])
+        return -1
+
+
 def main():
     opt = Options()
     args = parseargs(opt)
@@ -443,9 +369,12 @@ def main():
     opt.local = args.local
     opt.out = args.out
 
-    DebugManager.create_logger("DEBUG" if opt.debug else "ERROR")
+    DebugManager.create_logger(logging.DEBUG if opt.debug else logging.ERROR)
     if opt.url is None:
         DebugManager.e("未输入 url")
+        return 0
+
+    if check_and_install_library() < 0:
         return 0
 
     work(opt)

@@ -34,7 +34,6 @@ gs_plugins=(
          android/push
          android/winscope
          common
-         csdn
          git
          goto
          repo
@@ -42,6 +41,8 @@ gs_plugins=(
          system/clash
          system/proxy
          system/repo
+         csdn
+         jianshu
         )
 
 # custom 目录下的插件
