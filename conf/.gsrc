@@ -43,6 +43,7 @@ gs_plugins=(
          system/repo
          csdn
          jianshu
+         cnblogs
         )
 
 # custom 目录下的插件
