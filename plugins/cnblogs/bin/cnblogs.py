@@ -72,6 +72,29 @@ class Markdownify:
         #     code_content = el.text
         #     return f'```\n{code_content}\n```\n'
 
+        def convert_img(self, el, text, convert_as_inline):
+            # 获取图像的 src、alt 和 title
+            src = el.get('data-original-src') or el.get('src')
+            alt = el.get('alt', '')
+            title = el.get('title', '')
+
+            # 确保 src 是绝对 URL
+            if src.startswith('//'):
+                src = 'https:' + src
+
+            return f'![{alt}]({src})'
+
+        def convert_a(self, el, text, convert_as_inline):
+            # 检查是否是图片链接
+            if el.find('img') is not None:
+                return text  # 对于图片链接，直接返回文本内容，去掉链接标记
+            else:
+                href = el.get('href', '')
+                title = el.get('title', '')
+                if href.startswith('//'):
+                    href = 'https:' + href
+                return f'[{text}]({href})'
+
         # Markdownify默认行为：
         # 下划线前默认加斜杠，比如 a_b 就默认 a\_b
         # 加上这个能改掉这些默认行为
