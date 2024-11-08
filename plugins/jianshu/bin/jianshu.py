@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# -*- encoding: utf-8 -*-
 #
 # Copyright (c) 2024 anqi.huang@outlook.com
 #
@@ -36,6 +35,7 @@ from bs4 import BeautifulSoup
 
 
 def timeout(seconds=10):
+    """Decorator to timeout a function after a specified number of seconds."""
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -68,28 +68,21 @@ class Markdownify:
 
     class CustomMarkdownConverter(MarkdownConverter):
         def convert_img(self, el, text, convert_as_inline):
-            # 获取图像的src、alt和title
             src = el.get('data-original-src') or el.get('src')
             alt = el.get('alt', '')
             title = el.get('image-caption', alt)
 
-            # 确保src是绝对URL
             if src.startswith('//'):
                 src = 'https:' + src
 
             return f'![{alt}]({src})'
 
-        # Markdownify默认行为：
-        # 下划线前默认加斜杠，比如 a_b 就默认 a\_b
-        # 加上这个能改掉这些默认行为
         def escape(self, text):
-            return text  # 覆盖默认的转义行为
+            return text
 
     @property
     def markdown(self):
         return self.CustomMarkdownConverter().convert(self.html)
-        # from markdownify import markdownify as md
-        # return md(self.html)
 
 
 class Utils:
@@ -101,10 +94,9 @@ class Utils:
     @staticmethod
     def is_user_homepage_or_article(url):
         """
-        返回：用户名，flags
-        flags=1, 爬单个文章
-        flags=2, 爬所有文章
-        flags=-1, 出错
+        Determine if the URL is a user's homepage or a single article.
+        Returns:
+            tuple: (username, flag) where flag is 1 for single article, 2 for all articles, -1 for error
         """
         if url.startswith('https://www.jianshu.com/u/'):
             user_name = url.split('/')[4].split('?')[0]
@@ -116,8 +108,7 @@ class Utils:
 
     @staticmethod
     def generate_md5(input_string):
-        md5_hash = hashlib.md5(input_string.encode()).hexdigest()
-        return md5_hash
+        return hashlib.md5(input_string.encode()).hexdigest()
 
     @staticmethod
     def rename_image_if_needed(filename):
@@ -141,13 +132,8 @@ class DebugManager:
 
     @staticmethod
     def _process_template(message: str) -> str:
-        # if DebugManager._DATE_TEMPLATE in kwargs:
-        #     kwargs[
-        #         DebugManager._DATE_TEMPLATE] = f"{datetime.strftime(kwargs[DebugManager._DATE_TEMPLATE], '%d-%m-%Y %H:%M:%S:%f')}"
-        #
-        # return Template(message).substitute(kwargs)
         date = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
-        return "[" + date + "] " + message
+        return f"[{date}] {message}"
 
     @staticmethod
     def i(message: str):
@@ -176,14 +162,8 @@ class Flags(Enum):
     ALL = 1
 
 
-class JianShu(object):
+class JianShu:
     def __init__(self, url, local, out_dir, cookie=None):
-        """
-        :param url:
-            1. 输入： https://www.jianshu.com/u/{用户名}?order_by=shared_at ，则获取该用户所有文章
-            2. 输入： https://www.jianshu.com/p/xxx ，则单篇文章
-            3. 输入： 用户 （等同于 https://www.jianshu.com/u/用户名 ）
-        """
         if Utils.is_valid_url(url):
             self.username, self.flags = Utils.is_user_homepage_or_article(url)
         else:
@@ -196,13 +176,10 @@ class JianShu(object):
             self.url = url
 
         self.headers = self.get_headers(cookie)
-
-        # self.out_dir = os.path.join(out_dir, self.username)
-        self.out_dir = out_dir
+        self.out_dir = os.path.join(out_dir, self.username or '')
         self.local = local
-
         self.session = requests.Session()
-        self.TaskQueue = list()
+        self.task_queue = list()
 
         self.debug()
 
@@ -225,7 +202,7 @@ class JianShu(object):
         if self.flags == Flags.ALL:
             self.open_webdriver()
         elif self.flags == Flags.SINGLE:
-            self.TaskQueue.append((None, self.url))
+            self.task_queue.append((None, self.url))
         else:
             DebugManager.e("解析url错误，请输入正确的url")
 
@@ -238,12 +215,10 @@ class JianShu(object):
         chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
-
         prefs = {"profile.managed_default_content_settings.images": 2}
         chrome_options.add_experimental_option("prefs", prefs)
 
         start_time = time.time()
-        # 或者webdriver.Firefox(), webdriver.Edge()等
         driver = webdriver.Chrome(options=chrome_options)
 
         end_time = time.time()
@@ -253,48 +228,39 @@ class JianShu(object):
         DebugManager.d(f"open webdriver耗时: {int(hours)}小时 {int(minutes)}分钟 {seconds:.2f}秒")
 
         try:
-            # 打开目标网页
             driver.get(url=self.url)
 
-            # 设置滚动暂停时间
             SCROLL_PAUSE_TIME = 2
-            # 获取页面高度
             last_height = driver.execute_script("return document.body.scrollHeight")
             while True:
-                # 向下滚动到页面底部
                 driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                # 等待页面加载
                 time.sleep(SCROLL_PAUSE_TIME)
-                # 计算新的页面高度并与上次的页面高度进行比较
                 new_height = driver.execute_script("return document.body.scrollHeight")
                 if new_height == last_height:
                     break
                 last_height = new_height
 
-            # 获取滚动后页面的HTML内容
             html = driver.page_source
             soup = BeautifulSoup(html, "lxml")
             articles = soup.find_all('li', class_='have-img') + soup.find_all('li', class_='')
 
-            # 提取标题及其对应的链接
             for article in articles:
                 title_tag = article.find('a', class_='title')
                 if title_tag:
                     title = title_tag.text.strip()
                     href = title_tag['href']
                     url = f'https://www.jianshu.com{href}'
-                    self.TaskQueue.append((title, url))
+                    self.task_queue.append((title, url))
 
         finally:
-            # 关闭浏览器
             driver.quit()
 
     def process(self):
-        size = len(self.TaskQueue)
-        while len(self.TaskQueue) > 0:
-            (article_title, article_href) = self.TaskQueue.pop()
-            current_size = size - len(self.TaskQueue)
-            DebugManager.i("正在处理 {}/{} , url = {}".format(str(current_size), str(size), article_href))
+        total_size = len(self.task_queue)
+        while self.task_queue:
+            article_title, article_href = self.task_queue.pop()
+            current_size = total_size - len(self.task_queue)
+            DebugManager.i(f"正在处理 {current_size}/{total_size} , url = {article_href}")
             self.spider_article(article_href, article_title)
 
     def spider_article(self, url, title=None):
@@ -304,48 +270,34 @@ class JianShu(object):
         user_id_match = re.search(r'href="/u/([0-9a-fA-F]+)"', html_content)
         username_match = re.search(r'<span class="_22gUMi">(.*?)</span>', html_content)
         if user_id_match and username_match:
-            # 用户ID
             self.username = user_id_match.group(1)
-            # 用户昵称
             username = username_match.group(1)
-            # 用户昵称可能会变，用户ID是不变的
             out_dir = os.path.join(self.out_dir, self.username)
         else:
             out_dir = self.out_dir
 
-        # 创建目录
         if not os.path.exists(out_dir):
-            os.makedirs(out_dir)
+            os.makedirs(out_dir, exist_ok=True)
 
         if title is None:
-            pattern = re.compile(r'<h1[^>]*title="([^"]*)"', re.DOTALL)
-            match = pattern.search(html_content)
-            if match:
-                title = match.group(1)
-            else:
-                title = None
+            title_match = re.search(r'<h1[^>]*title="([^"]*)"', html_content)
+            title = title_match.group(1) if title_match else None
 
         if title is None:
             DebugManager.e("No <h1> tag with title attribute found")
             return
 
-        pattern = re.compile(r'<article[^>]*>(.*?)</article>', re.DOTALL)
-        match = pattern.search(html_content)
-        if match:
-            article_content = match.group(1)
-        else:
-            article_content = None
+        article_match = re.search(r'<article[^>]*>(.*?)</article>', html_content, re.DOTALL)
+        article_content = article_match.group(1) if article_match else None
 
         if article_content is None:
             DebugManager.e("No <article> tag found")
             with open(os.path.join(self.out_dir, "error.txt"), mode="a", encoding="utf-8") as f:
-                f.write("\"" + url + "\"")
-                f.write("\n")
+                f.write(f"\"{url}\"\n")
             return
 
         try:
             text = self.content2markdown(article_content)
-            # 解决文件名包含特殊字符导致无法读写问题
             file_path = os.path.join(out_dir, "{}.md".format(re.sub(r'[\/:：*?"<>|\n]', '-', title)))
             DebugManager.i(f"{file_path}\n")
             with open(file_path, mode="w", encoding="utf-8") as f:
@@ -353,11 +305,9 @@ class JianShu(object):
                 f.write(text)
         except TimeoutError:
             DebugManager.e(f"content to markdown timed out for {url}")
-            # 转化成 md 超时，直接保存 html 格式
             file_path = os.path.join(out_dir, "ERROR-{}.md".format(re.sub(r'[\/:：*?"<>|\n]', '-', title)))
             with open(file_path, mode="w", encoding="utf-8") as f:
-                f.write(url)
-                f.write("\n\n")
+                f.write(f"{url}\n\n")
                 f.write(article_content)
 
     @timeout(10)
@@ -368,25 +318,19 @@ class JianShu(object):
         if self.local == 1:
             res_dir = os.path.join(self.out_dir, 'res')
             if not os.path.exists(res_dir):
-                os.makedirs(res_dir)
+                os.makedirs(res_dir, exist_ok=True)
 
-            # 正则表达式提取 img 标签行
             img_urls = re.findall(r'<img src="(https://[^"]+)"[^>]*>', text)
-            # 下载图片并保存到 res 目录，同时替换 img 标签行
             for img_url in img_urls:
                 img_name = Utils.generate_md5(img_url) + "_" + img_url.split('/')[-1]
-                if "." in img_name:
-                    pass
-                else:
-                    img_name = img_name + ".png"
+                if "." not in img_name:
+                    img_name += ".png"
                 img_name = Utils.rename_image_if_needed(img_name)
                 img_path = os.path.join(res_dir, img_name)
-                # 下载图片
                 response = requests.get(img_url)
                 with open(img_path, 'wb') as file:
                     file.write(response.content)
 
-                # 替换 img 标签行
                 img_md = f'![](res/{img_name})'
                 text = re.sub(rf'<img src="{img_url}"[^>]*>', img_md, text)
 
@@ -396,18 +340,16 @@ class JianShu(object):
 
     def metadata(self, title, url):
         data = "---\n"
-        data += "title: {}\n".format(title)
-        data += "date: {}\n".format(time.strftime("%Y-%m-%d", time.localtime()))
-        data += "reference:\n"
-        data += "  - {}\n".format(url)
-        data += "---\n\n"
+        data += f"title: {title}\n"
+        data += f"date: {time.strftime('%Y-%m-%d', time.localtime())}\n"
+        data += f"reference:\n  - {url}\n---\n\n"
         return data
 
     def debug(self):
-        DebugManager.d(str(['%s:%s' % item for item in self.__dict__.items()]))
+        DebugManager.d(str([f'{k}:{v}' for k, v in self.__dict__.items()]))
 
 
-class Options(object):
+class Options:
     # url = "{input_user_name}"
     # url = "https://www.jianshu.com/u/{input_user_name}"
     # url = "https://www.jianshu.com/u/{input_user_name}?order_by=shared_at"
@@ -419,24 +361,22 @@ class Options(object):
 
 
 def parseargs(opt):
-    """
-    解析命令行参数
-    """
-    parser = argparse.ArgumentParser(description="download csdn article")
+    parser = argparse.ArgumentParser(description="Download JianShu articles")
     parser.add_argument("--url", dest="url",
-                        help="可输入用户名、用户主页爬全部文章；也可输入单篇文章链接爬此文章", default=opt.url)
+                        help="Enter username to crawl all articles from user homepage; or input single article link to crawl that article",
+                        default=opt.url)
     parser.add_argument("--local", dest="local",
-                        help="local picture", default=opt.local)
+                        help="Local picture", default=opt.local)
     parser.add_argument("--out", dest="out",
-                        help="out dir", default=opt.out)
+                        help="Output directory", default=opt.out)
 
     return parser.parse_args()
 
 
 def work(opt):
-    csdn = JianShu(opt.url, opt.local, opt.out)
-    csdn.start()
-    csdn.process()
+    jianshu = JianShu(opt.url, opt.local, opt.out)
+    jianshu.start()
+    jianshu.process()
 
 
 def check_and_install_library():
@@ -445,9 +385,7 @@ def check_and_install_library():
         import markdownify
         return 1
     except ImportError as e:
-        DebugManager.e(f"{e.name} 未安装，请使用命令：pip install {e.name} 进行安装, ", )
-        # subprocess.check_call([sys.executable, "-m", "pip", "install", "selenium"])
-        # subprocess.check_call([sys.executable, "-m", "pip", "install", "markdownify"])
+        DebugManager.e(f"{e.name} 未安装，请使用命令：pip install {e.name} 进行安装")
         return -1
 
 
@@ -459,7 +397,7 @@ def main():
     opt.out = args.out
 
     DebugManager.create_logger(logging.DEBUG if opt.debug else logging.ERROR)
-    if opt.url is None:
+    if not opt.url:
         DebugManager.e("未输入 url")
         return 0
 

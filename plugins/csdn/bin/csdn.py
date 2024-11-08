@@ -304,7 +304,7 @@ class CSDN(object):
                 with open(img_path, 'wb') as file:
                     file.write(response.content)
 
-                img_md = f'![res/{img_name}?x-oss-process=image/resize,m_fixed,m_lfit,w_300](res/{img_name}?x-oss-process=image/resize,m_fixed,m_lfit,w_300)'
+                img_md = f'![](res/{img_name})'
                 text = re.sub(rf'<img src="{img_url}"[^>]*>', img_md, text)
 
             return text
