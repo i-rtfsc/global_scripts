@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# -*- encoding: utf-8 -*-
 #
 # Copyright (c) 2024 anqi.huang@outlook.com
 #
@@ -31,6 +30,7 @@ from logging import getLogger, Logger, StreamHandler
 from urllib.parse import urlparse
 
 # Third-party library imports
+import json
 import parsel
 import requests
 from bs4 import BeautifulSoup
@@ -68,22 +68,12 @@ class Markdownify:
         return html
 
     class CustomMarkdownConverter(MarkdownConverter):
-        # def convert_pre(self, el, text, convert_as_inline):
-        #     # 处理 <pre><code> 标签
-        #     code_content = el.text
-        #     return f'```\n{code_content}\n```\n'
-
-        # Markdownify默认行为：
-        # 下划线前默认加斜杠，比如 a_b 就默认 a\_b
-        # 加上这个能改掉这些默认行为
         def escape(self, text):
             return text  # 覆盖默认的转义行为
 
     @property
     def markdown(self):
         return self.CustomMarkdownConverter().convert(self.html)
-        # from markdownify import markdownify as md
-        # return md(self.html)
 
 
 class Utils:
@@ -94,12 +84,6 @@ class Utils:
 
     @staticmethod
     def is_user_homepage_or_article(url):
-        """
-        返回：用户名，flags
-        flags=1, 爬单个文章
-        flags=2, 爬所有文章
-        flags=-1, 出错
-        """
         if url.startswith('https://blog.csdn.net/'):
             user_name = url.split('/')[3]
             if user_name:
@@ -114,8 +98,7 @@ class Utils:
 
     @staticmethod
     def generate_md5(input_string):
-        md5_hash = hashlib.md5(input_string.encode()).hexdigest()
-        return md5_hash
+        return hashlib.md5(input_string.encode()).hexdigest()
 
     @staticmethod
     def rename_image_if_needed(filename):
@@ -140,7 +123,7 @@ class DebugManager:
     @staticmethod
     def _process_template(message: str) -> str:
         date = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
-        return "[" + date + "] " + message
+        return f"[{date}] {message}"
 
     @staticmethod
     def i(message: str):
@@ -169,14 +152,33 @@ class Flags(Enum):
     ALL = 1
 
 
+class MetadataGenerator:
+    def metadata(self, title, url, tags):
+        """生成Markdown格式的元数据。
+
+        Args:
+            title (str): 文章标题。
+            url (str): 参考链接。
+            tags (list): 标签列表。
+
+        Returns:
+            str: 生成的Markdown格式的元数据字符串。
+        """
+        data = "---\n"
+        data += f"title: {title}\n"
+        data += f"date: {time.strftime('%Y-%m-%d', time.localtime())}\n"
+
+        if tags:
+            data += "tags:\n"
+            for tag in tags:
+                data += f"  - {tag}\n"
+
+        data += f"reference:\n  - {url}\n---\n\n"
+        return data
+
+
 class CSDN(object):
     def __init__(self, url, local, out_dir, cookie=None):
-        """
-        :param url:
-            1. 输入： https://blog.csdn.net/用户名 ，则获取该用户所有文章
-            2. 输入： https://blog.csdn.net/用户名/文章地址 ，则单篇文章
-            3. 输入： 用户 （等同于 https://blog.csdn.net/用户名 ）
-        """
         self.url = url
 
         if Utils.is_valid_url(url):
@@ -186,20 +188,20 @@ class CSDN(object):
             self.flags = Flags.ALL
 
         self.headers = self.get_headers(cookie)
-
         self.out_dir = os.path.join(out_dir, self.username)
         self.local = local
-
         self.session = requests.Session()
-        self.TaskQueue = list()
+        self.task_queue = list()
+        self.metadata_generator = MetadataGenerator()
 
         self.debug()
 
     def get_headers(self, cookie):
         request_headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36 Edg/84.0.522.52",
+            "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                           "AppleWebKit/537.36 (KHTML, like Gecko) "
+                           "Chrome/84.0.4147.105 Safari/537.36 Edg/84.0.522.52"),
             "Referer": "https://blog.csdn.net/",
-            # "Connection": "keep-alive"
         }
         if cookie is not None:
             request_headers["Cookie"] = cookie
@@ -208,37 +210,35 @@ class CSDN(object):
 
     def start(self):
         if self.flags == Flags.ALL:
-            num = 0
+            page_num = 0
             articles = [None]
-            while len(articles) > 0:
-                num += 1
-                url = u'https://blog.csdn.net/' + self.username + '/article/list/' + str(num)
+            while articles:
+                page_num += 1
+                url = f'https://blog.csdn.net/{self.username}/article/list/{page_num}'
                 response = self.session.get(url=url, headers=self.headers)
                 html = response.text
                 soup = BeautifulSoup(html, "html.parser")
                 articles = soup.find_all('div', attrs={"class": "article-item-box csdn-tracking-statistics"})
                 for article in articles:
-                    article_title = article.a.text.strip().replace('\n', '').replace('原创', '').replace('        ',
-                                                                                                         '').strip()
+                    article_title = article.a.text.strip().replace('\n', '').replace('原创', '').replace('        ', '').strip()
                     article_href = article.a['href']
-                    self.TaskQueue.append((article_title, article_href))
+                    self.task_queue.append((article_title, article_href))
         elif self.flags == Flags.SINGLE:
-            self.TaskQueue.append((None, self.url))
+            self.task_queue.append((None, self.url))
         else:
             DebugManager.e("解析url错误，请输入正确的url")
 
     def process(self):
-        size = len(self.TaskQueue)
-        while len(self.TaskQueue) > 0:
-            (article_title, article_href) = self.TaskQueue.pop()
-            current_size = size - len(self.TaskQueue)
-            DebugManager.i("正在处理 {}/{} , url = {}".format(str(current_size), str(size), article_href))
+        total_size = len(self.task_queue)
+        while self.task_queue:
+            article_title, article_href = self.task_queue.pop()
+            current_size = total_size - len(self.task_queue)
+            DebugManager.i(f"正在处理 {current_size}/{total_size}, url = {article_href}")
             self.spider_article(article_href, article_title)
 
     def spider_article(self, url, title=None):
-        # 创建目录
         if not os.path.exists(self.out_dir):
-            os.makedirs(self.out_dir)
+            os.makedirs(self.out_dir, exist_ok=True)
 
         html = requests.get(url=url, headers=self.headers).text
         page = parsel.Selector(html)
@@ -250,23 +250,38 @@ class CSDN(object):
         content = re.sub("<a.*?a>", "", content)
         content = re.sub("<br>", "", content)
 
+        tags = self.extract_tags(page)
+
         try:
             text = self.content2markdown(content)
             text = self.update_local_pic_content(text)
-            # 解决文件名包含特殊字符导致无法读写问题
-            file_path = os.path.join(self.out_dir, "{}.md".format(re.sub(r'[\/:：*?"<>|\n]', '-', title)))
+            file_path = os.path.join(self.out_dir, "{}.md".format(re.sub(r'[/:：*?"<>|\n]', '-', title)))
             DebugManager.i(f"{file_path}\n")
             with open(file_path, mode="w", encoding="utf-8") as f:
-                f.write(self.metadata(title, url))
+                f.write(self.metadata_generator.metadata(title, url, tags))
                 f.write(text)
         except TimeoutError:
             DebugManager.e(f"content to markdown timed out for {url}")
-            # 转化成 md 超时，直接保存 html 格式
-            file_path = os.path.join(self.out_dir, "ERROR-{}.md".format(re.sub(r'[\/:：*?"<>|\n]', '-', title)))
+            file_path = os.path.join(self.out_dir, "ERROR-{}.md".format(re.sub(r'[/:：*?"<>|\n]', '-', title)))
             with open(file_path, mode="w", encoding="utf-8") as f:
-                f.write(url)
-                f.write("\n\n")
+                f.write(f"{url}\n\n")
                 f.write(content)
+
+    def extract_tags(self, page):
+        """从HTML中提取标签."""
+        tags = []
+        tag_elements = page.css('.tags-box .tag-link')
+        for tag_element in tag_elements:
+            data_report_click = tag_element.attrib.get('data-report-click')
+            if data_report_click:
+                try:
+                    data = json.loads(data_report_click)
+                    strategy = data.get('strategy')
+                    if strategy:
+                        tags.append(strategy)
+                except json.JSONDecodeError:
+                    continue
+        return tags
 
     @timeout(10)
     def content2markdown(self, content):
@@ -278,70 +293,45 @@ class CSDN(object):
             if not os.path.exists(res_dir):
                 os.makedirs(res_dir)
 
-            # 正则表达式提取 img 标签行
             img_urls = re.findall(r'<img src="(https://[^"]+)"[^>]*>', text)
-            # 下载图片并保存到 res 目录，同时替换 img 标签行
             for img_url in img_urls:
                 img_name = Utils.generate_md5(img_url) + "_" + img_url.split('/')[-1]
-                if "." in img_name:
-                    pass
-                else:
-                    img_name = img_name + ".png"
+                if "." not in img_name:
+                    img_name += ".png"
                 img_name = Utils.rename_image_if_needed(img_name)
                 img_path = os.path.join(res_dir, img_name)
-                # 下载图片
                 response = requests.get(img_url)
                 with open(img_path, 'wb') as file:
                     file.write(response.content)
 
-                # 替换 img 标签行
-                img_md = f'![](res/{img_name})'
+                img_md = f'![res/{img_name}?x-oss-process=image/resize,m_fixed,m_lfit,w_300](res/{img_name}?x-oss-process=image/resize,m_fixed,m_lfit,w_300)'
                 text = re.sub(rf'<img src="{img_url}"[^>]*>', img_md, text)
 
             return text
         else:
             return text
 
-    def metadata(self, title, url):
-        data = "---\n"
-        data += "title: {}\n".format(title)
-        data += "date: {}\n".format(time.strftime("%Y-%m-%d", time.localtime()))
-        data += "reference:\n"
-        data += "  - {}\n".format(url)
-        data += "---\n"
-        return data
-
     def debug(self):
-        DebugManager.d(str(['%s:%s' % item for item in self.__dict__.items()]))
+        DebugManager.d(str([f'{k}:{v}' for k, v in self.__dict__.items()]))
 
 
-class Options(object):
-    # url = "{input_user_name}"
-    # url = "https://blog.csdn.net/{input_user_name}/"
-    # url = "https://blog.csdn.net/{input_user_name}/article/details/{input_article_id}"
+class Options:
     url = None
     local = 0
     out = os.path.join(os.getcwd(), "csdn")
     debug = 1
-    # 打开 https://blog.csdn.net/用户名
-    # 右键 “检查”
-    # 选择 Network
-    # 点击 name 是 blog.csdn.net 选项（可能是别的）
-    # 找到 Request Headers
     cookie = None
 
 
 def parseargs(opt):
-    """
-    解析命令行参数
-    """
-    parser = argparse.ArgumentParser(description="download csdn article")
+    parser = argparse.ArgumentParser(description="Download CSDN articles")
     parser.add_argument("--url", dest="url",
-                        help="可输入用户名、用户主页爬全部文章；也可输入单篇文章链接爬此文章", default=opt.url)
+                        help="Enter username to crawl all articles from user homepage; or input single article link to crawl that article",
+                        default=opt.url)
     parser.add_argument("--local", dest="local",
-                        help="local picture", default=opt.local)
+                        help="Local picture", default=opt.local)
     parser.add_argument("--out", dest="out",
-                        help="out dir", default=opt.out)
+                        help="Output directory", default=opt.out)
 
     return parser.parse_args()
 
@@ -358,7 +348,6 @@ def check_and_install_library():
         return 1
     except ImportError:
         DebugManager.e("markdownify 未安装，请使用命令：pip install markdownify 进行安装")
-        # subprocess.check_call([sys.executable, "-m", "pip", "install", "markdownify"])
         return -1
 
 
@@ -370,7 +359,7 @@ def main():
     opt.out = args.out
 
     DebugManager.create_logger(logging.DEBUG if opt.debug else logging.ERROR)
-    if opt.url is None:
+    if not opt.url:
         DebugManager.e("未输入 url")
         return 0
 
