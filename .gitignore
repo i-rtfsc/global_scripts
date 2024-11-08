@@ -5,6 +5,8 @@
 plugins/system/clash/logs
 plugins/system/clash/conf/cache.db
 
+.idea/
+
 custom
 
 test
