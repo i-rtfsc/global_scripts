@@ -37,13 +37,13 @@ gs_plugins=(
          git
          goto
          repo
+         spider/cnblogs
+         spider/csdn
+         spider/jianshu
          system/brew
          system/clash
          system/proxy
          system/repo
-         csdn
-         jianshu
-         cnblogs
         )
 
 # custom 目录下的插件
