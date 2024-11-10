@@ -21,6 +21,7 @@ import hashlib
 import logging
 import os
 import re
+import signal
 import time
 
 from concurrent.futures import TimeoutError
