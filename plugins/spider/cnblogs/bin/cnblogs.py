@@ -122,6 +122,28 @@ class Utils:
     def rename_image_if_needed(filename):
         return filename.split('#')[0]
 
+    @staticmethod
+    def sanitize_filename(title):
+        """
+        Sanitize the given title to be used as a valid filename in Windows.
+
+        Args:
+            title (str): The original title string.
+
+        Returns:
+            str: A sanitized title with invalid characters replaced by '-'.
+        """
+        # Define a pattern to match all invalid characters
+        invalid_chars_pattern = r'[\\/:"*?<>|]'
+
+        # Replace invalid characters with '-'
+        sanitized_title = re.sub(invalid_chars_pattern, '-', title)
+
+        # Strip leading or trailing whitespace that might result in invalid filenames
+        sanitized_title = sanitized_title.strip()
+
+        return sanitized_title
+
 
 class DebugManager:
     _COLOR_RESET = "\u001B[0m"
@@ -288,7 +310,7 @@ class CNBlogs:
 
         try:
             text = self.content2markdown(content)
-            file_path = os.path.join(self.out_dir, "{}.md".format(re.sub(r'[/:：*?"<>|\n]', '-', title)))
+            file_path = os.path.join(self.out_dir, "{}.md".format(Utils.sanitize_filename(title)))
             DebugManager.i(f"{file_path}\n")
             with open(file_path, mode="w", encoding="utf-8") as f:
                 f.write(self.metadata_generator.metadata(title, url, tags))
