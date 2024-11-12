@@ -175,12 +175,13 @@ class Flags(Enum):
 
 
 class MetadataGenerator:
-    def metadata(self, title, url, tags):
+    def metadata(self, title, url, date, tags):
         """生成Markdown格式的元数据。
 
         Args:
             title (str): 文章标题。
             url (str): 参考链接。
+            date (str): 文章时间。
             tags (list): 标签列表。
 
         Returns:
@@ -188,7 +189,7 @@ class MetadataGenerator:
         """
         data = "---\n"
         data += f"title: {title}\n"
-        data += f"date: {time.strftime('%Y-%m-%d', time.localtime())}\n"
+        data += f"date: {date}\n"
 
         if tags:
             data += "tags:\n"
@@ -273,6 +274,7 @@ class CSDN(object):
         content = re.sub("<br>", "", content)
 
         tags = self.extract_tags(page)
+        data_time = page.css('span.time.blog-postTime::attr(data-time)').get()
 
         try:
             text = self.content2markdown(content)
@@ -280,7 +282,7 @@ class CSDN(object):
             file_path = os.path.join(self.out_dir, "{}.md".format(Utils.sanitize_filename(title)))
             DebugManager.i(f"{file_path}\n")
             with open(file_path, mode="w", encoding="utf-8") as f:
-                f.write(self.metadata_generator.metadata(title, url, tags))
+                f.write(self.metadata_generator.metadata(title, url, data_time, tags))
                 f.write(text)
         except TimeoutError:
             DebugManager.e(f"content to markdown timed out for {url}")

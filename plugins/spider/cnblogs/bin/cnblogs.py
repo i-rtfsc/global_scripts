@@ -193,12 +193,13 @@ class Flags(Enum):
 
 
 class MetadataGenerator:
-    def metadata(self, title, url, tags):
+    def metadata(self, title, url, date, tags):
         """生成Markdown格式的元数据。
 
         Args:
             title (str): 文章标题。
             url (str): 参考链接。
+            date (str): 文章时间。
             tags (list): 标签列表。
 
         Returns:
@@ -206,7 +207,7 @@ class MetadataGenerator:
         """
         data = "---\n"
         data += f"title: {title}\n"
-        data += f"date: {time.strftime('%Y-%m-%d', time.localtime())}\n"
+        data += f"date: {date}\n"
 
         if tags:
             data += "tags:\n"
@@ -307,13 +308,16 @@ class CNBlogs:
             return
 
         tags = self.extract_tags(soup)
+        # 查找 id 为 "post-date" 的 span 标签，并获取其文本内容
+        span_tag = soup.find('span', id='post-date')
+        date_text = span_tag.get_text(strip=True)
 
         try:
             text = self.content2markdown(content)
             file_path = os.path.join(self.out_dir, "{}.md".format(Utils.sanitize_filename(title)))
             DebugManager.i(f"{file_path}\n")
             with open(file_path, mode="w", encoding="utf-8") as f:
-                f.write(self.metadata_generator.metadata(title, url, tags))
+                f.write(self.metadata_generator.metadata(title, url, date_text, tags))
                 f.write(text)
         except Exception as e:
             DebugManager.e(f"Error processing {url}: {str(e)}")
