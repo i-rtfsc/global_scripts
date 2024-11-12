@@ -19,11 +19,13 @@
 import argparse
 import hashlib
 import logging
-import os
+import json
 import re
+import os
 import signal
 import time
 from concurrent.futures import TimeoutError
+from datetime import datetime
 from enum import Enum
 from functools import wraps
 from logging import getLogger, Logger, StreamHandler
@@ -53,6 +55,32 @@ def timeout(seconds=10):
         return wrapper
 
     return decorator
+
+
+class MetadataGenerator:
+    def metadata(self, title, url, date, tags):
+        """生成Markdown格式的元数据。
+
+        Args:
+            title (str): 文章标题。
+            url (str): 参考链接。
+            date (str): 文章时间。
+            tags (list): 标签列表。
+
+        Returns:
+            str: 生成的Markdown格式的元数据字符串。
+        """
+        data = "---\n"
+        data += f"title: {title}\n"
+        data += f"date: {date}\n"
+
+        if tags:
+            data += "tags:\n"
+            for tag in tags:
+                data += f"  - {tag}\n"
+
+        data += f"reference:\n  - {url}\n---\n\n"
+        return data
 
 
 class Markdownify:
@@ -203,6 +231,7 @@ class JianShu:
         self.local = local
         self.session = requests.Session()
         self.task_queue = list()
+        self.metadata_generator = MetadataGenerator()
 
         self.debug()
 
@@ -319,12 +348,33 @@ class JianShu:
                 f.write(f"\"{url}\"\n")
             return
 
+        # Use current time
+        data_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        # Extract JSON data to get first_shared_at
+        json_data_match = re.search(r'<script id="__NEXT_DATA__" type="application/json">(.+?)</script>',
+                                    html_content, re.S)
+
+        if json_data_match:
+            json_data = json_data_match.group(1)
+            data = json.loads(json_data)
+
+            # Extract first_shared_at timestamp
+            first_shared_at_timestamp = data['props']['initialState']['note']['data'].get('first_shared_at')
+            print(first_shared_at_timestamp)
+            if first_shared_at_timestamp:
+                # Convert timestamp to human-readable format
+                data_time = datetime.fromtimestamp(first_shared_at_timestamp).strftime('%Y-%m-%d %H:%M:%S')
+            else:
+                # Use current time if first_shared_at is not found
+                data_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
         try:
             text = self.content2markdown(article_content)
             file_path = os.path.join(out_dir, "{}.md".format(Utils.sanitize_filename(title)))
             DebugManager.i(f"{file_path}\n")
             with open(file_path, mode="w", encoding="utf-8") as f:
-                f.write(self.metadata(title, url))
+                # f.write(self.metadata(title, url))
+                f.write(self.metadata_generator.metadata(title, url, data_time, None))
                 f.write(text)
         except TimeoutError:
             DebugManager.e(f"content to markdown timed out for {url}")
@@ -361,12 +411,6 @@ class JianShu:
         else:
             return text
 
-    def metadata(self, title, url):
-        data = "---\n"
-        data += f"title: {title}\n"
-        data += f"date: {time.strftime('%Y-%m-%d', time.localtime())}\n"
-        data += f"reference:\n  - {url}\n---\n\n"
-        return data
 
     def debug(self):
         DebugManager.d(str([f'{k}:{v}' for k, v in self.__dict__.items()]))
