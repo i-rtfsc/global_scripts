@@ -104,22 +104,24 @@ class Utils:
     def rename_image_if_needed(filename):
         return filename.split('#')[0]
 
-
     @staticmethod
     def sanitize_filename(title):
         """
-        Sanitize the given title to be used as a valid filename in Windows.
+        Sanitize the given title to be used as a valid filename in Windows, replacing '[' with '<' and ']' with '>'.
 
         Args:
             title (str): The original title string.
 
         Returns:
-            str: A sanitized title with invalid characters replaced by '-'.
+            str: A sanitized title with specific replacements for '[' and ']'.
         """
-        # Define a pattern to match all invalid characters
-        invalid_chars_pattern = r'[\\/:"*?<>|]'
+        # Replace '[' with '<' and ']' with '>'
+        title = title.replace('[', '<').replace(']', '>')
 
-        # Replace invalid characters with '-'
+        # Define a pattern to match all other invalid characters except '<' and '>'
+        invalid_chars_pattern = r'[\\/:*?"|]'
+
+        # Replace other invalid characters with '-'
         sanitized_title = re.sub(invalid_chars_pattern, '-', title)
 
         # Strip leading or trailing whitespace that might result in invalid filenames
@@ -277,9 +279,10 @@ class CSDN(object):
         data_time = page.css('span.time.blog-postTime::attr(data-time)').get()
 
         try:
+            title = Utils.sanitize_filename(title)
             text = self.content2markdown(content)
             text = self.update_local_pic_content(text)
-            file_path = os.path.join(self.out_dir, "{}.md".format(Utils.sanitize_filename(title)))
+            file_path = os.path.join(self.out_dir, "{}.md".format(title))
             DebugManager.i(f"{file_path}\n")
             with open(file_path, mode="w", encoding="utf-8") as f:
                 f.write(self.metadata_generator.metadata(title, url, data_time, tags))
