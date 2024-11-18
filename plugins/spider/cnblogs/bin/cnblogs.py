@@ -133,10 +133,10 @@ class Utils:
         Returns:
             str: A sanitized title with specific replacements for '[' and ']'.
         """
-        # Replace '[' with '<' and ']' with '>'
-        title = title.replace('[', '<').replace(']', '>')
+        # Replace '[' with '(' and ']' with ')'
+        title = title.replace('[', '(').replace(']', ')')
 
-        # Define a pattern to match all other invalid characters except '<' and '>'
+        # Define a pattern to match all other invalid characters except '(' and ')'
         invalid_chars_pattern = r'[\\/:*?"|]'
 
         # Replace other invalid characters with '-'
