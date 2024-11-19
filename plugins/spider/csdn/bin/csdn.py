@@ -107,14 +107,18 @@ class Utils:
     @staticmethod
     def sanitize_filename(title):
         """
-        Sanitize the given title to be used as a valid filename in Windows, replacing '[' with '<' and ']' with '>'.
+        Sanitize the given title to be used as a valid filename in Windows,
+        replacing '<' with '(' and '>' with ')', and handling other invalid characters.
 
         Args:
             title (str): The original title string.
 
         Returns:
-            str: A sanitized title with specific replacements for '[' and ']'.
+            str: A sanitized title with specific replacements for '<' and '>'.
         """
+        # Replace '<' with '(' and '>' with ')'
+        title = title.replace('<', '(').replace('>', ')')
+
         # Replace '[' with '(' and ']' with ')'
         title = title.replace('[', '(').replace(']', ')')
 
@@ -128,6 +132,7 @@ class Utils:
         sanitized_title = sanitized_title.strip()
 
         return sanitized_title
+
 
 class DebugManager:
     _COLOR_RESET = "\u001B[0m"
