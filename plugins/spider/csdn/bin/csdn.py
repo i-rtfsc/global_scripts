@@ -281,7 +281,10 @@ class CSDN(object):
         content = re.sub("<br>", "", content)
 
         tags = self.extract_tags(page)
-        data_time = page.css('span.time.blog-postTime::attr(data-time)').get()
+
+        data_time = self.extract_time(page)
+        if not data_time:
+            print(f'{url} hasnot data time')
 
         try:
             title = Utils.sanitize_filename(title)
@@ -314,6 +317,18 @@ class CSDN(object):
                 except json.JSONDecodeError:
                     continue
         return tags
+
+    def extract_time(self, page):
+        data_time = page.css('span.time.blog-postTime::attr(data-time)').get()
+        # 如果未能获取到数据，则尝试新的选择器
+        if not data_time:
+            # 使用新的选择器抓取时间
+            data_time = page.css('div.up-time span::text').re_first(r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}')
+        # 如果前两个选择器都未能获取数据，尝试新的时间格式
+        if not data_time:
+            data_time = page.css('span.time::text').re_first(r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}')
+
+        return data_time
 
     @timeout(10)
     def content2markdown(self, content):
