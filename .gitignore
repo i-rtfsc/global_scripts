@@ -1,3 +1,26 @@
+# macOS
+.DS_Store
+
+# VIM
+*.swp
+
+# Pyc
+*.pyc
+
+# .vscode directory
+.vscode
+
+# .idea directory
+.idea
+
+# claude
+.claude/
+
+# pycharm
+**/venv/
+**/__pycache__/
+**/*.pyc
+
 **/*.db
 **/*.db-shm
 **/*.db-wal
@@ -8,5 +31,7 @@ plugins/system/clash/conf/cache.db
 .idea/
 
 custom
+
+docs/ai/
 
 test
