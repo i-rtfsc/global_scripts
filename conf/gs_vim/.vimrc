@@ -1,1 +1,0 @@
-source ~/bin/global_scripts/conf/gs_vim/init.vim

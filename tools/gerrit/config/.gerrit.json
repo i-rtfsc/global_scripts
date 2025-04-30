@@ -1,7 +1,0 @@
-[
-  {
-    "project": "review",
-    "sql": "ssh -p 29999 x-huanganqi@gerrit.rnd.meizu.com gerrit query --format=JSON reviewer:x-huanganqi@meizu.com status:open",
-    "bot": "93c6a139-2a53-44ec-9711-850dd3a1e6f4"
-  }
-]

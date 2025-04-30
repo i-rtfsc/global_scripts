@@ -1,6 +1,0 @@
-[user]
-	name = Huang Anqi
-	email = Anqi_Huang@saic-gm.com
-[commit]
-    gpgsign = false
-    template = ~/bin/global_scripts/conf/gs_git/commit_template.git
