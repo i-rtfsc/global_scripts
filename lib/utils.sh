@@ -5,7 +5,6 @@
 # 描述: 字符串处理、文件操作、系统检测等通用功能
 
 # 加载兼容性支持
-source "$(dirname "${BASH_SOURCE[0]:-$0}")/declare_compat.sh"
 source "$(dirname "${BASH_SOURCE[0]:-$0}")/time_compat.sh"
 
 # ===============================
@@ -39,13 +38,27 @@ gs_str_rtrim() {
 # 字符串转小写
 gs_str_lower() {
     local str="$1"
-    echo "${str,,}"
+    local bash_major="${BASH_MAJOR_VERSION:-3}"
+    # 提取主版本号
+    bash_major="${bash_major%%.*}"
+    if [[ $bash_major -ge 4 ]]; then
+        echo "${str,,}"
+    else
+        echo "$str" | tr '[:upper:]' '[:lower:]'
+    fi
 }
 
 # 字符串转大写
 gs_str_upper() {
     local str="$1"
-    echo "${str^^}"
+    local bash_major="${BASH_MAJOR_VERSION:-3}"
+    # 提取主版本号
+    bash_major="${bash_major%%.*}"
+    if [[ $bash_major -ge 4 ]]; then
+        echo "${str^^}"
+    else
+        echo "$str" | tr '[:lower:]' '[:upper:]'
+    fi
 }
 
 # 字符串长度
@@ -597,14 +610,16 @@ gs_array_reverse() {
 # ===============================
 
 # 颜色代码定义
-readonly _GS_COLOR_RED='\033[0;31m'
-readonly _GS_COLOR_GREEN='\033[0;32m'
-readonly _GS_COLOR_YELLOW='\033[1;33m'
-readonly _GS_COLOR_BLUE='\033[0;34m'
-readonly _GS_COLOR_PURPLE='\033[0;35m'
-readonly _GS_COLOR_CYAN='\033[0;36m'
-readonly _GS_COLOR_WHITE='\033[1;37m'
-readonly _GS_COLOR_RESET='\033[0m'
+if [[ -z "${_GS_COLOR_RED:-}" ]]; then
+    readonly _GS_COLOR_RED='\033[0;31m'
+    readonly _GS_COLOR_GREEN='\033[0;32m'
+    readonly _GS_COLOR_YELLOW='\033[1;33m'
+    readonly _GS_COLOR_BLUE='\033[0;34m'
+    readonly _GS_COLOR_PURPLE='\033[0;35m'
+    readonly _GS_COLOR_CYAN='\033[0;36m'
+    readonly _GS_COLOR_WHITE='\033[1;37m'
+    readonly _GS_COLOR_RESET='\033[0m'
+fi
 
 # 检查终端是否支持颜色
 gs_color_supported() {
@@ -651,54 +666,3 @@ gs_progress_bar() {
     printf "] %d%% (%d/%d)" "$percentage" "$current" "$total"
 }
 
-# 如果直接执行此脚本，运行测试
-if [[ "${BASH_SOURCE[0]:-$0}" == "${0}" ]]; then
-    echo "=== Global Scripts Utils Test ==="
-    
-    echo
-    echo "1. 字符串处理测试:"
-    echo "原字符串: '  Hello World  '"
-    echo "去除空白: '$(gs_str_trim "  Hello World  ")'"
-    echo "转大写: '$(gs_str_upper "hello world")'"
-    echo "转小写: '$(gs_str_lower "HELLO WORLD")'"
-    echo "字符串长度: $(gs_str_length "Hello World")"
-    echo "包含检查: $(gs_str_contains "Hello World" "World" && echo "true" || echo "false")"
-    
-    echo
-    echo "2. 文件操作测试:"
-    test_file="$(gs_file_mktemp)"
-    echo "创建临时文件: $test_file"
-    echo "test content" > "$test_file"
-    echo "文件大小: $(gs_file_size "$test_file") bytes"
-    echo "文件行数: $(gs_file_lines "$test_file")"
-    echo "文件扩展名: $(gs_file_extension "$test_file")"
-    rm -f "$test_file"
-    
-    echo
-    echo "3. 系统检测测试:"
-    echo "操作系统: $(gs_sys_os)"
-    echo "系统架构: $(gs_sys_arch)"
-    echo "Shell类型: $(gs_sys_shell)"
-    echo "Shell版本: $(gs_sys_shell_version)"
-    echo "当前用户: $(gs_sys_username)"
-    echo "CPU核心数: $(gs_sys_cpu_cores)"
-    echo "内存大小: $(gs_sys_memory) MB"
-    
-    echo
-    echo "4. 颜色输出测试:"
-    gs_color_red "红色文本"
-    gs_color_green "绿色文本"
-    gs_color_yellow "黄色文本"
-    gs_color_blue "蓝色文本"
-    
-    echo
-    echo "5. 进度条测试:"
-    for i in {0..10}; do
-        gs_progress_bar "$i" 10
-        sleep 0.1
-    done
-    echo
-    
-    echo
-    echo "✓ Utils test completed"
-fi

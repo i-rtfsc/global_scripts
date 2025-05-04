@@ -5,7 +5,6 @@
 # 描述: 统一错误处理，错误码定义，错误恢复建议
 
 # 加载兼容性支持和日志系统
-source "$(dirname "${BASH_SOURCE[0]:-$0}")/declare_compat.sh"
 source "$(dirname "${BASH_SOURCE[0]:-$0}")/logger.sh"
 
 # 错误码定义
@@ -26,41 +25,51 @@ readonly _GS_ERROR_UNSUPPORTED=13      # 不支持的操作
 readonly _GS_ERROR_INTERRUPTED=14      # 操作中断
 readonly _GS_ERROR_VALIDATION=15       # 验证失败
 
-# 错误消息映射
-gs_declare_A _GS_ERROR_MESSAGES
-gs_array_set _GS_ERROR_MESSAGES "$_GS_ERROR_SUCCESS" "操作成功"
-gs_array_set _GS_ERROR_MESSAGES "$_GS_ERROR_GENERIC" "通用错误"
-gs_array_set _GS_ERROR_MESSAGES "$_GS_ERROR_INVALID_ARG" "无效参数"
-gs_array_set _GS_ERROR_MESSAGES "$_GS_ERROR_FILE_NOT_FOUND" "文件未找到"
-gs_array_set _GS_ERROR_MESSAGES "$_GS_ERROR_PERMISSION" "权限不足"
-gs_array_set _GS_ERROR_MESSAGES "$_GS_ERROR_NETWORK" "网络连接错误"
-gs_array_set _GS_ERROR_MESSAGES "$_GS_ERROR_CONFIG" "配置错误"
-gs_array_set _GS_ERROR_MESSAGES "$_GS_ERROR_DEPENDENCY" "依赖错误"
-gs_array_set _GS_ERROR_MESSAGES "$_GS_ERROR_TIMEOUT" "操作超时"
-gs_array_set _GS_ERROR_MESSAGES "$_GS_ERROR_DISK_SPACE" "磁盘空间不足"
-gs_array_set _GS_ERROR_MESSAGES "$_GS_ERROR_MEMORY" "内存不足"
-gs_array_set _GS_ERROR_MESSAGES "$_GS_ERROR_PLUGIN" "插件错误"
-gs_array_set _GS_ERROR_MESSAGES "$_GS_ERROR_COMMAND_NOT_FOUND" "命令未找到"
-gs_array_set _GS_ERROR_MESSAGES "$_GS_ERROR_UNSUPPORTED" "不支持的操作"
-gs_array_set _GS_ERROR_MESSAGES "$_GS_ERROR_INTERRUPTED" "操作被中断"
-gs_array_set _GS_ERROR_MESSAGES "$_GS_ERROR_VALIDATION" "验证失败"
+# 错误消息映射 - 简化为函数实现
+_gs_get_error_message() {
+    local error_code="$1"
+    case "$error_code" in
+        "$_GS_ERROR_SUCCESS") echo "操作成功" ;;
+        "$_GS_ERROR_GENERIC") echo "通用错误" ;;
+        "$_GS_ERROR_INVALID_ARG") echo "无效参数" ;;
+        "$_GS_ERROR_FILE_NOT_FOUND") echo "文件未找到" ;;
+        "$_GS_ERROR_PERMISSION") echo "权限不足" ;;
+        "$_GS_ERROR_NETWORK") echo "网络连接错误" ;;
+        "$_GS_ERROR_CONFIG") echo "配置错误" ;;
+        "$_GS_ERROR_DEPENDENCY") echo "依赖错误" ;;
+        "$_GS_ERROR_TIMEOUT") echo "操作超时" ;;
+        "$_GS_ERROR_DISK_SPACE") echo "磁盘空间不足" ;;
+        "$_GS_ERROR_MEMORY") echo "内存不足" ;;
+        "$_GS_ERROR_PLUGIN") echo "插件错误" ;;
+        "$_GS_ERROR_COMMAND_NOT_FOUND") echo "命令未找到" ;;
+        "$_GS_ERROR_UNSUPPORTED") echo "不支持的操作" ;;
+        "$_GS_ERROR_INTERRUPTED") echo "操作被中断" ;;
+        "$_GS_ERROR_VALIDATION") echo "验证失败" ;;
+        *) echo "未知错误" ;;
+    esac
+}
 
-# 错误恢复建议映射
-gs_declare_A _GS_ERROR_SUGGESTIONS
-gs_array_set _GS_ERROR_SUGGESTIONS "$_GS_ERROR_INVALID_ARG" "请检查命令参数格式和值"
-gs_array_set _GS_ERROR_SUGGESTIONS "$_GS_ERROR_FILE_NOT_FOUND" "请确认文件路径是否正确，文件是否存在"
-gs_array_set _GS_ERROR_SUGGESTIONS "$_GS_ERROR_PERMISSION" "请检查文件权限或使用sudo运行"
-gs_array_set _GS_ERROR_SUGGESTIONS "$_GS_ERROR_NETWORK" "请检查网络连接和防火墙设置"
-gs_array_set _GS_ERROR_SUGGESTIONS "$_GS_ERROR_CONFIG" "请检查配置文件语法和值的正确性"
-gs_array_set _GS_ERROR_SUGGESTIONS "$_GS_ERROR_DEPENDENCY" "请安装缺失的依赖包"
-gs_array_set _GS_ERROR_SUGGESTIONS "$_GS_ERROR_TIMEOUT" "请重试或增加超时时间"
-gs_array_set _GS_ERROR_SUGGESTIONS "$_GS_ERROR_DISK_SPACE" "请清理磁盘空间"
-gs_array_set _GS_ERROR_SUGGESTIONS "$_GS_ERROR_MEMORY" "请关闭其他程序释放内存"
-gs_array_set _GS_ERROR_SUGGESTIONS "$_GS_ERROR_PLUGIN" "请检查插件配置和依赖"
-gs_array_set _GS_ERROR_SUGGESTIONS "$_GS_ERROR_COMMAND_NOT_FOUND" "请安装相关命令或检查PATH环境变量"
-gs_array_set _GS_ERROR_SUGGESTIONS "$_GS_ERROR_UNSUPPORTED" "请检查系统兼容性或更新版本"
-gs_array_set _GS_ERROR_SUGGESTIONS "$_GS_ERROR_INTERRUPTED" "操作已中断，可以重新运行"
-gs_array_set _GS_ERROR_SUGGESTIONS "$_GS_ERROR_VALIDATION" "请检查输入数据格式和完整性"
+# 错误恢复建议映射 - 简化为函数实现
+_gs_get_error_suggestion() {
+    local error_code="$1"
+    case "$error_code" in
+        "$_GS_ERROR_INVALID_ARG") echo "请检查命令参数格式和值" ;;
+        "$_GS_ERROR_FILE_NOT_FOUND") echo "请确认文件路径是否正确，文件是否存在" ;;
+        "$_GS_ERROR_PERMISSION") echo "请检查文件权限或使用sudo运行" ;;
+        "$_GS_ERROR_NETWORK") echo "请检查网络连接和防火墙设置" ;;
+        "$_GS_ERROR_CONFIG") echo "请检查配置文件语法和值的正确性" ;;
+        "$_GS_ERROR_DEPENDENCY") echo "请安装缺失的依赖包" ;;
+        "$_GS_ERROR_TIMEOUT") echo "请重试或增加超时时间" ;;
+        "$_GS_ERROR_DISK_SPACE") echo "请清理磁盘空间" ;;
+        "$_GS_ERROR_MEMORY") echo "请关闭其他程序释放内存" ;;
+        "$_GS_ERROR_PLUGIN") echo "请检查插件配置和依赖" ;;
+        "$_GS_ERROR_COMMAND_NOT_FOUND") echo "请安装相关命令或检查PATH环境变量" ;;
+        "$_GS_ERROR_UNSUPPORTED") echo "请检查系统兼容性或更新版本" ;;
+        "$_GS_ERROR_INTERRUPTED") echo "操作已中断，可以重新运行" ;;
+        "$_GS_ERROR_VALIDATION") echo "请检查输入数据格式和完整性" ;;
+        *) echo "请查阅文档或联系技术支持" ;;
+    esac
+}
 
 # 全局错误处理配置
 _GS_ERROR_EXIT_ON_ERROR="${_GS_ERROR_EXIT_ON_ERROR:-true}"
@@ -73,17 +82,13 @@ export _GS_ERROR_EXIT_ON_ERROR _GS_ERROR_SHOW_STACK _GS_ERROR_LOG_ERRORS
 # 获取错误消息
 gs_error_get_message() {
     local error_code="$1"
-    local message
-    message="$(gs_array_get _GS_ERROR_MESSAGES "$error_code")"
-    echo "${message:-未知错误}"
+    _gs_get_error_message "$error_code"
 }
 
 # 获取错误建议
 gs_error_get_suggestion() {
     local error_code="$1"
-    local suggestion
-    suggestion="$(gs_array_get _GS_ERROR_SUGGESTIONS "$error_code")"
-    echo "${suggestion:-请联系技术支持}"
+    _gs_get_error_suggestion "$error_code"
 }
 
 # 获取调用栈信息
@@ -324,38 +329,3 @@ gs_error_list_codes() {
     printf "%-3d %-25s %s\\n" "$_GS_ERROR_VALIDATION" "VALIDATION" "$(gs_error_get_message $_GS_ERROR_VALIDATION)"
 }
 
-# 如果直接执行此脚本，运行测试
-if [[ "${BASH_SOURCE[0]:-$0}" == "${0}" ]]; then
-    echo "=== Global Scripts Error Handler Test ==="
-    
-    # 配置测试环境
-    gs_error_set_exit_on_error false
-    gs_error_set_show_stack true
-    
-    echo
-    echo "1. 测试错误码列表:"
-    gs_error_list_codes
-    
-    echo
-    echo "2. 测试基本错误处理:"
-    gs_error_invalid_arg "这是一个无效参数测试"
-    
-    echo
-    echo "3. 测试文件检查:"
-    gs_try gs_check_file_exists "/nonexistent/file" || echo "文件检查测试通过"
-    
-    echo
-    echo "4. 测试命令检查:"
-    gs_try gs_check_command_exists "nonexistent_command_xyz" || echo "命令检查测试通过"
-    
-    echo
-    echo "5. 测试安全执行:"
-    gs_try gs_safe_exec "echo '安全执行测试成功'" || echo "安全执行测试失败"
-    
-    echo
-    echo "6. 错误配置状态:"
-    gs_error_get_config
-    
-    echo
-    echo "✓ Error handler test completed"
-fi

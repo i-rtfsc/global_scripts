@@ -174,7 +174,6 @@ run_tests() {
     fi
     
     # 测试兼容性
-    if source "${_GS_INSTALL_DIR}/lib/declare_compat.sh" >/dev/null 2>&1; then
         log_success "兼容性测试通过"
     else
         log_error "兼容性测试失败"

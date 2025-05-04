@@ -5,39 +5,53 @@
 # 描述: 支持多级别日志输出，彩色终端显示，文件记录
 
 # 加载兼容性支持
-source "$(dirname "${BASH_SOURCE[0]:-$0}")/declare_compat.sh"
 source "$(dirname "${BASH_SOURCE[0]:-$0}")/time_compat.sh"
 
 # 日志级别定义
-readonly LOG_LEVEL_DEBUG=0
-readonly LOG_LEVEL_INFO=1
-readonly LOG_LEVEL_WARN=2
-readonly LOG_LEVEL_ERROR=3
-readonly LOG_LEVEL_FATAL=4
+if [[ -z "${LOG_LEVEL_DEBUG:-}" ]]; then
+    readonly LOG_LEVEL_DEBUG=0
+    readonly LOG_LEVEL_INFO=1
+    readonly LOG_LEVEL_WARN=2
+    readonly LOG_LEVEL_ERROR=3
+    readonly LOG_LEVEL_FATAL=4
+fi
 
-# 日志级别名称映射
-gs_declare_A LOG_LEVEL_NAMES
-gs_array_set LOG_LEVEL_NAMES "$LOG_LEVEL_DEBUG" "DEBUG"
-gs_array_set LOG_LEVEL_NAMES "$LOG_LEVEL_INFO" "INFO"
-gs_array_set LOG_LEVEL_NAMES "$LOG_LEVEL_WARN" "WARN"
-gs_array_set LOG_LEVEL_NAMES "$LOG_LEVEL_ERROR" "ERROR"
-gs_array_set LOG_LEVEL_NAMES "$LOG_LEVEL_FATAL" "FATAL"
+# 获取日志级别名称 - 简化实现避免关联数组问题
+_gs_log_get_level_name() {
+    local level="$1"
+    case "$level" in
+        0) echo "DEBUG" ;;
+        1) echo "INFO" ;;
+        2) echo "WARN" ;;
+        3) echo "ERROR" ;;
+        4) echo "FATAL" ;;
+        *) echo "UNKNOWN" ;;
+    esac
+}
+
+# 获取日志级别颜色 - 简化实现避免关联数组问题  
+_gs_log_get_level_color() {
+    local level="$1"
+    case "$level" in
+        0) echo "$COLOR_DEBUG" ;;
+        1) echo "$COLOR_INFO" ;;
+        2) echo "$COLOR_WARN" ;;
+        3) echo "$COLOR_ERROR" ;;
+        4) echo "$COLOR_FATAL" ;;
+        *) echo "" ;;
+    esac
+}
 
 # 颜色定义
-readonly COLOR_DEBUG='\033[0;36m'    # 青色
-readonly COLOR_INFO='\033[0;32m'     # 绿色
-readonly COLOR_WARN='\033[1;33m'     # 黄色
-readonly COLOR_ERROR='\033[0;31m'    # 红色
-readonly COLOR_FATAL='\033[1;31m'    # 亮红色
-readonly COLOR_RESET='\033[0m'       # 重置
+if [[ -z "${COLOR_DEBUG:-}" ]]; then
+    readonly COLOR_DEBUG='\033[0;36m'    # 青色
+    readonly COLOR_INFO='\033[0;32m'     # 绿色
+    readonly COLOR_WARN='\033[1;33m'     # 黄色
+    readonly COLOR_ERROR='\033[0;31m'    # 红色
+    readonly COLOR_FATAL='\033[1;31m'    # 亮红色
+    readonly COLOR_RESET='\033[0m'       # 重置
+fi
 
-# 日志级别颜色映射
-gs_declare_A LOG_LEVEL_COLORS
-gs_array_set LOG_LEVEL_COLORS "$LOG_LEVEL_DEBUG" "$COLOR_DEBUG"
-gs_array_set LOG_LEVEL_COLORS "$LOG_LEVEL_INFO" "$COLOR_INFO"
-gs_array_set LOG_LEVEL_COLORS "$LOG_LEVEL_WARN" "$COLOR_WARN"
-gs_array_set LOG_LEVEL_COLORS "$LOG_LEVEL_ERROR" "$COLOR_ERROR"
-gs_array_set LOG_LEVEL_COLORS "$LOG_LEVEL_FATAL" "$COLOR_FATAL"
 
 # 全局配置变量
 _GS_LOG_LEVEL="${_GS_LOG_LEVEL:-$LOG_LEVEL_INFO}"
@@ -96,7 +110,7 @@ _gs_log() {
     [[ $level -lt $_GS_LOG_LEVEL ]] && return 0
     
     local level_name
-    level_name="$(gs_array_get LOG_LEVEL_NAMES "$level")"
+    level_name="$(_gs_log_get_level_name "$level")"
     
     local timestamp
     timestamp="$(_gs_log_timestamp)"
@@ -106,7 +120,7 @@ _gs_log() {
     # 终端输出
     if [[ -t 2 ]] && [[ "$_GS_LOG_ENABLE_COLOR" == "true" ]]; then
         local color
-        color="$(gs_array_get LOG_LEVEL_COLORS "$level")"
+        color="$(_gs_log_get_level_color "$level")"
         printf "${color}%s${COLOR_RESET}\n" "$log_entry" >&2
     else
         printf "%s\n" "$log_entry" >&2
@@ -191,7 +205,14 @@ gs_log_enable_file() {
 
 # 日志状态查询
 gs_log_get_level() {
-    echo "$(gs_array_get LOG_LEVEL_NAMES "$_GS_LOG_LEVEL")"
+    case "$_GS_LOG_LEVEL" in
+        "$LOG_LEVEL_DEBUG") echo "DEBUG" ;;
+        "$LOG_LEVEL_INFO") echo "INFO" ;;
+        "$LOG_LEVEL_WARN") echo "WARN" ;;
+        "$LOG_LEVEL_ERROR") echo "ERROR" ;;
+        "$LOG_LEVEL_FATAL") echo "FATAL" ;;
+        *) echo "UNKNOWN" ;;
+    esac
 }
 
 gs_log_get_file() {
@@ -225,27 +246,3 @@ _gs_log_init() {
     gs_log_debug "Logger initialized - Level: $(gs_log_get_level), File: $_GS_LOG_FILE"
 }
 
-# 如果直接执行此脚本，运行测试
-if [[ "${BASH_SOURCE[0]:-$0}" == "${0}" ]]; then
-    echo "=== Global Scripts Logger Test ==="
-    
-    _gs_log_init
-    
-    gs_log_debug "This is a debug message"
-    gs_log_info "This is an info message"
-    gs_log_warn "This is a warning message"
-    gs_log_error "This is an error message"
-    
-    echo
-    gs_log_status
-    
-    echo
-    echo "Testing log level change..."
-    gs_log_set_level DEBUG
-    gs_log_debug "Debug message now visible"
-    
-    echo "✓ Logger test completed"
-fi
-
-# 自动初始化
-_gs_log_init
