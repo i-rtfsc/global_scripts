@@ -4,6 +4,8 @@
 # 版本: 1.0.0
 # 描述: 测试utils.sh的各项功能
 
+# 设置测试模式，禁用自测代码
+export _GS_TEST_MODE=1
 # 获取脚本目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"

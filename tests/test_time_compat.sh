@@ -4,6 +4,8 @@
 # 加载时间兼容性脚本
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/../lib/time_compat.sh"
+# 设置测试模式，禁用自测代码
+export _GS_TEST_MODE=1
 
 # 基础功能测试
 test_time_functions() {

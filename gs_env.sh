@@ -27,7 +27,6 @@ export _GS_CONFIG_DIR _GS_PLUGINS_DIR _GS_CUSTOM_DIR _GS_COMPLETION_DIR
 export _GS_TESTS_DIR _GS_CACHE_DIR _GS_LOG_DIR
 
 # 加载兼容性支持
-source "${_GS_LIB_DIR}/declare_compat.sh"
 source "${_GS_LIB_DIR}/time_compat.sh"
 
 # 初始化启动时间监控
