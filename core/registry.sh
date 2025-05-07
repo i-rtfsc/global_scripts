@@ -4,9 +4,15 @@
 # 版本: 1.0.0
 # 描述: 基于Shell+Python混合架构的命令注册，简化为文件存储，Python处理复杂逻辑
 
-# 加载依赖模块
+# 加载依赖模块 (兼容bash/zsh)
 if [[ -z "${_GS_REGISTRY_DIR:-}" ]]; then
-    readonly _GS_REGISTRY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+    if [[ -n "${BASH_SOURCE:-}" ]]; then
+        readonly _GS_REGISTRY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    elif [[ -n "${(%):-%x}" ]] 2>/dev/null; then
+        readonly _GS_REGISTRY_DIR="$(cd "$(dirname "${(%):-%x}")" && pwd)"
+    else
+        readonly _GS_REGISTRY_DIR="$(cd "$(dirname "$0")" && pwd)"
+    fi
 fi
 if [[ -z "${_GS_ROOT:-}" ]]; then
     readonly _GS_ROOT="$(cd "$_GS_REGISTRY_DIR/.." && pwd)"
