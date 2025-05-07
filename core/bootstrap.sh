@@ -4,9 +4,15 @@
 # 版本: 1.0.0
 # 描述: 系统环境检测、初始化、依赖检查和性能监控
 
-# 加载依赖模块
+# 加载依赖模块 (兼容bash/zsh)
 if [[ -z "${_GS_BOOTSTRAP_DIR:-}" ]]; then
-    readonly _GS_BOOTSTRAP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+    if [[ -n "${BASH_SOURCE:-}" ]]; then
+        readonly _GS_BOOTSTRAP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    elif [[ -n "${(%):-%x}" ]] 2>/dev/null; then
+        readonly _GS_BOOTSTRAP_DIR="$(cd "$(dirname "${(%):-%x}")" && pwd)"
+    else
+        readonly _GS_BOOTSTRAP_DIR="$(cd "$(dirname "$0")" && pwd)"
+    fi
 fi
 if [[ -z "${_GS_ROOT:-}" ]]; then
     readonly _GS_ROOT="$(cd "$_GS_BOOTSTRAP_DIR/.." && pwd)"

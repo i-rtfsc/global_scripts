@@ -4,9 +4,15 @@
 # 版本: 1.0.0
 # 描述: 基于Shell+Python混合架构的配置管理，Shell负责文件操作，Python负责JSON处理
 
-# 加载依赖模块
+# 加载依赖模块 (兼容bash/zsh)
 if [[ -z "${_GS_CONFIG_DIR:-}" ]]; then
-    readonly _GS_CONFIG_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+    if [[ -n "${BASH_SOURCE:-}" ]]; then
+        readonly _GS_CONFIG_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    elif [[ -n "${(%):-%x}" ]] 2>/dev/null; then
+        readonly _GS_CONFIG_DIR="$(cd "$(dirname "${(%):-%x}")" && pwd)"
+    else
+        readonly _GS_CONFIG_DIR="$(cd "$(dirname "$0")" && pwd)"
+    fi
 fi
 if [[ -z "${_GS_ROOT:-}" ]]; then
     readonly _GS_ROOT="$(cd "$_GS_CONFIG_DIR/.." && pwd)"

@@ -4,26 +4,28 @@
 # 版本: 1.0.0
 # 描述: 统一错误处理，错误码定义，错误恢复建议
 
-# 加载兼容性支持和日志系统
-source "$(dirname "${BASH_SOURCE[0]:-$0}")/logger.sh"
+# 加载兼容性支持和日志系统 (如果尚未加载)
+if ! declare -f gs_log_info >/dev/null 2>&1; then
+    source "$(dirname "${BASH_SOURCE[0]:-$0}")/logger.sh"
+fi
 
-# 错误码定义
-readonly _GS_ERROR_SUCCESS=0           # 成功
-readonly _GS_ERROR_GENERIC=1           # 通用错误
-readonly _GS_ERROR_INVALID_ARG=2       # 无效参数
-readonly _GS_ERROR_FILE_NOT_FOUND=3    # 文件未找到
-readonly _GS_ERROR_PERMISSION=4        # 权限错误
-readonly _GS_ERROR_NETWORK=5           # 网络错误
-readonly _GS_ERROR_CONFIG=6            # 配置错误
-readonly _GS_ERROR_DEPENDENCY=7        # 依赖错误
-readonly _GS_ERROR_TIMEOUT=8           # 超时错误
-readonly _GS_ERROR_DISK_SPACE=9        # 磁盘空间不足
-readonly _GS_ERROR_MEMORY=10           # 内存不足
-readonly _GS_ERROR_PLUGIN=11           # 插件错误
-readonly _GS_ERROR_COMMAND_NOT_FOUND=12 # 命令未找到
-readonly _GS_ERROR_UNSUPPORTED=13      # 不支持的操作
-readonly _GS_ERROR_INTERRUPTED=14      # 操作中断
-readonly _GS_ERROR_VALIDATION=15       # 验证失败
+# 错误码定义 (防止重复定义)
+[[ -z "${_GS_ERROR_SUCCESS:-}" ]] && readonly _GS_ERROR_SUCCESS=0           # 成功
+[[ -z "${_GS_ERROR_GENERIC:-}" ]] && readonly _GS_ERROR_GENERIC=1           # 通用错误
+[[ -z "${_GS_ERROR_INVALID_ARG:-}" ]] && readonly _GS_ERROR_INVALID_ARG=2       # 无效参数
+[[ -z "${_GS_ERROR_FILE_NOT_FOUND:-}" ]] && readonly _GS_ERROR_FILE_NOT_FOUND=3    # 文件未找到
+[[ -z "${_GS_ERROR_PERMISSION:-}" ]] && readonly _GS_ERROR_PERMISSION=4        # 权限错误
+[[ -z "${_GS_ERROR_NETWORK:-}" ]] && readonly _GS_ERROR_NETWORK=5           # 网络错误
+[[ -z "${_GS_ERROR_CONFIG:-}" ]] && readonly _GS_ERROR_CONFIG=6            # 配置错误
+[[ -z "${_GS_ERROR_DEPENDENCY:-}" ]] && readonly _GS_ERROR_DEPENDENCY=7        # 依赖错误
+[[ -z "${_GS_ERROR_TIMEOUT:-}" ]] && readonly _GS_ERROR_TIMEOUT=8           # 超时错误
+[[ -z "${_GS_ERROR_DISK_SPACE:-}" ]] && readonly _GS_ERROR_DISK_SPACE=9        # 磁盘空间不足
+[[ -z "${_GS_ERROR_MEMORY:-}" ]] && readonly _GS_ERROR_MEMORY=10           # 内存不足
+[[ -z "${_GS_ERROR_PLUGIN:-}" ]] && readonly _GS_ERROR_PLUGIN=11           # 插件错误
+[[ -z "${_GS_ERROR_COMMAND_NOT_FOUND:-}" ]] && readonly _GS_ERROR_COMMAND_NOT_FOUND=12 # 命令未找到
+[[ -z "${_GS_ERROR_UNSUPPORTED:-}" ]] && readonly _GS_ERROR_UNSUPPORTED=13      # 不支持的操作
+[[ -z "${_GS_ERROR_INTERRUPTED:-}" ]] && readonly _GS_ERROR_INTERRUPTED=14      # 操作中断
+[[ -z "${_GS_ERROR_VALIDATION:-}" ]] && readonly _GS_ERROR_VALIDATION=15       # 验证失败
 
 # 错误消息映射 - 简化为函数实现
 _gs_get_error_message() {
