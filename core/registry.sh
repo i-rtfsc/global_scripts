@@ -24,10 +24,18 @@ source "$_GS_ROOT/lib/error.sh"
 source "$_GS_ROOT/lib/python_compat.sh"
 
 # 注册表文件路径
-readonly _GS_REGISTRY_HOME="${HOME}/.local/share/global_scripts"
-readonly _GS_COMMAND_REGISTRY_FILE="$_GS_REGISTRY_HOME/commands.json"
-readonly _GS_ALIAS_REGISTRY_FILE="$_GS_REGISTRY_HOME/aliases.json"
-readonly _GS_PLUGIN_REGISTRY_FILE="$_GS_REGISTRY_HOME/plugins.json"
+if [[ -z "${_GS_REGISTRY_HOME:-}" ]]; then
+    readonly _GS_REGISTRY_HOME="${HOME}/.local/share/global_scripts"
+fi
+if [[ -z "${_GS_COMMAND_REGISTRY_FILE:-}" ]]; then
+    readonly _GS_COMMAND_REGISTRY_FILE="$_GS_REGISTRY_HOME/commands.json"
+fi
+if [[ -z "${_GS_ALIAS_REGISTRY_FILE:-}" ]]; then
+    readonly _GS_ALIAS_REGISTRY_FILE="$_GS_REGISTRY_HOME/aliases.json"
+fi
+if [[ -z "${_GS_PLUGIN_REGISTRY_FILE:-}" ]]; then
+    readonly _GS_PLUGIN_REGISTRY_FILE="$_GS_REGISTRY_HOME/plugins.json"
+fi
 
 # 注册表状态
 _GS_REGISTRY_LOADED=false
