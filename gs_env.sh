@@ -8,33 +8,43 @@
 # 全局变量定义与环境变量设置
 # ===================================
 
-# 核心路径变量 (兼容bash/zsh)
+# 核心路径变量 (兼容bash/zsh，避免重复定义readonly变量)
 if [[ -z "${_GS_ROOT:-}" ]]; then
     if [[ -n "${BASH_SOURCE:-}" ]]; then
-        readonly _GS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        _GS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     elif [[ -n "${(%):-%x}" ]] 2>/dev/null; then
         # zsh compatibility
-        readonly _GS_ROOT="$(cd "$(dirname "${(%):-%x}")" && pwd)"
+        _GS_ROOT="$(cd "$(dirname "${(%):-%x}")" && pwd)"
     else
-        readonly _GS_ROOT="$(cd "$(dirname "$0")" && pwd)"
+        _GS_ROOT="$(cd "$(dirname "$0")" && pwd)"
     fi
+    readonly _GS_ROOT
 fi
-readonly _GS_VERSION="$(cat "${_GS_ROOT}/VERSION" 2>/dev/null || echo "unknown")"
-readonly _GS_LIB_DIR="${_GS_ROOT}/lib"
-readonly _GS_CORE_DIR="${_GS_ROOT}/core"
-readonly _GS_API_DIR="${_GS_ROOT}/api"
-readonly _GS_CONFIG_DIR="${_GS_ROOT}/config"
-readonly _GS_PLUGINS_DIR="${_GS_ROOT}/plugins"
-readonly _GS_CUSTOM_DIR="${_GS_ROOT}/custom"
-readonly _GS_COMPLETION_DIR="${_GS_ROOT}/completion"
-readonly _GS_TESTS_DIR="${_GS_ROOT}/tests"
+
+if [[ -z "${_GS_VERSION:-}" ]]; then
+    _GS_VERSION="$(cat "${_GS_ROOT}/VERSION" 2>/dev/null || echo "unknown")"
+    readonly _GS_VERSION
+fi
+
+if [[ -z "${_GS_LIB_DIR:-}" ]]; then
+    readonly _GS_LIB_DIR="${_GS_ROOT}/lib"
+    readonly _GS_CORE_DIR="${_GS_ROOT}/core"
+    readonly _GS_API_DIR="${_GS_ROOT}/api"
+    readonly _GS_CONFIG_DIR="${_GS_ROOT}/config"
+    readonly _GS_PLUGINS_DIR="${_GS_ROOT}/plugins"
+    readonly _GS_CUSTOM_DIR="${_GS_ROOT}/custom"
+    readonly _GS_COMPLETION_DIR="${_GS_ROOT}/completion"
+    readonly _GS_TESTS_DIR="${_GS_ROOT}/tests"
+fi
 
 # 运行时目录变量
-readonly _GS_RUNTIME_DIR="${HOME}/.local/share/global_scripts"
-readonly _GS_CACHE_DIR="${_GS_RUNTIME_DIR}/cache"
-readonly _GS_LOG_DIR="${_GS_RUNTIME_DIR}/logs"
-readonly _GS_DATA_DIR="${_GS_RUNTIME_DIR}/data"
-readonly _GS_TMP_DIR="${_GS_RUNTIME_DIR}/tmp"
+if [[ -z "${_GS_RUNTIME_DIR:-}" ]]; then
+    readonly _GS_RUNTIME_DIR="${HOME}/.local/share/global_scripts"
+    readonly _GS_CACHE_DIR="${_GS_RUNTIME_DIR}/cache"
+    readonly _GS_LOG_DIR="${_GS_RUNTIME_DIR}/logs"
+    readonly _GS_DATA_DIR="${_GS_RUNTIME_DIR}/data"
+    readonly _GS_TMP_DIR="${_GS_RUNTIME_DIR}/tmp"
+fi
 
 # 系统状态变量
 _GS_INITIALIZED=false
@@ -277,7 +287,64 @@ _gs_load_core_modules() {
         return 1
     fi
     
+    # 加载registry系统
+    local registry_module="${_GS_CORE_DIR}/registry.sh"
+    if [[ -f "$registry_module" ]]; then
+        source "$registry_module"
+        printf "✅ 加载核心模块: registry.sh\n"
+    else
+        printf "⚠️  注册表模块缺失: registry.sh\n" >&2
+    fi
+
+    # 加载API层模块
+    local api_modules=(
+        "command_api.sh"
+        "config_api.sh"
+    )
+    for module in "${api_modules[@]}"; do
+        module_path="${_GS_API_DIR}/$module"
+        if [[ -f "$module_path" ]]; then
+            source "$module_path"
+            printf "✅ 加载API模块: %s\n" "$module"
+        fi
+    done
+    
+    # 加载核心命令
+    local command_modules=(
+        "gs_help.sh"
+        "gs_version.sh"
+        "gs_status.sh"
+    )
+    for module in "${command_modules[@]}"; do
+        module_path="${_GS_ROOT}/commands/$module"
+        if [[ -f "$module_path" ]]; then
+            source "$module_path"
+            printf "✅ 加载命令模块: %s\n" "$module"
+        fi
+    done
+    
+    # 注册核心命令为可用命令
+    _gs_register_core_commands
+    
     return 0
+}
+
+# 注册核心命令函数
+_gs_register_core_commands() {
+    # 调用各命令模块的注册函数，避免重复注册
+    if command -v gs_help_register >/dev/null 2>&1; then
+        gs_help_register
+    fi
+    
+    if command -v gs_version_register >/dev/null 2>&1; then
+        gs_version_register
+    fi
+    
+    if command -v gs_status_register >/dev/null 2>&1; then
+        gs_status_register
+    fi
+    
+    printf "✅ 核心命令注册完成\n"
 }
 
 # 主系统初始化函数
@@ -408,4 +475,25 @@ _gs_is_sourced() {
 
 if ! _gs_is_sourced; then
     main "$@"
+else
+    # 当被source时，自动执行初始化
+    if [[ "$_GS_INITIALIZED" != "true" ]]; then
+        # 保存当前shell选项
+        local old_opts="$-"
+        
+        # 临时禁用严格模式，避免退出用户终端
+        set +e
+        
+        # 执行初始化
+        if gs_initialize; then
+            printf "✅ Global Scripts初始化完成\n"
+        else
+            printf "⚠️  Global Scripts初始化失败，某些功能可能不可用\n" >&2
+        fi
+        
+        # 恢复shell选项（如果原来是严格模式）
+        case "$old_opts" in
+            *e*) set -e ;;
+        esac
+    fi
 fi

@@ -23,12 +23,22 @@ source "$_GS_ROOT/lib/logger.sh"
 source "$_GS_ROOT/lib/error.sh"
 source "$_GS_ROOT/lib/python_compat.sh"
 
-# 配置管理变量
-readonly _GS_CONFIG_HOME="${HOME}/.local/share/global_scripts"
-readonly _GS_CONFIG_CACHE_DIR="${_GS_CONFIG_HOME}/cache"
-readonly _GS_CONFIG_DEFAULT_FILE="$_GS_ROOT/config/default.json"
-readonly _GS_CONFIG_USER_FILE="${_GS_CONFIG_HOME}/config.json"
-readonly _GS_CONFIG_CACHE_TTL=300  # 5分钟缓存
+# 配置管理变量 - 避免重复定义readonly变量
+if [[ -z "${_GS_CONFIG_HOME:-}" ]]; then
+    readonly _GS_CONFIG_HOME="${HOME}/.local/share/global_scripts"
+fi
+if [[ -z "${_GS_CONFIG_CACHE_DIR:-}" ]]; then
+    readonly _GS_CONFIG_CACHE_DIR="${_GS_CONFIG_HOME}/cache"
+fi
+if [[ -z "${_GS_CONFIG_DEFAULT_FILE:-}" ]]; then
+    readonly _GS_CONFIG_DEFAULT_FILE="$_GS_ROOT/config/default.json"
+fi
+if [[ -z "${_GS_CONFIG_USER_FILE:-}" ]]; then
+    readonly _GS_CONFIG_USER_FILE="${_GS_CONFIG_HOME}/config.json"
+fi
+if [[ -z "${_GS_CONFIG_CACHE_TTL:-}" ]]; then
+    readonly _GS_CONFIG_CACHE_TTL=300  # 5分钟缓存
+fi
 
 # 配置缓存 - 使用简单变量存储
 _GS_CONFIG_CACHE_DATA=""

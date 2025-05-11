@@ -88,6 +88,10 @@ EOF
 )
         if gs_python_call json_set "$_GS_COMMAND_REGISTRY_FILE" "$command_name" "$command_info"; then
             gs_log_info "命令注册成功: $command_name"
+            
+            # 自动创建alias让命令可用
+            _gs_registry_create_command_alias "$command_name" "$command_path"
+            
             return 0
         else
             gs_error_config "命令注册失败: $command_name"
@@ -98,8 +102,32 @@ EOF
         gs_log_warn "Python不可用，使用简单文件存储"
         local registry_line="$command_name|$command_path|$description|$version|$plugin_name"
         echo "$registry_line" >> "$_GS_COMMAND_REGISTRY_FILE.txt"
+        
+        # 自动创建alias让命令可用
+        _gs_registry_create_command_alias "$command_name" "$command_path"
+        
         gs_log_info "命令注册成功(简单模式): $command_name"
         return 0
+    fi
+}
+
+# 创建命令别名的内部函数
+_gs_registry_create_command_alias() {
+    local command_name="$1"
+    local command_path="$2"
+    
+    # 从命令名推导函数名 (gs-help -> gs_help_cmd)
+    local function_name
+    function_name=$(echo "$command_name" | sed 's/-/_/g')_cmd
+    
+    # 检查函数是否存在，如果存在则创建alias
+    if command -v "$function_name" >/dev/null 2>&1; then
+        alias "$command_name"="$function_name"
+        gs_log_debug "创建命令别名: $command_name -> $function_name"
+    else
+        # 如果函数不存在，创建一个直接执行脚本的alias
+        alias "$command_name"="\"$command_path\""
+        gs_log_debug "创建脚本别名: $command_name -> $command_path"
     fi
 }
 

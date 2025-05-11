@@ -861,21 +861,47 @@ EOF
 
 # 注册所有配置管理命令
 gs_register_config_commands() {
-    # 注册命令处理函数
-    gs_registry_set_command "gs-config-get" "gs_config_get_cmd"
-    gs_registry_set_command "gs-config-set" "gs_config_set_cmd"
-    gs_registry_set_command "gs-config-list" "gs_config_list_cmd"
-    gs_registry_set_command "gs-config-validate" "gs_config_validate_cmd"
-    gs_registry_set_command "gs-config-reset" "gs_config_reset_cmd"
-    gs_registry_set_command "gs-config-backup" "gs_config_backup_cmd"
-    gs_registry_set_command "gs-config-restore" "gs_config_restore_cmd"
-    gs_registry_set_command "gs-config-merge" "gs_config_merge_cmd"
-    
-    # 注册命令别名
-    gs_registry_set_alias "cfg-get" "gs-config-get"
-    gs_registry_set_alias "cfg-set" "gs-config-set"
-    gs_registry_set_alias "cfg-list" "gs-config-list"
-    gs_registry_set_alias "cfg-validate" "gs-config-validate"
+    # 使用registry系统注册命令，让registry自动创建alias
+    if command -v gs_registry_register_command >/dev/null 2>&1; then
+        # 获取当前文件路径作为虚拟命令路径的基础
+        local script_path
+        if [[ -n "${BASH_SOURCE:-}" ]]; then
+            script_path="${BASH_SOURCE[0]}"
+        elif [[ -n "${(%):-%x}" ]] 2>/dev/null; then
+            script_path="${(%):-%x}"
+        else
+            script_path="$0"
+        fi
+        
+        # 注册config命令组 - 这些命令的实现都在当前文件中
+        gs_registry_register_command "gs-config-get" "$script_path" "获取配置值" "3.0.0" "config"
+        gs_registry_register_command "gs-config-set" "$script_path" "设置配置值" "3.0.0" "config"
+        gs_registry_register_command "gs-config-list" "$script_path" "列出配置项" "3.0.0" "config"
+        gs_registry_register_command "gs-config-validate" "$script_path" "验证配置文件" "3.0.0" "config"
+        gs_registry_register_command "gs-config-reset" "$script_path" "重置配置为默认值" "3.0.0" "config"
+        gs_registry_register_command "gs-config-backup" "$script_path" "备份配置文件" "3.0.0" "config"
+        gs_registry_register_command "gs-config-restore" "$script_path" "从备份恢复配置" "3.0.0" "config"
+        gs_registry_register_command "gs-config-merge" "$script_path" "合并配置文件" "3.0.0" "config"
+        
+        # 注册短别名
+        # TODO
+    else
+        # 如果registry系统不可用，fallback到手动alias
+        gs_log_warn "Registry系统不可用，使用手动alias注册config命令"
+        alias gs-config-get='gs_config_get_cmd'
+        alias gs-config-set='gs_config_set_cmd'
+        alias gs-config-list='gs_config_list_cmd'
+        alias gs-config-validate='gs_config_validate_cmd'
+        alias gs-config-reset='gs_config_reset_cmd'
+        alias gs-config-backup='gs_config_backup_cmd'
+        alias gs-config-restore='gs_config_restore_cmd'
+        alias gs-config-merge='gs_config_merge_cmd'
+        
+        alias cfg-get='gs_config_get_cmd'
+        alias cfg-set='gs_config_set_cmd'
+        alias cfg-list='gs_config_list_cmd'
+        alias cfg-validate='gs_config_validate_cmd'
+    fi
     
     gs_log_debug "配置管理命令注册完成"
 }
