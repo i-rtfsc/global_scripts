@@ -1,499 +1,410 @@
 #!/bin/bash
-# Global Scripts V3 - 主环境入口文件
-# 作者: Solo
-# 版本: 1.4.0
-# 描述: V3版本主入口，系统初始化流程、环境变量设置、核心模块加载、错误边界处理
+# Global Scripts V3 - 主入口文件
+# 版本: 3.0.0
+# 描述: Global Scripts V3 环境初始化和加载入口
 
-# ===================================
-# 全局变量定义与环境变量设置
-# ===================================
-
-# 核心路径变量 (兼容bash/zsh，避免重复定义readonly变量)
-if [[ -z "${_GS_ROOT:-}" ]]; then
-    if [[ -n "${BASH_SOURCE:-}" ]]; then
-        _GS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    elif [[ -n "${(%):-%x}" ]] 2>/dev/null; then
-        # zsh compatibility
-        _GS_ROOT="$(cd "$(dirname "${(%):-%x}")" && pwd)"
+# 获取脚本目录（兼容Bash和Zsh）
+_gs_get_script_dir() {
+    if [[ -n "${BASH_SOURCE[0]:-}" ]]; then
+        # Bash环境
+        echo "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    elif [[ -n "${(%):-%x}" ]]; then
+        # Zsh环境
+        echo "$(cd "$(dirname "${(%):-%x}")" && pwd)"
+    elif [[ -n "$0" ]]; then
+        # 备选方案
+        echo "$(cd "$(dirname "$0")" && pwd)"
     else
-        _GS_ROOT="$(cd "$(dirname "$0")" && pwd)"
+        # 最后备选
+        pwd
     fi
-    readonly _GS_ROOT
-fi
+}
 
-if [[ -z "${_GS_VERSION:-}" ]]; then
-    _GS_VERSION="$(cat "${_GS_ROOT}/VERSION" 2>/dev/null || echo "unknown")"
-    readonly _GS_VERSION
-fi
+# 设置基础路径
+GS_ROOT="$(_gs_get_script_dir)"
+GS_VERSION="$(cat "$GS_ROOT/VERSION" 2>/dev/null || echo "unknown")"
 
-if [[ -z "${_GS_LIB_DIR:-}" ]]; then
-    readonly _GS_LIB_DIR="${_GS_ROOT}/lib"
-    readonly _GS_CORE_DIR="${_GS_ROOT}/core"
-    readonly _GS_API_DIR="${_GS_ROOT}/api"
-    readonly _GS_CONFIG_DIR="${_GS_ROOT}/config"
-    readonly _GS_PLUGINS_DIR="${_GS_ROOT}/plugins"
-    readonly _GS_CUSTOM_DIR="${_GS_ROOT}/custom"
-    readonly _GS_COMPLETION_DIR="${_GS_ROOT}/completion"
-    readonly _GS_TESTS_DIR="${_GS_ROOT}/tests"
-fi
+# 首先加载基础库
+source "$GS_ROOT/lib/base.sh" || {
+    echo "[ERROR] 无法加载基础库: $GS_ROOT/lib/base.sh" >&2
+    return 1
+}
 
-# 运行时目录变量
-if [[ -z "${_GS_RUNTIME_DIR:-}" ]]; then
-    readonly _GS_RUNTIME_DIR="${HOME}/.local/share/global_scripts"
-    readonly _GS_CACHE_DIR="${_GS_RUNTIME_DIR}/cache"
-    readonly _GS_LOG_DIR="${_GS_RUNTIME_DIR}/logs"
-    readonly _GS_DATA_DIR="${_GS_RUNTIME_DIR}/data"
-    readonly _GS_TMP_DIR="${_GS_RUNTIME_DIR}/tmp"
-fi
-
-# 系统状态变量
-_GS_INITIALIZED=false
-_GS_BOOTSTRAP_STATUS="not_started"
-_GS_ERROR_COUNT=0
-_GS_STARTUP_TIME=0
-_GS_DEBUG_MODE=false
+# 使用常量保护机制设置核心变量
+_gs_set_constant "GS_ROOT" "$GS_ROOT"
+_gs_set_constant "GS_VERSION" "$GS_VERSION"
+_gs_set_constant "_GS_ENV_LOADED" "true"
 
 # 导出核心环境变量
-export _GS_VERSION _GS_ROOT _GS_LIB_DIR _GS_CORE_DIR _GS_API_DIR
-export _GS_CONFIG_DIR _GS_PLUGINS_DIR _GS_CUSTOM_DIR _GS_COMPLETION_DIR
-export _GS_TESTS_DIR _GS_RUNTIME_DIR _GS_CACHE_DIR _GS_LOG_DIR _GS_DATA_DIR _GS_TMP_DIR
-export _GS_INITIALIZED _GS_BOOTSTRAP_STATUS _GS_DEBUG_MODE
+export GS_ROOT
+export GS_VERSION
+export GS_DEBUG_MODE="${GS_DEBUG_MODE:-false}"
 
-# ===================================
-# 错误边界处理
-# ===================================
+# 设置路径变量（使用常量保护）
+_gs_set_constant "GS_CORE_DIR" "$GS_ROOT/core"
+_gs_set_constant "GS_SYSTEM_DIR" "$GS_ROOT/system"
+_gs_set_constant "GS_PLUGINS_DIR" "$GS_ROOT/plugins"
+_gs_set_constant "GS_CONFIG_DIR" "$GS_ROOT/config"
+_gs_set_constant "GS_TOOLS_DIR" "$GS_ROOT/tools"
+_gs_set_constant "GS_TESTS_DIR" "$GS_ROOT/tests"
 
-# 错误处理函数 (兼容bash/zsh)
-_gs_handle_error() {
-    local exit_code=$?
-    local line_number="${1:-${LINENO:-unknown}}"
-    local bash_lineno="${2:-${BASH_LINENO:-unknown}}"
-    local last_command="${3:-unknown}"
+# 导出路径变量
+export GS_CORE_DIR GS_SYSTEM_DIR GS_PLUGINS_DIR GS_CONFIG_DIR GS_TOOLS_DIR GS_TESTS_DIR
+
+# 检查并加载日志系统
+_gs_bootstrap_logger() {
+    local logger_file="$GS_CORE_DIR/logger.sh"
     
-    # 获取当前脚本文件名 (兼容bash/zsh)
-    local script_file="$0"
-    if [[ -n "${BASH_SOURCE:-}" ]]; then
-        script_file="${BASH_SOURCE[1]:-$0}"
-    elif [[ -n "${funcfiletrace:-}" ]]; then
-        script_file="${funcfiletrace[1]%%:*}"
+    # 检查logger.sh是否存在
+    if [[ ! -f "$logger_file" ]]; then
+        echo "❌ [ERROR] 日志系统不存在: $logger_file" >&2
+        return 1
     fi
     
-    _GS_ERROR_COUNT=$((_GS_ERROR_COUNT + 1))
-    
-    printf "\n❌ [FATAL ERROR] Global Scripts V3 启动失败\n" >&2
-    printf "错误位置: %s:%s\n" "$script_file" "$line_number" >&2
-    printf "失败命令: %s\n" "$last_command" >&2
-    printf "退出码: %d\n" "$exit_code" >&2
-    printf "错误时间: %s\n" "$(date '+%Y-%m-%d %H:%M:%S')" >&2
-    printf "Shell环境: %s\n" "${ZSH_VERSION:+zsh $ZSH_VERSION}${BASH_VERSION:+bash $BASH_VERSION}" >&2
-    
-    # 如果日志目录可用，写入错误日志
-    if [[ -d "$_GS_LOG_DIR" ]]; then
-        {
-            printf "[%s] FATAL ERROR in %s:%s\n" "$(date '+%Y-%m-%d %H:%M:%S')" "$script_file" "$line_number"
-            printf "Command: %s\n" "$last_command"
-            printf "Exit code: %d\n" "$exit_code"
-            printf "Shell: %s\n" "${ZSH_VERSION:+zsh $ZSH_VERSION}${BASH_VERSION:+bash $BASH_VERSION}"
-            printf "Total errors: %d\n" "$_GS_ERROR_COUNT"
-        } >> "$_GS_LOG_DIR/startup_errors.log"
+    # 加载logger.sh
+    if ! source "$logger_file"; then
+        echo "❌ [ERROR] 日志系统加载失败: $logger_file" >&2
+        return 1
     fi
     
-    # 清理和退出
-    _gs_cleanup_on_error
-    exit $exit_code
-}
-
-# 中断处理函数
-_gs_handle_interrupt() {
-    local signal=$1
-    printf "\n⚠️  收到信号 %s，正在清理...\n" "$signal" >&2
-    _gs_cleanup_on_error
-    exit 130
-}
-
-# 错误清理函数
-_gs_cleanup_on_error() {
-    # 重置系统状态
-    _GS_INITIALIZED=false
-    _GS_BOOTSTRAP_STATUS="failed"
-    
-    # 可以在这里添加更多清理逻辑
-    printf "🧹 错误清理完成\n" >&2
-}
-
-# 设置基本错误处理 (仅在直接执行脚本时使用)
-_gs_setup_error_handling() {
-    # 只在直接执行脚本时设置错误处理，不在source时设置
-    if ! _gs_is_sourced && [[ $- != *i* ]]; then
-        if [[ -n "${BASH_VERSION:-}" ]]; then
-            set -euo pipefail
-            trap '_gs_handle_error ${LINENO} ${BASH_LINENO} "$BASH_COMMAND"' ERR
-        elif [[ -n "${ZSH_VERSION:-}" ]]; then
-            set -eo pipefail
-            trap '_gs_handle_error ${LINENO:-0} ${LINENO:-0} "unknown"' ERR
-        fi
-        trap '_gs_handle_interrupt SIGINT' INT
-        trap '_gs_handle_interrupt SIGTERM' TERM
-    fi
-}
-
-# ===================================
-# 兼容性检查和基础模块加载
-# ===================================
-
-# 加载必需的兼容性模块
-_gs_load_compatibility() {
-    # 首先加载基础的logger模块（简化版本，只提供日志函数）
-    local basic_logger_path="${_GS_LIB_DIR}/logger.sh"
-    if [[ -f "$basic_logger_path" ]]; then
-        source "$basic_logger_path"
+    # 初始化日志系统
+    if ! _gs_init_logger; then
+        echo "❌ [ERROR] 日志系统初始化失败" >&2
+        return 1
     fi
     
-    local compat_modules=("time_compat.sh" "python_compat.sh")
-    local module_path
-    
-    for module in "${compat_modules[@]}"; do
-        module_path="${_GS_LIB_DIR}/$module"
-        if [[ -f "$module_path" ]]; then
-            source "$module_path"
-        else
-            printf "⚠️  兼容性模块缺失: %s\n" "$module" >&2
-            return 1
-        fi
-    done
+    # 根据调试模式设置日志等级
+    if [[ "${GS_DEBUG_MODE:-false}" == "true" ]]; then
+        GS_LOG_LEVEL=$GS_LOG_LEVEL_DEBUG
+        GS_LOG_CONSOLE_LEVEL=$GS_LOG_LEVEL_DEBUG
+    else
+        GS_LOG_LEVEL=$GS_LOG_LEVEL_INFO
+        GS_LOG_CONSOLE_LEVEL=$GS_LOG_LEVEL_INFO
+    fi
+
+    _gs_log_status
     
     return 0
 }
 
-# 环境检查函数  
-gs_check_environment() {
-    local errors=0
+# 环境检查函数
+_gs_check_environment() {
+    _gs_debug "gs_env" "检查运行环境..."
     
-    printf "🔍 检查系统环境...\n"
-    
-    # 检查bash版本
-    if [[ ${BASH_MAJOR_VERSION:-3} -lt 3 ]]; then
-        printf "❌ bash版本过低: %s (需要3.0+)\n" "${BASH_VERSION:-未知}" >&2
-        ((errors++))
-    else
-        printf "✅ bash版本: %s\n" "${BASH_VERSION}"
+    # 检查Shell版本
+    if [[ -z "${BASH_VERSION:-}" && -z "${ZSH_VERSION:-}" ]]; then
+        _gs_error "gs_env" "需要Bash或Zsh环境"
+        return 1
     fi
     
-    # 检查必需的系统命令
-    local required_commands=("cat" "grep" "sed" "awk" "find" "sort")
+    local shell_info=""
+    if [[ -n "${BASH_VERSION:-}" ]]; then
+        shell_info="Bash $BASH_VERSION"
+    elif [[ -n "${ZSH_VERSION:-}" ]]; then
+        shell_info="Zsh $ZSH_VERSION"
+    fi
+    _gs_debug "gs_env" "Shell环境: $shell_info"
+    
+    # 检查基础命令
+    local required_commands=("grep" "awk" "sed" "find" "cat" "date")
+    local missing_commands=()
+    
     for cmd in "${required_commands[@]}"; do
         if ! command -v "$cmd" >/dev/null 2>&1; then
-            printf "❌ 缺少必需命令: %s\n" "$cmd" >&2
-            ((errors++))
+            missing_commands+=("$cmd")
         fi
     done
     
-    # 检查可选但推荐的命令
-    local optional_commands=("jq" "curl" "git")
-    for cmd in "${optional_commands[@]}"; do
-        if command -v "$cmd" >/dev/null 2>&1; then
-            printf "✅ 可选命令可用: %s\n" "$cmd"
-        else
-            printf "⚠️  可选命令不可用: %s\n" "$cmd"
-        fi
-    done
-    
-    # 检查Python环境（如果Python兼容性模块已加载）
-    if command -v gs_python_available >/dev/null 2>&1; then
-        if gs_python_available; then
-            printf "✅ Python环境: 可用\n"
-        else
-            printf "⚠️  Python环境: 不可用（部分功能将受限）\n"
-        fi
-    fi
-    
-    if [[ $errors -eq 0 ]]; then
-        printf "✅ 环境检查通过\n"
-        return 0
-    else
-        printf "❌ 环境检查失败，发现 %d 个问题\n" "$errors" >&2
+    if [[ ${#missing_commands[@]} -gt 0 ]]; then
+        _gs_error "gs_env" "缺少必需命令: ${missing_commands[*]}"
         return 1
     fi
-}
-
-# ===================================
-# 系统初始化流程
-# ===================================
-
-# 创建必要目录结构
-_gs_create_directories() {
-    printf "📁 创建运行时目录...\n"
     
-    local dirs=(
-        "$_GS_RUNTIME_DIR"
-        "$_GS_CACHE_DIR" 
-        "$_GS_LOG_DIR"
-        "$_GS_DATA_DIR"
-        "$_GS_TMP_DIR"
-    )
-    
-    for dir in "${dirs[@]}"; do
-        if [[ ! -d "$dir" ]]; then
-            if mkdir -p "$dir" 2>/dev/null; then
-                printf "✅ 创建目录: %s\n" "$dir"
-            else
-                printf "❌ 无法创建目录: %s\n" "$dir" >&2
-                return 1
-            fi
-        fi
-    done
-    
+    _gs_debug "gs_env" "环境检查通过"
     return 0
 }
 
-# 核心模块加载
+# 检查必要文件
+_gs_check_required_files() {
+    _gs_debug "gs_env" "检查必要文件..."
+    
+    local required_files=(
+        "$GS_CORE_DIR/logger.sh"
+    )
+    
+    local missing_files=()
+    for file in "${required_files[@]}"; do
+        if [[ ! -f "$file" ]]; then
+            missing_files+=("$file")
+        fi
+    done
+    
+    if [[ ${#missing_files[@]} -gt 0 ]]; then
+        _gs_error "gs_env" "缺少必要文件:"
+        for file in "${missing_files[@]}"; do
+            _gs_error "gs_env" "  - $file"
+        done
+        return 1
+    fi
+    
+    _gs_debug "gs_env" "必要文件检查通过"
+    return 0
+}
+
+# 加载核心模块
 _gs_load_core_modules() {
-    printf "🔧 加载核心模块...\n"
+    _gs_info "gs_env" "加载核心模块..."
     
     local core_modules=(
-        "utils.sh"
-        "error.sh"
+        "platform_compat.sh"
+        "plugin_detector.sh"
+        "command_registry.sh"
+        "cache_manager.sh"
+        "system_loader.sh"
     )
-    local module_path
     
-    # 加载lib模块 (logger.sh已在兼容性阶段加载)
+    local loaded_count=0
+    local failed_count=0
+    local skipped_count=0
+    
     for module in "${core_modules[@]}"; do
-        module_path="${_GS_LIB_DIR}/$module"
-        if [[ -f "$module_path" ]]; then
-            source "$module_path"
-            printf "✅ 加载lib模块: %s\n" "$module"
+        local core_module_file="$GS_CORE_DIR/$module"
+
+        if [[ -f "$core_module_file" ]]; then
+            if source "$core_module_file"; then
+                _gs_debug "gs_env" "  ✓ $module"
+                ((loaded_count++))
+            else
+                _gs_error "gs_env" "  ❌ $module (加载失败)"
+                ((failed_count++))
+            fi
         else
-            printf "❌ lib模块缺失: %s\n" "$module" >&2
-            return 1
+            _gs_warn "gs_env" "  ⚠️  $module (文件不存在)"
+            ((skipped_count++))
         fi
     done
     
-    # 加载core模块
-    local bootstrap_module="${_GS_CORE_DIR}/bootstrap.sh"
-    if [[ -f "$bootstrap_module" ]]; then
-        source "$bootstrap_module"
-        printf "✅ 加载核心模块: bootstrap.sh\n"
+    _gs_info "gs_env" "核心模块加载完成: 成功 $loaded_count, 失败 $failed_count, 跳过 $skipped_count"
+    
+    # 只有在有模块加载失败时才返回错误
+    return $failed_count
+}
+
+# 初始化组件
+_gs_initialize_components() {
+    _gs_info "gs_env" "初始化组件..."
+    
+    local init_count=0
+    
+    # 初始化平台兼容性
+    if declare -F "_gs_check_compatibility" >/dev/null 2>&1; then
+        if _gs_check_compatibility; then
+            _gs_debug "gs_env" "平台兼容性检查完成"
+            ((init_count++))
+        else
+            _gs_warn "gs_env" "平台兼容性检查失败"
+        fi
+    fi
+    
+    if declare -F "_gs_init_data_structures" >/dev/null 2>&1; then
+        if _gs_init_data_structures; then
+            _gs_debug "gs_env" "数据结构初始化完成"
+            ((init_count++))
+        else
+            _gs_warn "gs_env" "数据结构初始化失败"
+        fi
+    fi
+    
+    # 加载系统命令
+    if declare -F "load_system_commands_impl" >/dev/null 2>&1; then
+        if load_system_commands_impl; then
+            _gs_debug "gs_env" "系统命令加载完成"
+            ((init_count++))
+        else
+            _gs_warn "gs_env" "系统命令加载失败"
+        fi
+    else
+        _gs_debug "gs_env" "系统命令加载器不可用"
+    fi
+    
+    # 加载用户插件
+    if declare -F "load_user_plugins_impl" >/dev/null 2>&1; then
+        if load_user_plugins_impl; then
+            _gs_debug "gs_env" "用户插件加载完成"
+            ((init_count++))
+        else
+            _gs_warn "gs_env" "用户插件加载失败"
+        fi
+    else
+        _gs_debug "gs_env" "插件检测器不可用"
+    fi
+    
+    # 初始化缓存
+    if declare -F "initialize_cache_impl" >/dev/null 2>&1; then
+        if initialize_cache_impl; then
+            _gs_debug "gs_env" "缓存初始化完成"
+            ((init_count++))
+        else
+            _gs_warn "gs_env" "缓存初始化失败"
+        fi
+    else
+        _gs_debug "gs_env" "缓存管理器不可用"
+    fi
+    
+    _gs_info "gs_env" "组件初始化完成 (成功初始化 $init_count 个组件)"
+}
+
+# 显示启动摘要
+_gs_show_startup_summary() {
+    if [[ "${GS_DEBUG_MODE:-false}" == "true" ]]; then
+        echo
+        _gs_info "gs_env" "=== Global Scripts V3 启动摘要 ==="
+        _gs_info "gs_env" "版本: $GS_VERSION"
+        _gs_info "gs_env" "安装路径: $GS_ROOT"
+        _gs_info "gs_env" "调试模式: ${GS_DEBUG_MODE}"
+        _gs_info "gs_env" "日志等级: $(_gs_get_log_level)"
+        _gs_info "gs_env" "日志颜色: ${GS_LOG_COLOR:-auto}"
+        _gs_info "gs_env" "日志文件: ${GS_LOG_FILE:-未设置}"
         
-        # 执行系统引导
-        if gs_bootstrap_system; then
-            _GS_BOOTSTRAP_STATUS="completed"
-            printf "✅ 系统引导完成\n"
-        else
-            printf "❌ 系统引导失败\n" >&2
-            return 1
+        # 显示统计信息（如果可用）
+        if declare -F "_gs_map_count" >/dev/null 2>&1; then
+            local sys_count=$(_gs_map_count "_GS_SYSTEM_COMMANDS" 2>/dev/null || echo "0")
+            local plugin_count=$(_gs_map_count "_GS_PLUGIN_COMMANDS" 2>/dev/null || echo "0")
+            local loaded_count=$(_gs_map_count "_GS_LOADED_PLUGINS" 2>/dev/null || echo "0")
+            
+            _gs_info "gs_env" "系统命令: $sys_count 个"
+            _gs_info "gs_env" "插件命令: $plugin_count 个"
+            _gs_info "gs_env" "已加载插件: $loaded_count 个"
         fi
-    else
-        printf "❌ 核心引导模块缺失: bootstrap.sh\n" >&2
-        return 1
+        
+        _gs_info "gs_env" "============================"
+        echo
     fi
-    
-    # 加载registry系统
-    local registry_module="${_GS_CORE_DIR}/registry.sh"
-    if [[ -f "$registry_module" ]]; then
-        source "$registry_module"
-        printf "✅ 加载核心模块: registry.sh\n"
-    else
-        printf "⚠️  注册表模块缺失: registry.sh\n" >&2
-    fi
+}
 
-    # 加载API层模块
-    local api_modules=(
-        "command_api.sh"
-        "config_api.sh"
-    )
-    for module in "${api_modules[@]}"; do
-        module_path="${_GS_API_DIR}/$module"
-        if [[ -f "$module_path" ]]; then
-            source "$module_path"
-            printf "✅ 加载API模块: %s\n" "$module"
-        fi
-    done
-    
-    # 加载核心命令
-    local command_modules=(
-        "gs_help.sh"
-        "gs_version.sh"
-        "gs_status.sh"
-    )
-    for module in "${command_modules[@]}"; do
-        module_path="${_GS_ROOT}/commands/$module"
-        if [[ -f "$module_path" ]]; then
-            source "$module_path"
-            printf "✅ 加载命令模块: %s\n" "$module"
-        fi
-    done
-    
-    # 注册核心命令为可用命令
-    _gs_register_core_commands
-    
+# 获取毫秒时间戳（如果可用）
+_gs_get_timestamp_ms() {
+    if command -v python3 >/dev/null 2>&1; then
+        python3 -c "import time; print(int(time.time() * 1000))"
+    elif command -v python >/dev/null 2>&1; then
+        python -c "import time; print(int(time.time() * 1000))"
+    elif command -v node >/dev/null 2>&1; then
+        node -e "console.log(Date.now())"
+    else
+        # 备选方案：使用秒级时间戳 * 1000
+        echo $(($(date +%s) * 1000))
+    fi
+}
+
+# 主初始化流程
+_gs_main_init() {
+    # 简化版本，专注于基本功能
+
+    # 1. 引导加载日志系统
+    _gs_bootstrap_logger || {
+        echo "❌ [FATAL] 日志系统引导失败，无法继续" >&2
+        return 1
+    }
+
+    # 2. 基本启动信息
+    _gs_info "gs_env" "🚀 Global Scripts V3 启动中..."
+
+    # 3. 检查必要文件
+    _gs_check_required_files || {
+        _gs_error "gs_env" "必要文件检查失败，但继续执行"
+    }
+
+    # 4. 检查运行环境
+    _gs_check_environment || {
+        _gs_error "gs_env" "环境检查失败，但继续执行"
+    }
+
+    # 5. 加载核心模块
+    _gs_load_core_modules || {
+        _gs_error "gs_env" "核心模块加载存在错误，但继续执行"
+    }
+
+    # 6. 初始化组件
+    _gs_initialize_components || {
+        _gs_error "gs_env" "组件初始化存在错误，但继续执行"
+    }
+
+    _gs_info "gs_env" "✅ Global Scripts V3 启动完成"
+
     return 0
 }
 
-# 注册核心命令函数
-_gs_register_core_commands() {
-    # 调用各命令模块的注册函数，避免重复注册
-    if command -v gs_help_register >/dev/null 2>&1; then
-        gs_help_register
+# 错误处理函数
+_gs_handle_error() {
+    local exit_code=$?
+    local line_no=${1:-"未知"}
+    
+    # 如果日志系统可用，使用它；否则使用基本输出
+    if declare -F "_gs_fatal" >/dev/null 2>&1; then
+        _gs_fatal "gs_env" "启动过程中发生错误 (行号: $line_no, 退出码: $exit_code)"
+    else
+        echo "❌ [FATAL] Global Scripts V3 启动失败 (行号: $line_no, 退出码: $exit_code)" >&2
     fi
     
-    if command -v gs_version_register >/dev/null 2>&1; then
-        gs_version_register
-    fi
-    
-    if command -v gs_status_register >/dev/null 2>&1; then
-        gs_status_register
-    fi
-    
-    printf "✅ 核心命令注册完成\n"
+    return $exit_code
 }
 
-# 主系统初始化函数
-gs_initialize() {
-    printf "\n🚀 Global Scripts V%s 初始化开始...\n" "$_GS_VERSION"
-    
-    # 记录启动时间
-    _GS_STARTUP_TIME=$(gs_time_ms 2>/dev/null || date +%s000)
-    
-    # 1. 加载兼容性模块
-    if ! _gs_load_compatibility; then
-        printf "❌ 兼容性模块加载失败\n" >&2
-        return 1
-    fi
-    printf "✅ 兼容性模块加载完成\n"
-    
-    # 2. 环境检查
-    if ! gs_check_environment; then
-        printf "❌ 环境检查失败，请修复上述问题后重试\n" >&2
-        return 1
-    fi
-    
-    # 3. 创建必要目录
-    if ! _gs_create_directories; then
-        printf "❌ 目录创建失败\n" >&2
-        return 1
-    fi
-    
-    # 4. 加载核心模块
-    if ! _gs_load_core_modules; then
-        printf "❌ 核心模块加载失败\n" >&2
-        return 1
-    fi
-    
-    # 5. 标记初始化完成
-    _GS_INITIALIZED=true
-    
-    # 计算启动时间
-    local end_time
-    end_time=$(gs_time_ms 2>/dev/null || date +%s000)
-    local startup_duration
-    startup_duration=$((end_time - _GS_STARTUP_TIME))
-    
-    printf "\n🎉 Global Scripts V%s 初始化成功！\n" "$_GS_VERSION"
-    printf "⏱️  启动耗时: %d毫秒\n" "$startup_duration"
-    printf "📂 运行时目录: %s\n" "$_GS_RUNTIME_DIR"
-    printf "🐍 Python支持: %s\n" "$(gs_python_available 2>/dev/null && echo "可用" || echo "不可用")"
-    
-    return 0
-}
-
-# ===================================
-# 调试和诊断功能
-# ===================================
-
-# 启用调试模式
-gs_enable_debug() {
-    _GS_DEBUG_MODE=true
-    export _GS_DEBUG_MODE
-    printf "🐛 调试模式已启用\n"
-}
-
-# 显示系统状态
-gs_status() {
-    printf "\n=== Global Scripts V%s 系统状态 ===\n" "$_GS_VERSION"
-    printf "初始化状态: %s\n" "$([[ "$_GS_INITIALIZED" == "true" ]] && echo "✅ 已初始化" || echo "❌ 未初始化")"
-    printf "引导状态: %s\n" "$_GS_BOOTSTRAP_STATUS"
-    printf "调试模式: %s\n" "$([[ "$_GS_DEBUG_MODE" == "true" ]] && echo "🐛 启用" || echo "关闭")"
-    printf "错误计数: %d\n" "$_GS_ERROR_COUNT"
-    printf "运行时目录: %s\n" "$_GS_RUNTIME_DIR"
-    
-    if [[ "$_GS_INITIALIZED" == "true" ]] && command -v gs_bootstrap_get_system_info >/dev/null 2>&1; then
-        printf "\n"
-        gs_bootstrap_get_system_info
-    fi
-}
-
-# ===================================
-# 主函数和入口点
-# ===================================
-
-# 主函数
+# 主入口点
 main() {
-    # 设置错误处理（仅在直接执行时）
-    _gs_setup_error_handling
-    
-    local action="${1:-initialize}"
-    
-    case "$action" in
-        "initialize"|"init")
-            gs_initialize
-            ;;
-        "status")
-            gs_status
-            ;;
-        "debug")
-            gs_enable_debug
-            gs_initialize
-            ;;
-        "help"|"--help"|"-h")
-            printf "Global Scripts V%s 主入口文件\n\n" "$_GS_VERSION"
-            printf "用法: %s [命令]\n\n" "${BASH_SOURCE[0]:-$0}"
-            printf "命令:\n"
-            printf "  initialize, init  初始化系统 (默认)\n"
-            printf "  status           显示系统状态\n"
-            printf "  debug            启用调试模式并初始化\n"
-            printf "  help             显示此帮助信息\n"
-            ;;
-        *)
-            printf "未知命令: %s\n" "$action" >&2
-            printf "使用 '%s help' 查看可用命令\n" "${BASH_SOURCE[0]:-$0}" >&2
-            return 1
-            ;;
-    esac
-}
+    # 使用更温和的错误处理（不使用set -e，因为在zsh中可能有兼容性问题）
 
-# 当直接执行此脚本时，运行主函数 (兼容bash/zsh)
-_gs_is_sourced() {
-    if [[ -n "${BASH_VERSION:-}" ]]; then
-        [[ "${BASH_SOURCE[0]}" != "${0}" ]]
-    elif [[ -n "${ZSH_VERSION:-}" ]]; then
-        [[ "${(%):-%x}" != "${(%):-%N}" ]]
-    else
-        # 通用方法：检查调用栈
-        return 1  # 假设未被source
-    fi
-}
+    # 执行主初始化
+    _gs_main_init
+    local init_result=$?
 
-if ! _gs_is_sourced; then
-    main "$@"
-else
-    # 当被source时，自动执行初始化
-    if [[ "$_GS_INITIALIZED" != "true" ]]; then
-        # 保存当前shell选项
-        local old_opts="$-"
-        
-        # 临时禁用严格模式，避免退出用户终端
-        set +e
-        
-        # 执行初始化
-        if gs_initialize; then
-            printf "✅ Global Scripts初始化完成\n"
+    if [[ $init_result -ne 0 ]]; then
+        # 如果日志系统可用，使用它；否则使用基本输出
+        if declare -F "_gs_fatal" >/dev/null 2>&1; then
+            _gs_fatal "gs_env" "主初始化失败 (退出码: $init_result)"
         else
-            printf "⚠️  Global Scripts初始化失败，某些功能可能不可用\n" >&2
+            echo "❌ [FATAL] Global Scripts V3 启动失败 (退出码: $init_result)" >&2
         fi
-        
-        # 恢复shell选项（如果原来是严格模式）
-        case "$old_opts" in
-            *e*) set -e ;;
-        esac
+        return $init_result
     fi
-fi
+
+    return 0
+}
+
+# 简化的主函数调用（避免复杂的错误处理和陷阱）
+_gs_simple_init() {
+    # 1. 引导日志系统
+    _gs_bootstrap_logger || {
+        echo "❌ [FATAL] 日志系统引导失败，无法继续" >&2
+        return 1
+    }
+
+    # 2. 基本启动信息
+    _gs_info "gs_env" "🚀 Global Scripts V3 启动中..."
+
+    # 3. 检查必要文件
+    _gs_check_required_files || {
+        _gs_warn "gs_env" "必要文件检查失败，但继续执行"
+    }
+
+    # 4. 检查运行环境
+    _gs_check_environment || {
+        _gs_warn "gs_env" "环境检查失败，但继续执行"
+    }
+
+    # 5. 加载核心模块
+    _gs_load_core_modules || {
+        _gs_warn "gs_env" "核心模块加载存在错误，但继续执行"
+    }
+
+    # 6. 初始化组件
+    _gs_initialize_components || {
+        _gs_warn "gs_env" "组件初始化存在错误，但继续执行"
+    }
+
+    _gs_info "gs_env" "✅ Global Scripts V3 启动完成"
+
+    return 0
+}
+
+# 执行简化的初始化
+_gs_simple_init

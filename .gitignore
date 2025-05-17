@@ -240,3 +240,5 @@ docs/ai/
 docs/build/
 docs/_build/
 *.html.generated
+
+cache/
