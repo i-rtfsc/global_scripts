@@ -195,63 +195,96 @@ _gs_initialize_components() {
     _gs_info "gs_env" "初始化组件..."
     
     local init_count=0
+    local start_time=$(_gs_get_timestamp_ms 2>/dev/null || echo "0")
     
-    # 初始化平台兼容性
+    # 1. 初始化平台兼容性（必需，为其他组件提供基础）
     if declare -F "_gs_check_compatibility" >/dev/null 2>&1; then
         if _gs_check_compatibility; then
-            _gs_debug "gs_env" "平台兼容性检查完成"
+            _gs_debug "gs_env" "✓ 平台兼容性检查完成"
             ((init_count++))
         else
-            _gs_warn "gs_env" "平台兼容性检查失败"
+            _gs_warn "gs_env" "⚠️ 平台兼容性检查失败，但继续执行"
         fi
+    else
+        _gs_warn "gs_env" "⚠️ 平台兼容性检查器不可用"
     fi
     
+    # 2. 初始化数据结构（必需，为命令注册提供存储）
     if declare -F "_gs_init_data_structures" >/dev/null 2>&1; then
         if _gs_init_data_structures; then
-            _gs_debug "gs_env" "数据结构初始化完成"
+            _gs_debug "gs_env" "✓ 数据结构初始化完成"
             ((init_count++))
         else
-            _gs_warn "gs_env" "数据结构初始化失败"
+            _gs_warn "gs_env" "⚠️ 数据结构初始化失败"
+            return 1  # 数据结构初始化失败会导致后续功能无法正常工作
         fi
+    else
+        _gs_warn "gs_env" "⚠️ 数据结构初始化器不可用"
+        return 1
     fi
     
-    # 加载系统命令
+    # 3. 加载系统命令（优先，为用户提供基础管理功能）
     if declare -F "load_system_commands_impl" >/dev/null 2>&1; then
+        local sys_start=$(_gs_get_timestamp_ms 2>/dev/null || echo "0")
         if load_system_commands_impl; then
-            _gs_debug "gs_env" "系统命令加载完成"
+            local sys_end=$(_gs_get_timestamp_ms 2>/dev/null || echo "0")
+            local sys_time=$((sys_end - sys_start))
+            _gs_debug "gs_env" "✓ 系统命令加载完成 (${sys_time}ms)"
             ((init_count++))
         else
-            _gs_warn "gs_env" "系统命令加载失败"
+            _gs_warn "gs_env" "⚠️ 系统命令加载失败"
         fi
     else
-        _gs_debug "gs_env" "系统命令加载器不可用"
+        _gs_debug "gs_env" "ℹ️ 系统命令加载器不可用"
     fi
     
-    # 加载用户插件
+    # 4. 加载用户插件（.meta+自动函数检测架构的核心功能）
     if declare -F "load_user_plugins_impl" >/dev/null 2>&1; then
+        local plugin_start=$(_gs_get_timestamp_ms 2>/dev/null || echo "0")
+        
+        # 支持强制重新加载机制
+        if [[ "${GS_FORCE_RELOAD:-false}" == "true" ]]; then
+            _gs_debug "gs_env" "🔄 强制重新加载模式启用"
+        fi
+        
         if load_user_plugins_impl; then
-            _gs_debug "gs_env" "用户插件加载完成"
+            local plugin_end=$(_gs_get_timestamp_ms 2>/dev/null || echo "0")
+            local plugin_time=$((plugin_end - plugin_start))
+            _gs_debug "gs_env" "✓ 用户插件加载完成 (${plugin_time}ms)"
             ((init_count++))
         else
-            _gs_warn "gs_env" "用户插件加载失败"
+            _gs_warn "gs_env" "⚠️ 用户插件加载失败"
         fi
     else
-        _gs_debug "gs_env" "插件检测器不可用"
+        _gs_debug "gs_env" "ℹ️ 插件检测器不可用"
     fi
     
-    # 初始化缓存
+    # 5. 初始化缓存（性能优化组件）
     if declare -F "initialize_cache_impl" >/dev/null 2>&1; then
         if initialize_cache_impl; then
-            _gs_debug "gs_env" "缓存初始化完成"
+            _gs_debug "gs_env" "✓ 缓存系统初始化完成"
             ((init_count++))
         else
-            _gs_warn "gs_env" "缓存初始化失败"
+            _gs_warn "gs_env" "⚠️ 缓存系统初始化失败"
         fi
     else
-        _gs_debug "gs_env" "缓存管理器不可用"
+        _gs_debug "gs_env" "ℹ️ 缓存管理器不可用"
     fi
     
-    _gs_info "gs_env" "组件初始化完成 (成功初始化 $init_count 个组件)"
+    # 6. 显示组件统计信息
+    local end_time=$(_gs_get_timestamp_ms 2>/dev/null || echo "0")
+    local total_time=$((end_time - start_time))
+    
+    _gs_info "gs_env" "组件初始化完成 (成功: $init_count, 耗时: ${total_time}ms)"
+    
+    # 显示命令统计（如果数据结构可用）
+    if declare -F "_gs_map_count" >/dev/null 2>&1; then
+        local sys_count=$(_gs_map_count "_GS_SYSTEM_COMMANDS" 2>/dev/null || echo "0")
+        local plugin_count=$(_gs_map_count "_GS_PLUGIN_COMMANDS" 2>/dev/null || echo "0")
+        local loaded_count=$(_gs_map_count "_GS_LOADED_PLUGINS" 2>/dev/null || echo "0")
+        
+        _gs_debug "gs_env" "命令统计: 系统命令 $sys_count 个, 插件命令 $plugin_count 个, 已加载插件 $loaded_count 个"
+    fi
 }
 
 # 显示启动摘要
@@ -262,9 +295,15 @@ _gs_show_startup_summary() {
         _gs_info "gs_env" "版本: $GS_VERSION"
         _gs_info "gs_env" "安装路径: $GS_ROOT"
         _gs_info "gs_env" "调试模式: ${GS_DEBUG_MODE}"
+        _gs_info "gs_env" "强制重新加载: ${GS_FORCE_RELOAD:-false}"
         _gs_info "gs_env" "日志等级: $(_gs_get_log_level)"
         _gs_info "gs_env" "日志颜色: ${GS_LOG_COLOR:-auto}"
         _gs_info "gs_env" "日志文件: ${GS_LOG_FILE:-未设置}"
+        
+        # 显示架构信息
+        if declare -F "_gs_detect_shell_basic" >/dev/null 2>&1; then
+            _gs_info "gs_env" "Shell环境: $(_gs_detect_shell_basic)"
+        fi
         
         # 显示统计信息（如果可用）
         if declare -F "_gs_map_count" >/dev/null 2>&1; then
@@ -275,6 +314,11 @@ _gs_show_startup_summary() {
             _gs_info "gs_env" "系统命令: $sys_count 个"
             _gs_info "gs_env" "插件命令: $plugin_count 个"
             _gs_info "gs_env" "已加载插件: $loaded_count 个"
+            
+            # 显示可用命令示例（如果有的话）
+            if [[ "$sys_count" -gt 0 ]]; then
+                _gs_info "gs_env" "💡 试试: gs-version, gs-status, gs-plugins list"
+            fi
         fi
         
         _gs_info "gs_env" "============================"

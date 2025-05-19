@@ -4,8 +4,10 @@
 # 描述: 自动检测和加载插件，实现.meta+函数检测架构
 
 # 防止重复加载
-[[ -n "${_GS_PLUGIN_DETECTOR_LOADED:-}" ]] && return 0
-readonly _GS_PLUGIN_DETECTOR_LOADED=true
+if _gs_is_constant "_GS_PLUGIN_DETECTOR_LOADED" && [[ "${GS_FORCE_RELOAD:-false}" != "true" ]]; then
+    return 0
+fi
+_gs_set_constant "_GS_PLUGIN_DETECTOR_LOADED" "true"
 
 # 插件检测器调试输出（使用新的日志系统）
 _gs_plugin_debug() {

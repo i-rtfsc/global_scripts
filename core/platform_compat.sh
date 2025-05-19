@@ -4,8 +4,10 @@
 # 描述: 处理跨平台、跨Shell版本的兼容性问题
 
 # 防止重复加载
-[[ -n "${_GS_PLATFORM_COMPAT_LOADED:-}" ]] && return 0
-readonly _GS_PLATFORM_COMPAT_LOADED=true
+if _gs_is_constant "_GS_PLATFORM_COMPAT_LOADED" && [[ "${GS_FORCE_RELOAD:-false}" != "true" ]]; then
+    return 0
+fi
+_gs_set_constant "_GS_PLATFORM_COMPAT_LOADED" "true"
 
 # 兼容性检查和初始化
 _gs_check_compatibility() {
@@ -273,5 +275,5 @@ _gs_check_command() {
 # 常量保护机制（替代readonly）
 # ============================================================================
 
-# 标记兼容性模块已加载
-_GS_COMPAT_LOADED=true
+# 标记兼容性模块已加载（使用常量保护机制）
+_gs_set_constant "_GS_COMPAT_LOADED" "true"
