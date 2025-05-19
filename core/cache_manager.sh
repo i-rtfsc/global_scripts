@@ -4,14 +4,16 @@
 # 描述: 管理插件和命令的缓存，提高启动性能
 
 # 防止重复加载
-[[ -n "${_GS_CACHE_MANAGER_LOADED:-}" ]] && return 0
-readonly _GS_CACHE_MANAGER_LOADED=true
+if _gs_is_constant "_GS_CACHE_MANAGER_LOADED" && [[ "${GS_FORCE_RELOAD:-false}" != "true" ]]; then
+    return 0
+fi
+_gs_set_constant "_GS_CACHE_MANAGER_LOADED" "true"
 
-# 缓存文件路径
-readonly GS_CACHE_DIR="${GS_CONFIG_DIR}/cache"
-readonly GS_PLUGIN_CACHE="$GS_CACHE_DIR/plugins.cache"
-readonly GS_COMMAND_CACHE="$GS_CACHE_DIR/commands.cache"
-readonly GS_METADATA_CACHE="$GS_CACHE_DIR/metadata.cache"
+# 缓存文件路径（使用常量保护机制）
+_gs_set_constant "GS_CACHE_DIR" "${GS_CONFIG_DIR}/cache"
+_gs_set_constant "GS_PLUGIN_CACHE" "$(_gs_get_constant "GS_CACHE_DIR")/plugins.cache"
+_gs_set_constant "GS_COMMAND_CACHE" "$(_gs_get_constant "GS_CACHE_DIR")/commands.cache"
+_gs_set_constant "GS_METADATA_CACHE" "$(_gs_get_constant "GS_CACHE_DIR")/metadata.cache"
 
 # 缓存管理器初始化实现
 initialize_cache_impl() {

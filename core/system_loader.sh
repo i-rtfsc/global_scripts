@@ -4,8 +4,10 @@
 # 描述: 加载系统命令，与插件加载机制一致
 
 # 防止重复加载
-[[ -n "${_GS_SYSTEM_LOADER_LOADED:-}" ]] && return 0
-readonly _GS_SYSTEM_LOADER_LOADED=true
+if _gs_is_constant "_GS_SYSTEM_LOADER_LOADED" && [[ "${GS_FORCE_RELOAD:-false}" != "true" ]]; then
+    return 0
+fi
+_gs_set_constant "_GS_SYSTEM_LOADER_LOADED" "true"
 
 # 系统命令加载实现
 load_system_commands_impl() {

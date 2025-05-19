@@ -4,8 +4,10 @@
 # 描述: 管理命令注册、去重、启用/禁用等功能
 
 # 防止重复加载
-[[ -n "${_GS_COMMAND_REGISTRY_LOADED:-}" ]] && return 0
-readonly _GS_COMMAND_REGISTRY_LOADED=true
+if _gs_is_constant "_GS_COMMAND_REGISTRY_LOADED" && [[ "${GS_FORCE_RELOAD:-false}" != "true" ]]; then
+    return 0
+fi
+_gs_set_constant "_GS_COMMAND_REGISTRY_LOADED" "true"
 
 # 命令注册器调试输出（使用新的日志系统）
 _gs_registry_debug() {
