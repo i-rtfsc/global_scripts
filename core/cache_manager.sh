@@ -1,248 +1,281 @@
-#!/bin/bash
-# Global Scripts V3 - 缓存管理器
-# 版本: 3.0.0
-# 描述: 管理插件和命令的缓存，提高启动性能
+#!/usr/bin/env bash
+# Global Scripts V3 - Cache Manager
+# Author: Global Scripts Team
+# Version: 3.0.0
 
-# 防止重复加载
-if _gs_is_constant "_GS_CACHE_MANAGER_LOADED" && [[ "${GS_FORCE_RELOAD:-false}" != "true" ]]; then
-    return 0
-fi
-_gs_set_constant "_GS_CACHE_MANAGER_LOADED" "true"
+# Set cache path constants
+_gs_set_constant "GS_CACHE_DIR" "$(_gs_get_constant "GS_CONFIG_DIR")/cache"
+_gs_set_constant "GS_SYSTEM_PLUGINS_CACHE" "$(_gs_get_constant "GS_CACHE_DIR")/system_plugins.cache"
+_gs_set_constant "GS_CORE_PLUGINS_CACHE" "$(_gs_get_constant "GS_CACHE_DIR")/core_plugins.cache"
+_gs_set_constant "GS_3RD_PLUGINS_CACHE" "$(_gs_get_constant "GS_CACHE_DIR")/3rd_plugins.cache"
+_gs_set_constant "GS_CONFIG_FILE" "$(_gs_get_constant "GS_CONFIG_DIR")/.gsconf"
 
-# 缓存文件路径（使用常量保护机制）
-_gs_set_constant "GS_CACHE_DIR" "${GS_CONFIG_DIR}/cache"
-_gs_set_constant "GS_PLUGIN_CACHE" "$(_gs_get_constant "GS_CACHE_DIR")/plugins.cache"
-_gs_set_constant "GS_COMMAND_CACHE" "$(_gs_get_constant "GS_CACHE_DIR")/commands.cache"
-_gs_set_constant "GS_METADATA_CACHE" "$(_gs_get_constant "GS_CACHE_DIR")/metadata.cache"
+# Load plugin configuration from .gsconf
+_load_plugin_config() {
+    local config_file="$(_gs_get_constant "GS_CONFIG_FILE")"
+    source "$config_file"
+}
 
-# 缓存管理器初始化实现
-initialize_cache_impl() {
-    _gs_debug "cache_manager" "初始化缓存管理器..."
+# Check if plugin is enabled in configuration
+_is_plugin_enabled() {
+    local plugin_name="$1"
+    local plugin_type="$2"  # core or 3rd
     
-    # 创建缓存目录
-    [[ -d "$GS_CACHE_DIR" ]] || mkdir -p "$GS_CACHE_DIR" 2>/dev/null
+    _load_plugin_config
     
-    # 检查缓存有效性
-    if ! is_cache_valid; then
-        _gs_debug "cache_manager" "缓存无效，正在重建..."
-        # 同步重建缓存（避免后台进程输出问题）
-        rebuild_cache_sync >/dev/null 2>&1
-        _gs_debug "cache_manager" "缓存重建完成"
-    else
-        _gs_debug "cache_manager" "缓存有效"
+    if [[ "$plugin_type" == "core" ]]; then
+        # Check if in gs_plugins array
+        for enabled_plugin in "${gs_plugins[@]}"; do
+            [[ "$enabled_plugin" == "$plugin_name" ]] && return 0
+        done
+    elif [[ "$plugin_type" == "3rd" ]]; then
+        # Check if in gs_custom_plugins array
+        for enabled_plugin in "${gs_custom_plugins[@]}"; do
+            [[ "$enabled_plugin" == "$plugin_name" ]] && return 0
+        done
     fi
     
-    _gs_debug "cache_manager" "缓存管理器初始化完成"
-    return 0
+    return 1
 }
 
-# 检查缓存是否有效
-is_cache_valid() {
-    # 检查缓存文件是否存在
-    [[ -f "$GS_PLUGIN_CACHE" ]] || return 1
-    [[ -f "$GS_COMMAND_CACHE" ]] || return 1
-    [[ -f "$GS_METADATA_CACHE" ]] || return 1
+# Generate system plugins cache
+_generate_system_plugins_cache() {
+    local cache_file="$(_gs_get_constant "GS_SYSTEM_PLUGINS_CACHE")"
+
+    # Delete existing cache file first
+    rm -f "$cache_file" 2>/dev/null
     
-    # 检查缓存是否过期（24小时）
-    local cache_age
-    if command -v stat >/dev/null 2>&1; then
-        # 获取缓存文件的修改时间
-        local cache_mtime
-        cache_mtime=$(stat -f%m "$GS_PLUGIN_CACHE" 2>/dev/null || stat -c%Y "$GS_PLUGIN_CACHE" 2>/dev/null || echo 0)
-        local current_time
-        current_time=$(date +%s)
-        cache_age=$((current_time - cache_mtime))
-        
-        # 24小时 = 86400秒
-        if [[ $cache_age -gt 86400 ]]; then
-            _gs_debug "cache_manager" "缓存已过期 (${cache_age}秒)"
-            return 1
-        fi
-    fi
-    
-    # 检查插件目录是否有变化
-    if [[ -d "${GS_PLUGINS_DIR}" ]]; then
-        local plugins_hash
-        plugins_hash=$(find "${GS_PLUGINS_DIR}" -name "*.meta" -o -name "*.sh" | \
-                      xargs ls -la 2>/dev/null | \
-                      $_GS_SED_CMD 's/^[^ ]* *[^ ]* *[^ ]* *[^ ]* *[^ ]* *//' | \
-                      sort | md5sum 2>/dev/null | cut -d' ' -f1 || echo "unknown")
-        
-        local cached_hash
-        cached_hash=$(head -n1 "$GS_METADATA_CACHE" 2>/dev/null || echo "")
-        
-        if [[ "$plugins_hash" != "$cached_hash" ]]; then
-            _gs_debug "cache_manager" "插件目录有变化"
-            return 1
-        fi
-    fi
-    
-    return 0
-}
-
-# 同步重建缓存
-rebuild_cache_sync() {
-    # 重建插件缓存
-    rebuild_plugin_cache
-
-    # 重建命令缓存
-    rebuild_command_cache
-
-    # 重建元数据缓存
-    rebuild_metadata_cache
-}
-
-# 异步重建缓存（保留兼容性）
-rebuild_cache_async() {
-    rebuild_cache_sync
-}
-
-# 重建插件缓存
-rebuild_plugin_cache() {
-    local temp_cache="${GS_PLUGIN_CACHE}.tmp"
+    _gs_debug "cache_manager" "Generating system plugins cache..."
     
     {
-        echo "# Global Scripts V3 插件缓存"
-        echo "# 生成时间: $(date)"
+        echo "# Global Scripts V3 System Plugins Cache"
+        echo "# Generated: $(date)"
         echo ""
-        
-        if [[ -d "${GS_PLUGINS_DIR}" ]]; then
-            find "${GS_PLUGINS_DIR}" -name "*.meta" -type f | \
-            while IFS= read -r meta_file; do
-                local plugin_dir
+    } > "$cache_file"
+    
+    if [[ -d "${GS_SYSTEM_DIR}" ]]; then
+        find "${GS_SYSTEM_DIR}" -name "*.meta" -type f 2>/dev/null | sort | \
+        while IFS= read -r meta_file; do
+            (
+                # Process each plugin in isolated subshell
                 plugin_dir=$(dirname "$meta_file")
-                local plugin_name
                 plugin_name=$(basename "$plugin_dir")
                 
-                echo "PLUGIN:$plugin_name:$plugin_dir"
-                
-                # 读取元数据
+                # Read plugin basic info
+                name="" version="" description=""
                 while IFS='=' read -r key value; do
-                    [[ "$key" =~ ^[A-Z_]+$ ]] && echo "META:$plugin_name:$key:$value"
-                done < "$meta_file"
-            done
-        fi
-    } > "$temp_cache"
-    
-    mv "$temp_cache" "$GS_PLUGIN_CACHE" 2>/dev/null
+                    case "$key" in
+                        "name"|"NAME") name="${value//\"/}" ;;
+                        "version"|"VERSION") version="${value//\"/}" ;;
+                        "description"|"DESCRIPTION") description="${value//\"/}" ;;
+                    esac
+                done < "$meta_file" 2>/dev/null
+                
+                # Set defaults
+                [[ -z "$name" ]] && name="$plugin_name"
+                [[ -z "$version" ]] && version="1.0.0"
+                [[ -z "$description" ]] && description="System Command"
+                
+                # Scan implementation file for functions
+                commands_list=""
+                commands_count=0
+                impl_file="$plugin_dir/${plugin_name}.sh"
+                
+                if [[ -f "$impl_file" ]]; then
+                    func_array=()
+                    while IFS= read -r line; do
+                        if [[ "$line" =~ ^gs_system_[a-zA-Z0-9_]+\(\) ]]; then
+                            func_name=$(echo "$line" | sed 's/().*//' | awk '{print $1}')
+                            cmd_name="gs-${func_name#gs_system_}"
+                            func_array+=("$cmd_name")
+                        fi
+                    done < "$impl_file" 2>/dev/null
+                    
+                    commands_count=${#func_array[@]}
+                    if [[ $commands_count -gt 0 ]]; then
+                        IFS=','; commands_list="${func_array[*]}"; IFS=$' \t\n'
+                    fi
+                fi
+                
+                # Output format: PLUGIN:name:version:status:commands_count:description:commands
+                printf "PLUGIN:%s:%s:%s:%s:%s:%s\n" "$name" "$version" "enabled" "$commands_count" "$description" "$commands_list"
+            )
+        done >> "$cache_file" 2>/dev/null
+    fi
+
+    _gs_debug "cache_manager" "System plugins cache generated: $cache_file"
 }
 
-# 重建命令缓存
-rebuild_command_cache() {
-    local temp_cache="${GS_COMMAND_CACHE}.tmp"
+# Generate core plugins cache
+_generate_core_plugins_cache() {
+    local cache_file="$(_gs_get_constant "GS_CORE_PLUGINS_CACHE")"
+
+    # Delete existing cache file first
+    rm -f "$cache_file" 2>/dev/null
+    
+    _gs_debug "cache_manager" "Generating core plugins cache..."
+    
+    # Load configuration once at the beginning
+    _load_plugin_config
     
     {
-        echo "# Global Scripts V3 命令缓存"
-        echo "# 生成时间: $(date)"
+        echo "# Global Scripts V3 Core Plugins Cache"
+        echo "# Generated: $(date)"
         echo ""
-        
-        # 缓存系统命令
-        if [[ -d "${GS_SYSTEM_DIR}" ]]; then
-            find "${GS_SYSTEM_DIR}" -name "*.sh" -type f | \
-            while IFS= read -r impl_file; do
-                local cmd_name
-                cmd_name=$(basename "$impl_file" .sh)
-                
-                # 扫描函数
-                $_GS_GREP_CMD "^gs_system_" "$impl_file" 2>/dev/null | \
-                while IFS= read -r line; do
-                    local func_name
-                    func_name=$(echo "$line" | $_GS_SED_CMD 's/().*//' | $_GS_AWK_CMD '{print $1}')
-                    [[ -n "$func_name" ]] && echo "SYSTEM:$func_name:$impl_file"
-                done
-            done
-        fi
-        
-        # 缓存插件命令
-        if [[ -d "${GS_PLUGINS_DIR}" ]]; then
-            find "${GS_PLUGINS_DIR}" -name "*.sh" -type f | \
-            while IFS= read -r impl_file; do
-                local plugin_name
-                plugin_name=$(basename "$(dirname "$impl_file")")
-                
-                # 扫描函数
-                $_GS_GREP_CMD "^gs_${plugin_name}_" "$impl_file" 2>/dev/null | \
-                while IFS= read -r line; do
-                    local func_name
-                    func_name=$(echo "$line" | $_GS_SED_CMD 's/().*//' | $_GS_AWK_CMD '{print $1}')
-                    [[ -n "$func_name" ]] && echo "PLUGIN:$func_name:$impl_file"
-                done
-            done
-        fi
-    } > "$temp_cache"
+    } > "$cache_file"
     
-    mv "$temp_cache" "$GS_COMMAND_CACHE" 2>/dev/null
+    if [[ -d "${GS_PLUGINS_DIR}" ]]; then
+        # Use array to avoid pipeline subshell issues
+        local meta_files=()
+        while IFS= read -r -d $'\0' file; do
+            meta_files+=("$file")
+        done < <(find "${GS_PLUGINS_DIR}" -name "*.meta" -type f -print0 2>/dev/null | sort -z)
+        
+        for meta_file in "${meta_files[@]}"; do
+            # Process each plugin
+            local plugin_dir plugin_name name version description commands_list commands_count plugin_status
+            
+            plugin_dir=$(dirname "$meta_file")
+            plugin_name=$(basename "$plugin_dir")
+            
+            # Read plugin basic info
+            name="" version="" description=""
+            while IFS='=' read -r key value; do
+                case "$key" in
+                    "name") name="${value//\"/}" ;;
+                    "version") version="${value//\"/}" ;;
+                    "description") description="${value//\"/}" ;;
+                esac
+            done < "$meta_file" 2>/dev/null
+            
+            # Set defaults
+            [[ -z "$name" ]] && name="$plugin_name"
+            [[ -z "$version" ]] && version="1.0.0"
+            [[ -z "$description" ]] && description="Core Plugin"
+            
+            # Check plugin status based on configuration
+            local plugin_status="disabled"  # default
+            for enabled_plugin in "${gs_plugins[@]}"; do
+                if [[ "$enabled_plugin" == "$name" ]]; then
+                    plugin_status="enabled"
+                    break
+                fi
+            done
+            
+            # Read commands array from meta file
+            commands_list=""
+            commands_count=0
+            local in_commands=false
+            
+            while IFS= read -r line; do
+                line=$(echo "$line" | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
+                
+                if [[ "$line" == "commands=(" ]]; then
+                    in_commands=true
+                    continue
+                elif [[ "$line" == ")" && "$in_commands" == "true" ]]; then
+                    break
+                elif [[ "$in_commands" == "true" && "$line" =~ ^\".*\"$ ]]; then
+                    local cmd_def="${line//\"/}"
+                    local cmd_name=$(echo "$cmd_def" | cut -d':' -f1)
+                    if [[ -n "$cmd_name" ]]; then
+                        if [[ -z "$commands_list" ]]; then
+                            commands_list="$cmd_name"
+                        else
+                            commands_list="$commands_list,$cmd_name"
+                        fi
+                        commands_count=$((commands_count + 1))
+                    fi
+                fi
+            done < "$meta_file" 2>/dev/null
+            
+            # Output format: PLUGIN:name:version:status:commands_count:description:commands
+            printf "PLUGIN:%s:%s:%s:%s:%s:%s\n" "$name" "$version" "$plugin_status" "$commands_count" "$description" "$commands_list" >> "$cache_file"
+        done
+    fi
+
+    _gs_debug "cache_manager" "Core plugins cache generated: $cache_file"
 }
 
-# 重建元数据缓存
-rebuild_metadata_cache() {
-    local temp_cache="${GS_METADATA_CACHE}.tmp"
+# Generate 3rd party plugins cache
+_generate_3rd_plugins_cache() {
+    local cache_file="$(_gs_get_constant "GS_3RD_PLUGINS_CACHE")"
+
+    # Delete existing cache file first
+    rm -f "$cache_file" 2>/dev/null
+    
+    _gs_debug "cache_manager" "Generating 3rd party plugins cache..."
     
     {
-        # 第一行存储插件目录的哈希值
-        if [[ -d "${GS_PLUGINS_DIR}" ]]; then
-            find "${GS_PLUGINS_DIR}" -name "*.meta" -o -name "*.sh" | \
-            xargs ls -la 2>/dev/null | \
-            $_GS_SED_CMD 's/^[^ ]* *[^ ]* *[^ ]* *[^ ]* *[^ ]* *//' | \
-            sort | md5sum 2>/dev/null | cut -d' ' -f1 || echo "unknown"
-        else
-            echo "no_plugins"
-        fi
-        
-        echo "# 元数据缓存"
-        echo "# 生成时间: $(date)"
-        echo "# GS版本: $GS_VERSION"
-        echo "# Shell: $_GS_SHELL_TYPE $_GS_SHELL_VERSION"
-    } > "$temp_cache"
+        echo "# Global Scripts V3 3rd Party Plugins Cache"
+        echo "# Generated: $(date)"
+        echo ""
+        echo "# No 3rd party plugins yet"
+    } > "$cache_file"
     
-    mv "$temp_cache" "$GS_METADATA_CACHE" 2>/dev/null
+    # TODO: Implement 3rd party plugins directory scanning
+    # When there are 3rd party plugins, use similar logic as core plugins
+    # but check against gs_custom_plugins configuration
+
+    _gs_debug "cache_manager" "3rd party plugins cache generated: $cache_file"
 }
 
-# 清理缓存
+# Cache manager initialization implementation
+initialize_cache_impl() {
+    _gs_debug "cache_manager" "Initializing cache manager..."
+    
+    # Create cache directory
+    [[ -d "$(_gs_get_constant "GS_CACHE_DIR")" ]] || mkdir -p "$(_gs_get_constant "GS_CACHE_DIR")" 2>/dev/null
+    
+    # Generate three-tier cache files
+    _generate_system_plugins_cache
+    _generate_core_plugins_cache
+    _generate_3rd_plugins_cache
+    
+    _gs_debug "cache_manager" "Cache manager initialization completed"
+    return 0
+}
+
+# Clear cache
 clear_cache() {
-    _gs_debug "cache_manager" "清理缓存..."
+    _gs_debug "cache_manager" "Clearing cache..."
     
-    rm -f "$GS_PLUGIN_CACHE" "$GS_COMMAND_CACHE" "$GS_METADATA_CACHE" 2>/dev/null
+    local system_cache="$(_gs_get_constant "GS_SYSTEM_PLUGINS_CACHE")"
+    local core_cache="$(_gs_get_constant "GS_CORE_PLUGINS_CACHE")"
+    local third_cache="$(_gs_get_constant "GS_3RD_PLUGINS_CACHE")"
     
-    _gs_debug "cache_manager" "缓存已清理"
+    rm -f "$system_cache" "$core_cache" "$third_cache" 2>/dev/null
+    
+    _gs_debug "cache_manager" "Cache cleared"
 }
 
-# 获取缓存状态
+# Get cache status
 get_cache_status() {
-    echo "=== Global Scripts 缓存状态 ==="
-    echo "缓存目录: $GS_CACHE_DIR"
+    echo "=== Global Scripts Cache Status ==="
+    echo "Cache Directory: $(_gs_get_constant "GS_CACHE_DIR")"
     
-    if [[ -f "$GS_PLUGIN_CACHE" ]]; then
-        local size
-        size=$(wc -l < "$GS_PLUGIN_CACHE" 2>/dev/null || echo "0")
-        echo "插件缓存: 存在 ($size 行)"
+    local system_cache="$(_gs_get_constant "GS_SYSTEM_PLUGINS_CACHE")"
+    local core_cache="$(_gs_get_constant "GS_CORE_PLUGINS_CACHE")"
+    local third_cache="$(_gs_get_constant "GS_3RD_PLUGINS_CACHE")"
+    
+    if [[ -f "$system_cache" ]]; then
+        local size=$(grep -c "^PLUGIN:" "$system_cache" 2>/dev/null || echo "0")
+        echo "System plugins cache: Exists ($size plugins)"
     else
-        echo "插件缓存: 不存在"
+        echo "System plugins cache: Not found"
     fi
     
-    if [[ -f "$GS_COMMAND_CACHE" ]]; then
-        local size
-        size=$(wc -l < "$GS_COMMAND_CACHE" 2>/dev/null || echo "0")
-        echo "命令缓存: 存在 ($size 行)"
+    if [[ -f "$core_cache" ]]; then
+        local size=$(grep -c "^PLUGIN:" "$core_cache" 2>/dev/null || echo "0")
+        echo "Core plugins cache: Exists ($size plugins)"
     else
-        echo "命令缓存: 不存在"
+        echo "Core plugins cache: Not found"
     fi
     
-    if [[ -f "$GS_METADATA_CACHE" ]]; then
-        local mtime
-        if command -v stat >/dev/null 2>&1; then
-            mtime=$(stat -f%Sm "$GS_METADATA_CACHE" 2>/dev/null || stat -c%y "$GS_METADATA_CACHE" 2>/dev/null || echo "未知")
-        else
-            mtime="未知"
-        fi
-        echo "元数据缓存: 存在 (修改时间: $mtime)"
+    if [[ -f "$third_cache" ]]; then
+        local size=$(grep -c "^PLUGIN:" "$third_cache" 2>/dev/null || echo "0")
+        echo "3rd party plugins cache: Exists ($size plugins)"
     else
-        echo "元数据缓存: 不存在"
-    fi
-    
-    if is_cache_valid; then
-        echo "缓存状态: 有效"
-    else
-        echo "缓存状态: 无效或过期"
+        echo "3rd party plugins cache: Not found"
     fi
 }

@@ -39,6 +39,7 @@ _gs_set_constant "_GS_ENV_LOADED" "true"
 export GS_ROOT
 export GS_VERSION
 export GS_DEBUG_MODE="${GS_DEBUG_MODE:-false}"
+export GS_FORCE_RELOAD="${GS_FORCE_RELOAD:-true}"
 
 # 设置路径变量（使用常量保护）
 _gs_set_constant "GS_CORE_DIR" "$GS_ROOT/core"

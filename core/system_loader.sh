@@ -112,12 +112,12 @@ load_single_system_command() {
     # 5. 注册系统命令函数（只注册新增的）
     _gs_register_system_functions "$cmd_name" "$before_functions"
     
-    # 6. 运行系统命令自检
-    if declare -F "_gs_system_${cmd_name}_selfcheck" >/dev/null 2>&1; then
-        if ! "_gs_system_${cmd_name}_selfcheck"; then
-            _gs_debug "system_loader" "  ⚠️  系统命令自检失败: $cmd_name"
-        fi
-    fi
+#    # 6. 运行系统命令自检
+#    if declare -F "_gs_system_${cmd_name}_selfcheck" >/dev/null 2>&1; then
+#        if ! "_gs_system_${cmd_name}_selfcheck"; then
+#            _gs_debug "system_loader" "  ⚠️  系统命令自检失败: $cmd_name"
+#        fi
+#    fi
     
     return 0
 }

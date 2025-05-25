@@ -1,0 +1,17 @@
+# Global Scripts V3 插件配置
+
+# 调试
+gs_env_debug=0
+
+# prompt 主题
+gs_themes_prompt=remote
+
+# core 插件
+gs_plugins=(
+    android    
+)
+
+# 3rd 插件
+gs_custom_plugins=(
+    # 暂无第三方插件
+)
