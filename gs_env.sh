@@ -45,12 +45,13 @@ export GS_FORCE_RELOAD="${GS_FORCE_RELOAD:-true}"
 _gs_set_constant "GS_CORE_DIR" "$GS_ROOT/core"
 _gs_set_constant "GS_SYSTEM_DIR" "$GS_ROOT/system"
 _gs_set_constant "GS_PLUGINS_DIR" "$GS_ROOT/plugins"
+_gs_set_constant "GS_3RD_PLUGINS_DIR" "$GS_ROOT/custom"
 _gs_set_constant "GS_CONFIG_DIR" "$GS_ROOT/config"
 _gs_set_constant "GS_TOOLS_DIR" "$GS_ROOT/tools"
 _gs_set_constant "GS_TESTS_DIR" "$GS_ROOT/tests"
 
 # 导出路径变量
-export GS_CORE_DIR GS_SYSTEM_DIR GS_PLUGINS_DIR GS_CONFIG_DIR GS_TOOLS_DIR GS_TESTS_DIR
+export GS_CORE_DIR GS_SYSTEM_DIR GS_PLUGINS_DIR GS_3RD_PLUGINS_DIR GS_CONFIG_DIR GS_TOOLS_DIR GS_TESTS_DIR
 
 # 检查并加载日志系统
 _gs_bootstrap_logger() {
@@ -260,6 +261,7 @@ _gs_initialize_components() {
         _gs_debug "gs_env" "ℹ️ 插件检测器不可用"
     fi
     
+    local start_time1=$(_gs_get_timestamp_ms 2>/dev/null || echo "0")
     # 5. 初始化缓存（性能优化组件）
     if declare -F "initialize_cache_impl" >/dev/null 2>&1; then
         if initialize_cache_impl; then
@@ -275,6 +277,9 @@ _gs_initialize_components() {
     # 6. 显示组件统计信息
     local end_time=$(_gs_get_timestamp_ms 2>/dev/null || echo "0")
     local total_time=$((end_time - start_time))
+
+    local total_time1=$((end_time - start_time1))
+    _gs_info "gs_env" "初始化缓存 耗时: ${total_time1}ms)"
     
     _gs_info "gs_env" "组件初始化完成 (成功: $init_count, 耗时: ${total_time}ms)"
     

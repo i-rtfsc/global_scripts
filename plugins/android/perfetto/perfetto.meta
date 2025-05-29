@@ -1,0 +1,4 @@
+TYPE=submodule
+DESCRIPTION="Android Perfetto performance tracing tools"
+VERSION=3.0.0
+SYSTEM_DEPS=adb,python3

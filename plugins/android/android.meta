@@ -1,0 +1,9 @@
+PLUGIN_TYPE=main
+NAME=android
+VERSION=3.0.0
+DESCRIPTION=Android开发工具集，提供ADB、编译、调试、推送等功能
+AUTHOR=Solo
+SYSTEM_DEPS=adb,fastboot,python3
+PLUGIN_DEPS=system
+MIN_GS_VERSION=3.0.0
+SUBMODULES=adb,build,frida,push,grep,perfetto,winscope

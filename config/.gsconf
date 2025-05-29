@@ -8,7 +8,12 @@ gs_themes_prompt=remote
 
 # core 插件
 gs_plugins=(
-    android    
+    android
+    android/adb
+    android/build
+    android/frida
+    android/grep
+    android/push
 )
 
 # 3rd 插件

@@ -1,0 +1,6 @@
+PLUGIN_TYPE=submodule
+NAME=grep
+PARENT=android
+VERSION=3.0.0
+DESCRIPTION=Android源码搜索工具集，提供针对AOSP源码的专门搜索功能
+SYSTEM_DEPS=find,grep

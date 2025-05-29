@@ -99,11 +99,11 @@ load_single_plugin() {
         return 1
     fi
 
-    # 2. 检查依赖
-    if ! check_plugin_dependencies "$meta_file"; then
-        _gs_plugin_debug "插件依赖不满足: $plugin_name"
-        return 1
-    fi
+    # # 2. 检查依赖
+    # if ! check_plugin_dependencies "$meta_file"; then
+    #     _gs_plugin_debug "插件依赖不满足: $plugin_name"
+    #     return 1
+    # fi
 
     # 3. 获取加载前的函数快照
     local before_functions
@@ -232,10 +232,34 @@ load_plugin_submodules() {
     if [[ -n "$submodules" && "$submodules" != "none" ]]; then
         _gs_plugin_debug "加载子模块: $submodules"
 
-        IFS=',' read -ra modules <<< "$submodules"
-        for module in "${modules[@]}"; do
-            module=$(echo "$module" | xargs)  # 去除空格
-            load_single_submodule "$plugin_dir" "$module"
+        # 保存和设置IFS
+        local OLD_IFS="$IFS"
+        IFS=','
+        
+        # 使用更独特的变量名避免冲突
+        local _gs_submodule_list
+        
+        # shell兼容的数组分割
+        if [[ -n "$BASH_VERSION" ]]; then
+            read -ra _gs_submodule_list <<< "$submodules"
+        elif [[ -n "$ZSH_VERSION" ]]; then
+            _gs_submodule_list=("${(@s:,:)submodules}")
+        else
+            set -- $submodules
+            _gs_submodule_list=("$@")
+        fi
+        
+        IFS="$OLD_IFS"
+
+        # 遍历并处理模块
+        local module
+        for module in "${_gs_submodule_list[@]}"; do
+            # 去除前后空格（POSIX兼容）
+            module="${module#"${module%%[![:space:]]*}"}"
+            module="${module%"${module##*[![:space:]]}"}"
+            
+            # 跳过空模块
+            [[ -n "$module" ]] && load_single_submodule "$plugin_dir" "$module"
         done
     fi
 }

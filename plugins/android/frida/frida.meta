@@ -1,0 +1,6 @@
+PLUGIN_TYPE=submodule
+NAME=frida
+PARENT=android
+VERSION=3.0.0
+DESCRIPTION=Android动态分析工具集，提供Frida Hook和动态调试功能
+SYSTEM_DEPS=adb,python3
