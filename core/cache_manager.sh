@@ -139,55 +139,66 @@ _generate_core_plugins_cache() {
             plugin_name=$(basename "$plugin_dir")
             
             # Read plugin basic info
-            name="" version="" description=""
+            name="" version="" description="" plugin_type="" parent=""
             while IFS='=' read -r key value; do
                 case "$key" in
-                    "name") name="${value//\"/}" ;;
-                    "version") version="${value//\"/}" ;;
-                    "description") description="${value//\"/}" ;;
+                    "plugin_type"|"PLUGIN_TYPE") plugin_type="${value//\"/}" ;;
+                    "parent"|"PARENT") parent="${value//\"/}" ;;
+                    "name"|"NAME") name="${value//\"/}" ;;
+                    "version"|"VERSION") version="${value//\"/}" ;;
+                    "description"|"DESCRIPTION") description="${value//\"/}" ;;
                 esac
             done < "$meta_file" 2>/dev/null
             
             # Set defaults
-            [[ -z "$name" ]] && name="$plugin_name"
+            [[ -z "$name" ]] && name="$plugin_name"            
             [[ -z "$version" ]] && version="1.0.0"
             [[ -z "$description" ]] && description="Core Plugin"
             
             # Check plugin status based on configuration
             local plugin_status="disabled"  # default
-            for enabled_plugin in "${gs_plugins[@]}"; do
-                if [[ "$enabled_plugin" == "$name" ]]; then
-                    plugin_status="enabled"
-                    break
-                fi
-            done
-            
-            # Read commands array from meta file
-            commands_list=""
-            commands_count=0
-            local in_commands=false
-            
-            while IFS= read -r line; do
-                line=$(echo "$line" | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
-                
-                if [[ "$line" == "commands=(" ]]; then
-                    in_commands=true
-                    continue
-                elif [[ "$line" == ")" && "$in_commands" == "true" ]]; then
-                    break
-                elif [[ "$in_commands" == "true" && "$line" =~ ^\".*\"$ ]]; then
-                    local cmd_def="${line//\"/}"
-                    local cmd_name=$(echo "$cmd_def" | cut -d':' -f1)
-                    if [[ -n "$cmd_name" ]]; then
-                        if [[ -z "$commands_list" ]]; then
-                            commands_list="$cmd_name"
-                        else
-                            commands_list="$commands_list,$cmd_name"
-                        fi
-                        commands_count=$((commands_count + 1))
+            if [ "$plugin_type" = "submodule" ]; then
+                 for enabled_plugin in "${gs_plugins[@]}"; do
+                    if [[ "$enabled_plugin" == "$parent/$name" ]]; then
+                        plugin_status="enabled"
+                        break
                     fi
+                done
+            else
+                for enabled_plugin in "${gs_plugins[@]}"; do
+                    if [[ "$enabled_plugin" == "$name" ]]; then
+                        plugin_status="enabled"
+                        break
+                    fi
+                done
+            fi
+
+            # Scan implementation file for functions
+            commands_list=""
+            commands_count=0            
+            impl_file="$plugin_dir/${plugin_name}.sh"
+
+            if [[ -f "$impl_file" ]]; then
+                func_array=()
+                while IFS= read -r line; do
+                    # 仅匹配以 gs_ 开头的函数定义
+                    if [[ "$line" =~ ^gs_[a-zA-Z0-9_]+\(\) ]]; then
+                        # 提取函数名（去掉括号和参数）
+                        func_name=$(echo "$line" | sed 's/().*//' | awk '{print $1}')                        
+                        
+                        # 替换函数名中的下划线为中划线
+                        cmd_name="${func_name//_/-}"
+                        
+                        # 添加到数组
+                        func_array+=("$cmd_name")
+                    fi
+                done < "$impl_file" 2>/dev/null
+
+                commands_count=${#func_array[@]}
+                if [[ $commands_count -gt 0 ]]; then
+                    IFS=','; commands_list="${func_array[*]}"; IFS=$' \t\n'
                 fi
-            done < "$meta_file" 2>/dev/null
+            fi
             
             # Output format: PLUGIN:name:version:status:commands_count:description:commands
             printf "PLUGIN:%s:%s:%s:%s:%s:%s\n" "$name" "$version" "$plugin_status" "$commands_count" "$description" "$commands_list" >> "$cache_file"
@@ -213,9 +224,81 @@ _generate_3rd_plugins_cache() {
         echo "# No 3rd party plugins yet"
     } > "$cache_file"
     
-    # TODO: Implement 3rd party plugins directory scanning
-    # When there are 3rd party plugins, use similar logic as core plugins
-    # but check against gs_custom_plugins configuration
+    if [[ -d "${GS_3RD_PLUGINS_DIR}" ]]; then
+        # Use array to avoid pipeline subshell issues
+        local meta_files=()
+        while IFS= read -r -d $'\0' file; do
+            meta_files+=("$file")
+        done < <(find "${GS_3RD_PLUGINS_DIR}" -name "*.meta" -type f -print0 2>/dev/null | sort -z)
+        
+        for meta_file in "${meta_files[@]}"; do
+            # Process each plugin
+            local plugin_dir plugin_name name version description commands_list commands_count plugin_status
+            
+            plugin_dir=$(dirname "$meta_file")
+            plugin_name=$(basename "$plugin_dir")
+            
+            # Read plugin basic info
+            name="" version="" description="" plugin_type="" parent=""
+            while IFS='=' read -r key value; do
+                case "$key" in
+                    "plugin_type"|"PLUGIN_TYPE") plugin_type="${value//\"/}" ;;
+                    "parent"|"PARENT") parent="${value//\"/}" ;;
+                    "name"|"NAME") name="${value//\"/}" ;;
+                    "version"|"VERSION") version="${value//\"/}" ;;
+                    "description"|"DESCRIPTION") description="${value//\"/}" ;;
+                esac
+            done < "$meta_file" 2>/dev/null
+            
+            # Check plugin status based on configuration
+            local plugin_status="disabled"  # default
+            if [ "$plugin_type" = "submodule" ]; then
+                 for enabled_plugin in "${gs_plugins[@]}"; do
+                    if [[ "$enabled_plugin" == "$parent/$name" ]]; then
+                        plugin_status="enabled"
+                        break
+                    fi
+                done
+            else
+                for enabled_plugin in "${gs_plugins[@]}"; do
+                    if [[ "$enabled_plugin" == "$name" ]]; then
+                        plugin_status="enabled"
+                        break
+                    fi
+                done
+            fi
+
+            # Scan implementation file for functions
+            commands_list=""
+            commands_count=0            
+            impl_file="$plugin_dir/${plugin_name}.sh"
+
+            if [[ -f "$impl_file" ]]; then
+                func_array=()
+                while IFS= read -r line; do
+                    # 仅匹配以 gs_ 开头的函数定义
+                    if [[ "$line" =~ ^gs_[a-zA-Z0-9_]+\(\) ]]; then
+                        # 提取函数名（去掉括号和参数）
+                        func_name=$(echo "$line" | sed 's/().*//' | awk '{print $1}')
+                        
+                        # 替换函数名中的下划线为中划线
+                        cmd_name="${func_name//_/-}"
+                        
+                        # 添加到数组
+                        func_array+=("$cmd_name")
+                    fi
+                done < "$impl_file" 2>/dev/null
+
+                commands_count=${#func_array[@]}
+                if [[ $commands_count -gt 0 ]]; then
+                    IFS=','; commands_list="${func_array[*]}"; IFS=$' \t\n'
+                fi
+            fi
+            
+            # Output format: PLUGIN:name:version:status:commands_count:description:commands
+            printf "PLUGIN:%s:%s:%s:%s:%s:%s\n" "$name" "$version" "$plugin_status" "$commands_count" "$description" "$commands_list" >> "$cache_file"
+        done
+    fi
 
     _gs_debug "cache_manager" "3rd party plugins cache generated: $cache_file"
 }
