@@ -1,0 +1,27 @@
+# Git Remote管理子模块
+# Git Remote Management Submodule
+
+name="remote"
+description="Git远程仓库管理"
+description_en="Git remote repository management"
+version="1.0.0"
+author="Global Scripts V3"
+
+# 依赖项
+dependencies=""
+
+# 支持的平台
+platforms="macos,linux"
+
+# 支持的Shell
+shells="bash,zsh"
+
+# 子模块特性
+features="远程仓库管理,多源同步,镜像管理"
+features_en="remote repository management,multi-source sync,mirror management"
+
+# 标签
+tags="git,remote,repository,sync,mirror"
+
+# 主要功能
+main_functions="gs_git_remote_add,gs_git_remote_sync,gs_git_remote_mirror,gs_git_remote_prune"

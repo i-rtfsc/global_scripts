@@ -1,0 +1,10 @@
+NAME=commit
+VERSION=1.0.0
+DESCRIPTION=Git提交管理工具
+DESCRIPTION_EN=Git commit management tools
+AUTHOR=Global Scripts Team
+PARENT=git
+STATUS=enabled
+DEPENDENCIES=git
+SHELL_SUPPORT=bash,zsh
+PLATFORM_SUPPORT=darwin,linux

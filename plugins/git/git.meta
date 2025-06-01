@@ -1,0 +1,12 @@
+NAME=git
+VERSION=1.0.0
+DESCRIPTION=Git版本控制增强工具集
+DESCRIPTION_EN=Git version control enhancement toolset
+AUTHOR=Global Scripts Team
+CATEGORY=core
+STATUS=enabled
+SUBMODULES=branch,commit,flow,remote
+DEPENDENCIES=git
+SHELL_SUPPORT=bash,zsh
+PLATFORM_SUPPORT=darwin,linux
+MIN_VERSION=3.0.0
