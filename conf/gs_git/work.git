@@ -1,8 +1,6 @@
 [user]
-	name = x-huanganqi
-	email = x-huanganqi@meizu.com
+	name = Huang Anqi
+	email = Anqi_Huang@saic-gm.com
 [commit]
     gpgsign = false
     template = ~/bin/global_scripts/conf/gs_git/commit_template.git
-[url "ssh://x-huanganqi@gerrit-master.rnd.meizu.com:9999"]
-    pushInsteadOf = ssh://x-huanganqi@gerrit.sh.slave.meizu.com:29999

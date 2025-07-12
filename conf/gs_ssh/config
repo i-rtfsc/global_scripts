@@ -1,36 +1,18 @@
 StrictHostKeyChecking no
 UserKnownHostsFile=/dev/null
 
-host boxing
-Hostname gerrit-slave.upuphone.com
+Host 10.203.61.69
 Port 29418
-User anqi.huang
-PubkeyAuthentication yes
-IdentitiesOnly yes
-PasswordAuthentication no
-IdentityFile ~/.ssh/id_rsa
-StrictHostKeyChecking no
-
-host boxing-master
-Hostname gerrit.upuphone.com
-Port 29418
-User anqi.huang
+User sipgnd
 PubkeyAuthentication yes
 IdentitiesOnly yes
 PasswordAuthentication no
 IdentityFile ~/.ssh/id_rsa
 StrictHostKeyChecking no
 UserKnownHostsFile=/dev/null
-
-Host 172.16.1.22
 KexAlgorithms diffie-hellman-group1-sha1
-Host review.rnd.meizu.co
-KexAlgorithms diffie-hellman-group1-sha1
-
-Host review.rnd.meizu.com
-HostkeyAlgorithms ssh-dss,ssh-rsa
 KexAlgorithms +diffie-hellman-group1-sha1
 
 Host github.com
- Hostname ssh.github.com
- Port 443
+Hostname ssh.github.com
+Port 443

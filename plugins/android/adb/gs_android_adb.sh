@@ -163,7 +163,7 @@ function gs_android_adb_show_log() {
         echo "input package name"
         return
     fi
-    adb logcat --pid=`adb shell pidof  $1`
+    adb logcat --pid=`adb shell pidof $1`
 }
 
 #输入包名
@@ -200,6 +200,35 @@ function gs_android_adb_abx2xml() {
 function gs_android_adb_connect() {
     adb tcpip 5555
     adb connect $1
+}
+
+
+function gs_android_adb_am_proc_start() {
+    PACKAGE="$1"
+    REGEX="am_proc_start.*${PACKAGE//./\\.}|${PACKAGE//./\\.}.*am_proc_start"
+
+    cat * 2>/dev/null | grep -E "$REGEX"
+}
+
+function gs_android_adb_am_proc_died() {
+    PACKAGE="$1"
+    REGEX="am_proc_died.*${PACKAGE//./\\.}|${PACKAGE//./\\.}.*am_proc_died"
+
+    cat * 2>/dev/null | grep -E "$REGEX"
+}
+
+function gs_android_adb_am_kill() {
+    PACKAGE="$1"
+    REGEX="am_kill.*${PACKAGE//./\\.}|${PACKAGE//./\\.}.*am_kill"
+
+    cat * 2>/dev/null | grep -E "$REGEX"
+}
+
+function gs_android_adb_am_anr() {
+    PACKAGE="$1"
+    REGEX="am_anr.*${PACKAGE//./\\.}|${PACKAGE//./\\.}.*am_anr"
+
+    cat * 2>/dev/null | grep -E "$REGEX"
 }
 
 function gs_android_adb_j007engine_kill() {

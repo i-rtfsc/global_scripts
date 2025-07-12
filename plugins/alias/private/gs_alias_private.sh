@@ -33,6 +33,9 @@ if $isMac ; then
     alias pd-umount='sudo diskutil umount force $HOME/pd ; rm -rf $HOME/pd'
 fi
 
+alias 007-start='adb shell am start-foreground-service com.rtfsc.i007service/.core.I007Service'
+alias 007-dump='adb shell dumpsys activity service com.rtfsc.i007service/.core.I007Service'
+
 #if [ -f ~/global_scripts/environment.sh ]
 #then
 #    . ~/global_scripts/environment.sh
