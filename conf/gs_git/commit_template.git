@@ -1,6 +1,12 @@
-[Input][SystemGesture]
+RTC_ID:
 
-Redmine : #
-Details :
-ApplyTo : All
-Suggest : NA
+COMMENT:
+
+PatchType:Bug
+#PatchType:Feature ? Bug ? Performance ? Refactoring ? Style ? Test ? Docs
+
+PatchModule:NA
+
+PatchLevel:P2
+
+UTResult:NA

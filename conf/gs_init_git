@@ -35,7 +35,7 @@ gitconfig_template = """[include]
     path =  ${path}/work.git
 [includeIf "gitdir:~/code/work/"]
     path =  ${path}/work.git
-[includeIf "gitdir:~/code/flyme/"]
+[includeIf "gitdir:~/code/sgm/"]
     path =  ${path}/work.git
 """
 
