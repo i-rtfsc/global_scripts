@@ -100,7 +100,7 @@ function _gs_prompt_current_dir() {
 
 function _gs_prompt_spilt_icon() {
     if [ -n "$ZSH_VERSION" ]; then
-        text=$(_gs_theme_color_text $COLOR_SPILT ${SYMBOL_SPLIT_ARROW})
+        text=$(_gs_theme_color_text $COLOR_FG_SPLIT ${SYMBOL_SPLIT_ARROW})
 
         if ${isMac} ; then
             echo "$text"

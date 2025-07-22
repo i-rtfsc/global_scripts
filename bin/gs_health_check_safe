@@ -1,0 +1,36 @@
+#!/bin/bash
+# Safe version of gs_health_check for testing
+
+echo "=== Global Scripts Health Check (Safe Mode) ==="
+echo
+
+# Basic environment check
+echo "✓ Shell: $SHELL"
+echo "✓ Global Scripts root: ${_GS_ROOT_PATH:-Not set}"
+
+# Try to source common library if not already loaded
+if [[ -f "${_GS_ROOT_PATH}/env/gs_common.sh" ]]; then
+    echo "[DEBUG] Sourcing common library..."
+    source "${_GS_ROOT_PATH}/env/gs_common.sh"
+fi
+
+# Test if common functions work
+if declare -f gs_info >/dev/null 2>&1; then
+    gs_info "Common functions are loaded"
+else
+    echo "⚠ Common functions not available"
+    echo "[DEBUG] Available gs_ functions:"
+    declare -f | grep "^gs_" | head -5
+fi
+
+# Test if plugins are loaded
+if declare -f gs_list_plugins >/dev/null 2>&1; then
+    echo "✓ Plugin management functions available"
+    gs_list_plugins
+else
+    echo "⚠ Plugin management functions not loaded"
+fi
+
+echo
+echo "Health check completed without crashes!"
+echo "Terminal should remain open."

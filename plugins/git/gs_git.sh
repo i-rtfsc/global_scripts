@@ -48,13 +48,15 @@ function gs_git_add_submodule() {
 function gs_git_all_commits() {
     cd "`git rev-parse --git-path objects`"
 
-    # packed objects
-    for p in pack/pack-*([0-9a-f]).idx ; do
+    # packed objects - use simple glob pattern for shell compatibility
+    for p in pack/pack-*.idx ; do
+        [[ -f "$p" ]] || continue
         git show-index < $p | cut -f 2 -d ' '
     done
 
-    # loose objects
-    for o in [0-9a-f][0-9a-f]/*([0-9a-f]) ; do
+    # loose objects - use simple glob pattern for shell compatibility
+    for o in [0-9a-f][0-9a-f]/* ; do
+        [[ -f "$o" ]] || continue
         echo ${o/\/}
     done
 }

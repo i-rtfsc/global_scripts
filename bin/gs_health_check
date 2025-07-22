@@ -1,0 +1,368 @@
+#!/bin/bash
+# -*- coding: utf-8 -*-
+# -*- encoding: utf-8 -*-
+#
+# Copyright (c) 2023 anqi.huang@outlook.com
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+
+# Environment Health Check for Global Scripts
+# This script validates the installation and configuration of Global Scripts
+
+# Safety: Don't exit on errors in interactive mode
+if [[ $- == *i* ]]; then
+    echo "[INFO] Running in interactive mode - errors will not close terminal"
+    set +e
+fi
+
+# Source common libraries
+if [[ -f "${_GS_ROOT_PATH}/env/gs_common.sh" ]]; then
+    source "${_GS_ROOT_PATH}/env/gs_common.sh"
+else
+    echo "[WARNING] Common library not found. Some features may not work."
+fi
+
+readonly SCRIPT_NAME="gs_health_check"
+readonly SCRIPT_VERSION="1.0.0"
+
+# Health check results - zsh/bash compatible
+if [[ -n "$ZSH_VERSION" ]]; then
+    # In zsh, use typeset
+    typeset -A check_results
+    typeset -A check_messages  
+    typeset -A check_fixes
+else
+    # In bash, use declare
+    declare -A check_results
+    declare -A check_messages
+    declare -A check_fixes
+fi
+
+# Check categories
+readonly CATEGORY_CORE="Core System"
+readonly CATEGORY_ANDROID="Android Development"
+readonly CATEGORY_SYSTEM="System Tools"
+readonly CATEGORY_OPTIONAL="Optional Tools"
+
+# Function: run_check
+# Description: Run a health check and record results
+# Parameters:
+#   $1 - check_name: Name of the check
+#   $2 - check_command: Command to run
+#   $3 - success_message: Message on success
+#   $4 - error_message: Message on failure
+#   $5 - fix_suggestion: How to fix the issue
+# Returns: None
+function run_check() {
+    local check_name="$1"
+    local check_command="$2"
+    local success_message="$3"
+    local error_message="$4"
+    local fix_suggestion="$5"
+    
+    if eval "$check_command" >/dev/null 2>&1; then
+        check_results["$check_name"]="PASS"
+        check_messages["$check_name"]="$success_message"
+    else
+        check_results["$check_name"]="FAIL"
+        check_messages["$check_name"]="$error_message"
+        check_fixes["$check_name"]="$fix_suggestion"
+    fi
+}
+
+# Function: check_core_system
+# Description: Check core system requirements
+# Parameters: None
+# Returns: None
+function check_core_system() {
+    gs_info "Checking $CATEGORY_CORE..."
+    
+    # Check bash version
+    run_check "bash_version" \
+        '[[ ${BASH_VERSION%%.*} -ge 4 ]]' \
+        "Bash version: $BASH_VERSION" \
+        "Bash version too old: $BASH_VERSION" \
+        "Update bash: brew install bash (macOS) or apt install bash (Linux)"
+    
+    # Check _GS_ROOT_PATH
+    run_check "gs_root_path" \
+        '[[ -n "$_GS_ROOT_PATH" && -d "$_GS_ROOT_PATH" ]]' \
+        "Global Scripts root: $_GS_ROOT_PATH" \
+        "Global Scripts root path not set or invalid" \
+        "Ensure gs_env.sh is properly sourced in your shell profile"
+    
+    # Check common library
+    run_check "common_library" \
+        '[[ -f "$_GS_ROOT_PATH/env/gs_common.sh" ]]' \
+        "Common library found" \
+        "Common library missing" \
+        "Reinstall Global Scripts or check file permissions"
+    
+    # Check configuration
+    run_check "configuration" \
+        '[[ -f "$_GS_ROOT_PATH/conf/.gsrc" ]]' \
+        "Configuration file found" \
+        "Configuration file missing" \
+        "Create configuration: cp $_GS_ROOT_PATH/conf/.gsrc.template $_GS_ROOT_PATH/conf/.gsrc"
+    
+    # Check git
+    run_check "git_available" \
+        'command -v git >/dev/null' \
+        "Git available: $(git --version)" \
+        "Git not found" \
+        "Install git: brew install git (macOS) or apt install git (Linux)"
+    
+    # Check curl
+    run_check "curl_available" \
+        'command -v curl >/dev/null' \
+        "Curl available: $(curl --version | head -1)" \
+        "Curl not found" \
+        "Install curl: brew install curl (macOS) or apt install curl (Linux)"
+}
+
+# Function: check_android_development
+# Description: Check Android development tools
+# Parameters: None
+# Returns: None
+function check_android_development() {
+    gs_info "Checking $CATEGORY_ANDROID..."
+    
+    # Check ADB
+    run_check "adb_available" \
+        'command -v adb >/dev/null' \
+        "ADB available: $(adb version | head -1)" \
+        "ADB not found" \
+        "Install Android SDK Platform Tools or add to PATH"
+    
+    # Check Java
+    run_check "java_available" \
+        'command -v java >/dev/null' \
+        "Java available: $(java -version 2>&1 | head -1)" \
+        "Java not found" \
+        "Install Java: brew install openjdk (macOS) or apt install openjdk-11-jdk (Linux)"
+    
+    # Check Python
+    run_check "python_available" \
+        'command -v python3 >/dev/null' \
+        "Python available: $(python3 --version)" \
+        "Python 3 not found" \
+        "Install Python: brew install python (macOS) or apt install python3 (Linux)"
+    
+    # Check AOSP tools if in AOSP environment
+    if [[ -f "build/envsetup.sh" ]]; then
+        run_check "aosp_environment" \
+            '[[ -f "build/envsetup.sh" ]]' \
+            "AOSP environment detected" \
+            "AOSP environment not properly set up" \
+            "Run: source build/envsetup.sh && lunch"
+    fi
+}
+
+# Function: check_system_tools
+# Description: Check system tools
+# Parameters: None
+# Returns: None
+function check_system_tools() {
+    gs_info "Checking $CATEGORY_SYSTEM..."
+    
+    # Check package manager
+    if [[ "$(gs_get_platform)" == "macos" ]]; then
+        run_check "brew_available" \
+            'command -v brew >/dev/null' \
+            "Homebrew available: $(brew --version | head -1)" \
+            "Homebrew not found" \
+            "Install Homebrew: /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
+    else
+        run_check "apt_available" \
+            'command -v apt >/dev/null' \
+            "APT available" \
+            "APT not found" \
+            "APT should be available on Ubuntu/Debian systems"
+    fi
+    
+    # Check tmux
+    run_check "tmux_available" \
+        'command -v tmux >/dev/null' \
+        "Tmux available: $(tmux -V)" \
+        "Tmux not found" \
+        "Install tmux: brew install tmux (macOS) or apt install tmux (Linux)"
+    
+    # Check vim
+    run_check "vim_available" \
+        'command -v vim >/dev/null' \
+        "Vim available: $(vim --version | head -1)" \
+        "Vim not found" \
+        "Install vim: brew install vim (macOS) or apt install vim (Linux)"
+}
+
+# Function: check_optional_tools
+# Description: Check optional tools
+# Parameters: None
+# Returns: None
+function check_optional_tools() {
+    gs_info "Checking $CATEGORY_OPTIONAL..."
+    
+    # Check frida
+    run_check "frida_available" \
+        'command -v frida >/dev/null' \
+        "Frida available: $(frida --version)" \
+        "Frida not found" \
+        "Install Frida: pip install frida-tools"
+    
+    # Check node.js
+    run_check "node_available" \
+        'command -v node >/dev/null' \
+        "Node.js available: $(node --version)" \
+        "Node.js not found" \
+        "Install Node.js: brew install node (macOS) or apt install nodejs (Linux)"
+    
+    # Check docker
+    run_check "docker_available" \
+        'command -v docker >/dev/null' \
+        "Docker available: $(docker --version)" \
+        "Docker not found" \
+        "Install Docker: https://docs.docker.com/get-docker/"
+}
+
+# Function: check_plugin_dependencies
+# Description: Check dependencies for enabled plugins
+# Parameters: None
+# Returns: None
+function check_plugin_dependencies() {
+    gs_info "Checking plugin dependencies..."
+    
+    # Read plugin configuration
+    local gsrc_file="${HOME}/.gsrc"
+    if [[ ! -f "$gsrc_file" ]]; then
+        gsrc_file="${_GS_ROOT_PATH}/conf/.gsrc"
+    fi
+    
+    if [[ -f "$gsrc_file" ]]; then
+        # Source the configuration to get plugin list
+        source "$gsrc_file"
+        
+        # Check dependencies for each enabled plugin
+        for plugin in "${gs_plugins[@]}"; do
+            case "$plugin" in
+                "android/frida")
+                    run_check "frida_for_android" \
+                        'command -v frida >/dev/null' \
+                        "Frida available for Android plugin" \
+                        "Frida required for Android plugin" \
+                        "Install Frida: pip install frida-tools"
+                    ;;
+                "system/clash")
+                    run_check "clash_binary" \
+                        '[[ -f "$_GS_ROOT_PATH/plugins/system/clash/bin/clash" ]]' \
+                        "Clash binary found" \
+                        "Clash binary not found" \
+                        "Download Clash from https://github.com/Dreamacro/clash/releases"
+                    ;;
+                "spider/csdn"|"spider/cnblogs"|"spider/jianshu")
+                    run_check "python_requests" \
+                        'python3 -c "import requests" 2>/dev/null' \
+                        "Python requests available" \
+                        "Python requests not found" \
+                        "Install requests: pip install requests"
+                    ;;
+            esac
+        done
+    fi
+}
+
+# Function: show_results
+# Description: Display health check results
+# Parameters: None
+# Returns: None
+function show_results() {
+    local total_checks=0
+    local passed_checks=0
+    local failed_checks=0
+    
+    echo
+    echo "========================="
+    echo "Health Check Results"
+    echo "========================="
+    echo
+    
+    # Count and display results
+    for check_name in "${!check_results[@]}"; do
+        local result="${check_results[$check_name]}"
+        local message="${check_messages[$check_name]}"
+        
+        total_checks=$((total_checks + 1))
+        
+        if [[ "$result" == "PASS" ]]; then
+            echo -e "${GREEN}✓${NC} $check_name: $message"
+            passed_checks=$((passed_checks + 1))
+        else
+            echo -e "${RED}✗${NC} $check_name: $message"
+            failed_checks=$((failed_checks + 1))
+        fi
+    done
+    
+    echo
+    echo "Summary: $passed_checks passed, $failed_checks failed, $total_checks total"
+    
+    # Show fixes for failed checks
+    if [[ $failed_checks -gt 0 ]]; then
+        echo
+        echo "========================="
+        echo "Recommended Fixes"
+        echo "========================="
+        echo
+        
+        for check_name in "${!check_results[@]}"; do
+            local result="${check_results[$check_name]}"
+            if [[ "$result" == "FAIL" ]]; then
+                local fix="${check_fixes[$check_name]}"
+                echo -e "${YELLOW}Fix for $check_name:${NC}"
+                echo "  $fix"
+                echo
+            fi
+        done
+    fi
+}
+
+# Function: main
+# Description: Main entry point
+# Parameters: Command line arguments
+# Returns: Exit code
+function main() {
+    gs_info "Starting Global Scripts health check..."
+    
+    # Run all health checks
+    check_core_system
+    check_android_development
+    check_system_tools
+    check_optional_tools
+    check_plugin_dependencies
+    
+    # Show results
+    show_results
+    
+    # Return appropriate exit code
+    local failed_count=0
+    for result in "${check_results[@]}"; do
+        if [[ "$result" == "FAIL" ]]; then
+            failed_count=$((failed_count + 1))
+        fi
+    done
+    
+    if [[ $failed_count -eq 0 ]]; then
+        gs_success "All health checks passed!"
+        return 0
+    else
+        gs_warn "$failed_count health checks failed"
+        return 1
+    fi
+}
+
+# Execute main function if script is run directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi

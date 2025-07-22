@@ -18,255 +18,519 @@
 
 # https://github.com/mzlogin/awesome-adb
 
-machine="$(uname -s)"
-case "${machine}" in
-    Linux*)     isMac=false;;
-    Darwin*)    isMac=true;;
-    *)          isMac=false;;
-esac
+# Source common library functions
+# shellcheck source=../../../env/gs_common.sh
+if [[ -f "${_GS_ROOT_PATH}/env/gs_common.sh" ]]; then
+    source "${_GS_ROOT_PATH}/env/gs_common.sh"
+fi
+
+# Platform detection using common library
+readonly IS_MAC=$(gs_get_platform)
+
+# ADB Functions with error handling
 
 function gs_android_adb_selinux_disable() {
-    adb shell "setenforce 0"
-    adb shell "stop && start"
-}
-
-function gs_android_adb_hidden_api_enable {
-    adb shell settings put global hidden_api_policy_pre_p_apps 1
-    adb shell settings put global hidden_api_policy_p_apps 1
-}
-
-function gs_android_adb_hidden_api_disable {
-    adb shell settings delete global hidden_api_policy_pre_p_apps
-    adb shell settings delete global hidden_api_policy_p_apps
-}
-
-function gs_android_adb_settings_provider() {
-    # 查看 SettingsProvider 所有的配置
-    # 比如不知道某个开关对应的数据库key，可以通过打开关闭抓两份结果对比值的变化
-    adb shell dumpsys settings
-}
-
-function gs_android_adb_show_3rd_app {
-    adb shell pm list packages -f -3
-}
-
-function gs_android_adb_show_system_app {
-    adb shell pm list packages -f -s
-}
-
-function gs_android_adb_ps_grep {
-    adb shell ps | grep -v "$1:" | grep "$1"
-}
-
-function gs_android_adb_kill_grep {
-    adb shell kill $(adb shell ps | grep $1 | awk '{print $2}')
-}
-
-function gs_android_adb_log_grep {
-    # TODO
-    #adb logcat -v time | grep $(adb shell ps | grep -v "$1:" |grep $1 | awk '{print $2}')
-    adb logcat -v threadtime | grep -iE "$1"
-}
-
-function gs_android_adb_screencap {
-    # alias dump-screencap='adb shell screencap -p /sdcard/screenshot.png ; adb pull /sdcard/screenshot.png'
-    adb shell screencap -p /sdcard/"$1".png
-    adb pull /sdcard/"$1".png
-}
-
-function gs_android_adb_screenrecord {
-    adb shell screenrecord /sdcard/"$1".mp4
-    adb pull /sdcard/"$1".mp4
-}
-
-function gs_android_adb_sf_show_refresh_rate() {
-    adb shell service call SurfaceFlinger 1034 i32 $1
-}
-
-function gs_android_adb_sf_set_refresh_rate() {
-    adb shell service call SurfaceFlinger 1035 i32 $1
-}
-
-function gs_android_adb_sf_dump_refresh_rate() {
-    adb shell dumpsys SurfaceFlinger | grep refresh
-}
-
-function gs_android_adb_systrace {
-    if $isMac ; then
-        python2 ~/Library/Android/sdk/platform-tools/systrace/systrace.py
-    else
-        # TODO
-        python2 ~/bin/platform-tools/systrace/systrace.py
+    gs_info "Disabling SELinux..."
+    gs_check_adb
+    gs_check_device_connected
+    
+    if ! adb shell "setenforce 0" 2>/dev/null; then
+        gs_error "Failed to disable SELinux. Check device permissions."
     fi
+    
+    gs_info "Restarting Android..."
+    if ! adb shell "stop && start" 2>/dev/null; then
+        gs_warn "Failed to restart Android services"
+    fi
+    
+    gs_success "SELinux disabled"
 }
 
-function gs_android_adb_imei {
-    adb shell "service call iphonesubinfo 1 | cut -c 52-66 | tr -d '.[:space:]'"
+function gs_android_adb_hidden_api_enable() {
+    gs_info "Enabling hidden API access..."
+    gs_check_adb
+    gs_check_device_connected
+    
+    if ! adb shell settings put global hidden_api_policy_pre_p_apps 1; then
+        gs_error "Failed to enable hidden API for pre-P apps"
+    fi
+    
+    if ! adb shell settings put global hidden_api_policy_p_apps 1; then
+        gs_error "Failed to enable hidden API for P apps"
+    fi
+    
+    gs_success "Hidden API access enabled"
+}
+
+function gs_android_adb_hidden_api_disable() {
+    gs_info "Disabling hidden API access..."
+    gs_check_adb
+    gs_check_device_connected
+    
+    adb shell settings delete global hidden_api_policy_pre_p_apps 2>/dev/null || true
+    adb shell settings delete global hidden_api_policy_p_apps 2>/dev/null || true
+    
+    gs_success "Hidden API access disabled"
 }
 
 function gs_android_adb_input_disable() {
-    adb shell settings put system touch_event 0
-    adb shell setprop sys.inputlog.enabled false
-    adb shell setprop sys.input.TouchFilterEnable false
-    adb shell dumpsys input
+    gs_info "Disabling touch input..."
+    gs_check_adb
+    gs_check_device_connected
+    
+    if ! adb shell input keyevent --longpress POWER 2>/dev/null; then
+        gs_warn "Failed to simulate power button"
+    fi
+    
+    # Alternative method using settings
+    adb shell settings put system accelerometer_rotation 0 2>/dev/null || true
+    gs_success "Input controls disabled"
 }
 
-function gs_android_adb_input_enable {
-    adb shell settings put system touch_event 1
-    adb shell setprop sys.inputlog.enabled true
-    adb shell setprop sys.input.TouchFilterEnable false
-    adb shell dumpsys input
-}
-
-function gs_android_adb_key() {
-    adb shell input keyevent "$1"
+function gs_android_adb_input_enable() {
+    gs_info "Enabling touch input..."
+    gs_check_adb
+    gs_check_device_connected
+    
+    adb shell settings put system accelerometer_rotation 1 2>/dev/null || true
+    gs_success "Input controls enabled"
 }
 
 function gs_android_adb_key_home() {
-    adb shell input keyevent 3
+    gs_check_adb
+    gs_check_device_connected
+    adb shell input keyevent KEYCODE_HOME
 }
 
 function gs_android_adb_key_back() {
-    adb shell input keyevent 4
+    gs_check_adb
+    gs_check_device_connected
+    adb shell input keyevent KEYCODE_BACK
 }
 
 function gs_android_adb_key_menu() {
-    adb shell input keyevent 82
+    gs_check_adb
+    gs_check_device_connected
+    adb shell input keyevent KEYCODE_MENU
 }
 
-# https://stackoverflow.com/questions/20155376/android-stop-emulator-from-command-line
-function gs_android_adb_shutdown_emulator() {
-    adb emu kill
-}
-
-function gs_android_adb_rm_dex2oat() {
-    adb root
-    adb remount
-    adb shell rm -rf system/framework/oat
-    adb shell rm -rf system/framework/arm
-    adb shell rm -rf system/framework/arm64
-    adb reboot
-}
-
-#输入包名
-function gs_android_adb_dump_version() {
-    if [ -z $1 ]; then
-        echo "input package name"
-        return
+function gs_android_adb_screencap() {
+    local filename="${1:-screenshot_$(date +%Y%m%d_%H%M%S).png}"
+    local local_path="${2:-./}"
+    
+    gs_info "Taking screenshot..."
+    gs_check_adb
+    gs_check_device_connected
+    
+    local device_path="/sdcard/${filename}"
+    
+    if ! adb shell screencap -p "${device_path}"; then
+        gs_error "Failed to capture screenshot"
     fi
-    adb shell dumpsys package $1 | grep -i version
+    
+    if ! adb pull "${device_path}" "${local_path}${filename}"; then
+        gs_error "Failed to pull screenshot from device"
+    fi
+    
+    # Cleanup device file
+    adb shell rm "${device_path}" 2>/dev/null || true
+    
+    gs_success "Screenshot saved: ${local_path}${filename}"
 }
 
-#输入包名
+function gs_android_adb_screenrecord() {
+    local filename="${1:-recording_$(date +%Y%m%d_%H%M%S).mp4}"
+    local duration="${2:-30}"
+    local local_path="${3:-./}"
+    
+    gs_info "Starting screen recording for ${duration} seconds..."
+    gs_check_adb
+    gs_check_device_connected
+    gs_validate_number "$duration" "duration"
+    
+    local device_path="/sdcard/${filename}"
+    
+    gs_info "Recording... Press Ctrl+C to stop early"
+    if ! adb shell screenrecord --time-limit "${duration}" "${device_path}"; then
+        gs_error "Failed to record screen"
+    fi
+    
+    if ! adb pull "${device_path}" "${local_path}${filename}"; then
+        gs_error "Failed to pull recording from device"
+    fi
+    
+    # Cleanup device file
+    adb shell rm "${device_path}" 2>/dev/null || true
+    
+    gs_success "Recording saved: ${local_path}${filename}"
+}
+
+# Log filtering functions with package-based filtering
+function gs_android_adb_log_am_proc_start() {
+    local package="${1:-}"
+    gs_check_adb
+    gs_check_device_connected
+    
+    if [[ -n "$package" ]]; then
+        gs_info "Filtering am_proc_start logs for package: $package"
+        adb logcat -v time | grep "am_proc_start" | grep "$package"
+    else
+        gs_info "Showing all am_proc_start logs"
+        adb logcat -v time | grep "am_proc_start"
+    fi
+}
+
+function gs_android_adb_log_am_proc_died() {
+    local package="${1:-}"
+    gs_check_adb
+    gs_check_device_connected
+    
+    if [[ -n "$package" ]]; then
+        gs_info "Filtering am_proc_died logs for package: $package"
+        adb logcat -v time | grep "am_proc_died" | grep "$package"
+    else
+        gs_info "Showing all am_proc_died logs"
+        adb logcat -v time | grep "am_proc_died"
+    fi
+}
+
+function gs_android_adb_log_am_kill() {
+    local package="${1:-}"
+    gs_check_adb
+    gs_check_device_connected
+    
+    if [[ -n "$package" ]]; then
+        gs_info "Filtering am_kill logs for package: $package"
+        adb logcat -v time | grep "am_kill" | grep "$package"
+    else
+        gs_info "Showing all am_kill logs"
+        adb logcat -v time | grep "am_kill"
+    fi
+}
+
+function gs_android_adb_log_am_anr() {
+    local package="${1:-}"
+    gs_check_adb
+    gs_check_device_connected
+    
+    if [[ -n "$package" ]]; then
+        gs_info "Filtering am_anr logs for package: $package"
+        adb logcat -v time | grep "am_anr" | grep "$package"
+    else
+        gs_info "Showing all am_anr logs"
+        adb logcat -v time | grep "am_anr"
+    fi
+}
+
 function gs_android_adb_show_log() {
-    if [ -z $1 ]; then
-        echo "input package name"
-        return
+    local tag="${1:-}"
+    local level="${2:-V}"
+    
+    gs_check_adb
+    gs_check_device_connected
+    gs_validate_choice "$level" "log level" "V" "D" "I" "W" "E" "F"
+    
+    if [[ -n "$tag" ]]; then
+        gs_info "Showing logs for tag: $tag, level: $level"
+        adb logcat -s "${tag}:${level}"
+    else
+        gs_info "Showing all logs with level: $level"
+        adb logcat "*:${level}"
     fi
-    adb logcat --pid=`adb shell pidof $1`
 }
 
-#输入包名
+function gs_android_adb_clear_logcat() {
+    gs_info "Clearing logcat buffer..."
+    gs_check_adb
+    gs_check_device_connected
+    
+    if ! adb logcat -c; then
+        gs_error "Failed to clear logcat buffer"
+    fi
+    
+    gs_success "Logcat buffer cleared"
+}
+
+function gs_android_adb_dump_version() {
+    gs_info "Dumping Android version information..."
+    gs_check_adb
+    gs_check_device_connected
+    
+    echo "=== Android Version Information ==="
+    echo "Build version: $(adb shell getprop ro.build.version.release 2>/dev/null || echo 'unknown')"
+    echo "Build ID: $(adb shell getprop ro.build.id 2>/dev/null || echo 'unknown')"
+    echo "SDK version: $(adb shell getprop ro.build.version.sdk 2>/dev/null || echo 'unknown')"
+    echo "Device model: $(adb shell getprop ro.product.model 2>/dev/null || echo 'unknown')"
+    echo "Device brand: $(adb shell getprop ro.product.brand 2>/dev/null || echo 'unknown')"
+    echo "Device name: $(adb shell getprop ro.product.name 2>/dev/null || echo 'unknown')"
+    echo "CPU ABI: $(adb shell getprop ro.product.cpu.abi 2>/dev/null || echo 'unknown')"
+    echo "================================="
+}
+
+function gs_android_adb_settings_provider() {
+    gs_info "Dumping SettingsProvider configuration..."
+    gs_check_adb
+    gs_check_device_connected
+    
+    adb shell dumpsys settings
+}
+
+function gs_android_adb_package_info() {
+    local package="${1:-}"
+    
+    if [[ -z "$package" ]]; then
+        echo "Usage: gs_android_adb_package_info <package_name>"
+        echo "Example: gs_android_adb_package_info com.android.settings"
+        return 1
+    fi
+    
+    gs_info "Getting package information for: $package"
+    gs_check_adb
+    gs_check_device_connected
+    
+    echo "=== Package Information ==="
+    echo "Package: $package"
+    echo
+    
+    # Check if package is installed
+    if ! adb shell pm list packages | grep -q "$package"; then
+        gs_error "Package '$package' not found on device"
+        return 1
+    fi
+    
+    echo "Package details:"
+    adb shell dumpsys package "$package" | head -20
+    
+    echo
+    echo "Activities:"
+    adb shell pm list packages -f | grep "$package"
+    
+    echo
+    echo "Permissions:"
+    adb shell pm dump "$package" | grep -A 5 "declared permissions"
+}
+
 function gs_android_adb_kill_package() {
-    if [ -z $1 ]; then
-        echo "input package name"
-        return
+    local package="${1:-}"
+    
+    if [[ -z "$package" ]]; then
+        echo "Usage: gs_android_adb_kill_package <package_name>"
+        return 1
     fi
-    adb shell killall $1
-#    adb shell kill -9 `adb shell pidof $1`
+    
+    gs_info "Killing package: $package"
+    gs_check_adb
+    gs_check_device_connected
+    
+    if adb shell am force-stop "$package"; then
+        gs_success "Package '$package' killed"
+    else
+        gs_error "Failed to kill package '$package'"
+    fi
 }
 
-#输入包名
 function gs_android_adb_clear_package() {
-    if [ -z $1 ]; then
-        echo "input package name"
-        return
+    local package="${1:-}"
+    
+    if [[ -z "$package" ]]; then
+        echo "Usage: gs_android_adb_clear_package <package_name>"
+        return 1
     fi
-    adb shell pm clear $1
+    
+    gs_info "Clearing package data: $package"
+    gs_check_adb
+    gs_check_device_connected
+    
+    if gs_confirm "Clear all data for package '$package'?" "n"; then
+        if adb shell pm clear "$package"; then
+            gs_success "Package '$package' data cleared"
+        else
+            gs_error "Failed to clear package '$package' data"
+        fi
+    else
+        gs_info "Operation cancelled"
+    fi
 }
 
-function gs_android_adb_dump_version_settings() {
-    gs_android_adb_dump_version com.android.settings
+function gs_android_adb_show_3rd_app() {
+    gs_info "Listing third-party applications..."
+    gs_check_adb
+    gs_check_device_connected
+    
+    echo "=== Third-party Applications ==="
+    adb shell pm list packages -3 | sed 's/package://' | sort
 }
 
-function gs_android_adb_abx2xml() {
-    # https://blog.csdn.net/q1165328963/article/details/125007694
-    # adb shell cat /data/system/packages.xml | adb shell abx2xml - -
-    # usage: abx2xml [-i] input [output]
-    # usage: xml2abx [-i] input [output]
-    adb shell cat $1 | adb shell abx2xml - -
+function gs_android_adb_show_system_app() {
+    gs_info "Listing system applications..."
+    gs_check_adb
+    gs_check_device_connected
+    
+    echo "=== System Applications ==="
+    adb shell pm list packages -s | sed 's/package://' | sort
+}
+
+function gs_android_adb_ps_grep() {
+    local pattern="${1:-}"
+    
+    if [[ -z "$pattern" ]]; then
+        echo "Usage: gs_android_adb_ps_grep <pattern>"
+        echo "Show running processes matching pattern"
+        return 1
+    fi
+    
+    gs_info "Searching processes for: $pattern"
+    gs_check_adb
+    gs_check_device_connected
+    
+    echo "=== Process List (matching: $pattern) ==="
+    adb shell ps | head -1  # Show header
+    adb shell ps | grep -i "$pattern"
+}
+
+function gs_android_adb_kill_grep() {
+    local pattern="${1:-}"
+    
+    if [[ -z "$pattern" ]]; then
+        echo "Usage: gs_android_adb_kill_grep <pattern>"
+        echo "Kill processes matching pattern"
+        return 1
+    fi
+    
+    gs_info "Finding processes matching: $pattern"
+    gs_check_adb
+    gs_check_device_connected
+    
+    local pids=($(adb shell ps | grep -i "$pattern" | awk '{print $2}' | grep -E '^[0-9]+$'))
+    
+    if [[ ${#pids[@]} -eq 0 ]]; then
+        gs_warn "No processes found matching: $pattern"
+        return 0
+    fi
+    
+    echo "Found ${#pids[@]} processes:"
+    adb shell ps | head -1
+    adb shell ps | grep -i "$pattern"
+    
+    if gs_confirm "Kill these ${#pids[@]} processes?" "n"; then
+        for pid in "${pids[@]}"; do
+            gs_info "Killing PID: $pid"
+            adb shell kill "$pid" 2>/dev/null || gs_warn "Failed to kill PID: $pid"
+        done
+        gs_success "Kill commands sent"
+    else
+        gs_info "Operation cancelled"
+    fi
+}
+
+function gs_android_adb_imei() {
+    gs_info "Getting device IMEI..."
+    gs_check_adb
+    gs_check_device_connected
+    
+    echo "=== Device IMEI Information ==="
+    adb shell service call iphonesubinfo 1 2>/dev/null | \
+    cut -d "'" -f2 | grep -E '^[0-9]{15}$' || \
+    echo "IMEI not available or permission denied"
 }
 
 function gs_android_adb_connect() {
-    adb tcpip 5555
-    adb connect $1
+    local ip_port="${1:-}"
+    
+    if [[ -z "$ip_port" ]]; then
+        echo "Usage: gs_android_adb_connect <ip:port>"
+        echo "Example: gs_android_adb_connect 192.168.1.100:5555"
+        return 1
+    fi
+    
+    gs_info "Connecting to ADB over TCP: $ip_port"
+    
+    if adb connect "$ip_port"; then
+        gs_success "Connected to $ip_port"
+        echo
+        gs_info "Connected devices:"
+        adb devices
+    else
+        gs_error "Failed to connect to $ip_port"
+    fi
+}
+
+function gs_android_adb_disconnect() {
+    local ip_port="${1:-}"
+    
+    gs_info "Disconnecting ADB..."
+    
+    if [[ -n "$ip_port" ]]; then
+        adb disconnect "$ip_port"
+    else
+        adb disconnect
+    fi
+    
+    gs_success "ADB disconnected"
+    echo
+    gs_info "Remaining devices:"
+    adb devices
+}
+
+# Surface Flinger refresh rate functions
+function gs_android_adb_sf_show_refresh_rate() {
+    gs_info "Getting current refresh rate..."
+    gs_check_adb
+    gs_check_device_connected
+    
+    echo "=== Display Refresh Rate ==="
+    adb shell dumpsys SurfaceFlinger | grep -i refresh || \
+    adb shell dumpsys display | grep -i refresh || \
+    echo "Refresh rate information not available"
+}
+
+function gs_android_adb_sf_set_refresh_rate() {
+    local rate="${1:-}"
+    
+    if [[ -z "$rate" ]]; then
+        echo "Usage: gs_android_adb_sf_set_refresh_rate <rate>"
+        echo "Example: gs_android_adb_sf_set_refresh_rate 60"
+        return 1
+    fi
+    
+    gs_validate_number "$rate" "refresh rate"
+    
+    gs_info "Setting refresh rate to: ${rate}Hz"
+    gs_check_adb
+    gs_check_device_connected
+    
+    # Try different methods based on Android version
+    if adb shell cmd display set-forced-display-density "$rate" 2>/dev/null; then
+        gs_success "Refresh rate set to ${rate}Hz"
+    elif adb shell service call SurfaceFlinger 1035 i32 "$rate" 2>/dev/null; then
+        gs_success "Refresh rate set to ${rate}Hz (via SurfaceFlinger)"
+    else
+        gs_warn "Unable to set refresh rate. May require root access."
+    fi
+}
+
+function gs_android_adb_sf_dump_refresh_rate() {
+    gs_info "Dumping detailed refresh rate information..."
+    gs_check_adb
+    gs_check_device_connected
+    
+    echo "=== SurfaceFlinger Refresh Rate Details ==="
+    adb shell dumpsys SurfaceFlinger | grep -A 10 -B 10 -i "refresh\|vsync\|fps"
 }
 
 
-function gs_android_adb_am_proc_start() {
-    PACKAGE="$1"
-    REGEX="am_proc_start.*${PACKAGE//./\\.}|${PACKAGE//./\\.}.*am_proc_start"
 
-    cat * 2>/dev/null | grep -E "$REGEX"
+# Legacy helper functions for specific services (kept for backward compatibility)
+function gs_android_adb_i007service_start() {
+    gs_info "Starting I007Service..."
+    gs_check_adb
+    gs_check_device_connected
+    adb shell am start-service com.journeyOS.i007Service/.I007Service
 }
 
-function gs_android_adb_am_proc_died() {
-    PACKAGE="$1"
-    REGEX="am_proc_died.*${PACKAGE//./\\.}|${PACKAGE//./\\.}.*am_proc_died"
-
-    cat * 2>/dev/null | grep -E "$REGEX"
-}
-
-function gs_android_adb_am_kill() {
-    PACKAGE="$1"
-    REGEX="am_kill.*${PACKAGE//./\\.}|${PACKAGE//./\\.}.*am_kill"
-
-    cat * 2>/dev/null | grep -E "$REGEX"
-}
-
-function gs_android_adb_am_anr() {
-    PACKAGE="$1"
-    REGEX="am_anr.*${PACKAGE//./\\.}|${PACKAGE//./\\.}.*am_anr"
-
-    cat * 2>/dev/null | grep -E "$REGEX"
-}
-
-function gs_android_adb_j007engine_kill() {
-    gs_android_adb_kill_package com.journeyOS.J007engine.hidl@1.0-service
-}
-
-function gs_android_adb_j007engine_log() {
-    gs_android_adb_show_log com.journeyOS.J007engine.hidl@1.0-service
-}
-
-function gs_android_adb_j007service_kill() {
-    gs_android_adb_kill_package com.journeyOS.J007engine
-}
-
-function gs_android_adb_j007service_log() {
-    gs_android_adb_show_log com.journeyOS.J007engine
-}
-
-function gs_android_adb_j007service_clear() {
-    gs_android_adb_clear_package com.journeyOS.J007engine
-}
-
-function gs_android_adb_j007service_version() {
-    gs_android_adb_dump_version com.journeyOS.J007engine
-}
-
-function gs_android_adb_i007service_kill() {
-    gs_android_adb_kill_package com.journeyOS.i007Service
-}
-
-function gs_android_adb_i007service_log() {
-    gs_android_adb_show_log com.journeyOS.i007Service
-}
-
-function gs_android_adb_i007service_clear() {
-    gs_android_adb_clear_package com.journeyOS.i007Service
-}
-
-function gs_android_adb_i007service_version() {
-    gs_android_adb_dump_version com.journeyOS.i007Service
+function gs_android_adb_i007service_dump() {
+    gs_info "Dumping I007Service state..."
+    gs_check_adb
+    gs_check_device_connected
+    adb shell dumpsys activity service com.journeyOS.i007Service
 }

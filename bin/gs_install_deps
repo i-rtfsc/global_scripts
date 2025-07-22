@@ -1,0 +1,385 @@
+#!/bin/bash
+# -*- coding: utf-8 -*-
+# -*- encoding: utf-8 -*-
+#
+# Copyright (c) 2023 anqi.huang@outlook.com
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+
+# Dependency Installation Script for Global Scripts
+# This script helps install missing dependencies
+
+# Source common libraries
+if [[ -f "${_GS_ROOT_PATH}/env/gs_common.sh" ]]; then
+    source "${_GS_ROOT_PATH}/env/gs_common.sh"
+fi
+
+readonly SCRIPT_NAME="gs_install_deps"
+readonly SCRIPT_VERSION="1.0.0"
+
+# Function: install_homebrew
+# Description: Install Homebrew on macOS
+# Parameters: None
+# Returns: None
+function install_homebrew() {
+    gs_info "Installing Homebrew..."
+    
+    if command -v brew >/dev/null 2>&1; then
+        gs_success "Homebrew already installed"
+        return 0
+    fi
+    
+    if ! /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; then
+        gs_error "Failed to install Homebrew"
+    fi
+    
+    gs_success "Homebrew installed successfully"
+}
+
+# Function: install_core_dependencies
+# Description: Install core system dependencies
+# Parameters: None
+# Returns: None
+function install_core_dependencies() {
+    gs_info "Installing core dependencies..."
+    
+    local platform
+    platform=$(gs_get_platform)
+    
+    case "$platform" in
+        "macos")
+            # Ensure Homebrew is available
+            if ! command -v brew >/dev/null 2>&1; then
+                install_homebrew
+            fi
+            
+            # Install core tools
+            brew install git curl wget
+            ;;
+        "linux")
+            # Use apt for Ubuntu/Debian
+            if command -v apt >/dev/null 2>&1; then
+                sudo apt update
+                sudo apt install -y git curl wget
+            # Use yum for CentOS/RHEL
+            elif command -v yum >/dev/null 2>&1; then
+                sudo yum install -y git curl wget
+            else
+                gs_error "Unsupported Linux distribution"
+            fi
+            ;;
+        *)
+            gs_error "Unsupported platform: $platform"
+            ;;
+    esac
+    
+    gs_success "Core dependencies installed"
+}
+
+# Function: install_android_dependencies
+# Description: Install Android development dependencies
+# Parameters: None
+# Returns: None
+function install_android_dependencies() {
+    gs_info "Installing Android development dependencies..."
+    
+    local platform
+    platform=$(gs_get_platform)
+    
+    case "$platform" in
+        "macos")
+            # Install Java
+            brew install openjdk@11
+            
+            # Install Python
+            brew install python
+            
+            # Install Android SDK command line tools
+            brew install --cask android-commandlinetools
+            
+            # Install ADB if not available
+            if ! command -v adb >/dev/null 2>&1; then
+                brew install android-platform-tools
+            fi
+            ;;
+        "linux")
+            if command -v apt >/dev/null 2>&1; then
+                sudo apt update
+                sudo apt install -y openjdk-11-jdk python3 python3-pip
+                
+                # Install Android SDK manually
+                gs_info "Please install Android SDK manually from https://developer.android.com/studio"
+            elif command -v yum >/dev/null 2>&1; then
+                sudo yum install -y java-11-openjdk python3 python3-pip
+                
+                gs_info "Please install Android SDK manually from https://developer.android.com/studio"
+            fi
+            ;;
+    esac
+    
+    gs_success "Android development dependencies installed"
+}
+
+# Function: install_system_tools
+# Description: Install system tools
+# Parameters: None
+# Returns: None
+function install_system_tools() {
+    gs_info "Installing system tools..."
+    
+    local platform
+    platform=$(gs_get_platform)
+    
+    case "$platform" in
+        "macos")
+            brew install tmux vim tree htop
+            ;;
+        "linux")
+            if command -v apt >/dev/null 2>&1; then
+                sudo apt install -y tmux vim tree htop
+            elif command -v yum >/dev/null 2>&1; then
+                sudo yum install -y tmux vim tree htop
+            fi
+            ;;
+    esac
+    
+    gs_success "System tools installed"
+}
+
+# Function: install_optional_tools
+# Description: Install optional tools
+# Parameters: None
+# Returns: None
+function install_optional_tools() {
+    gs_info "Installing optional tools..."
+    
+    local platform
+    platform=$(gs_get_platform)
+    
+    # Install Python packages
+    if command -v pip3 >/dev/null 2>&1; then
+        pip3 install frida-tools requests beautifulsoup4
+    fi
+    
+    # Install Node.js
+    case "$platform" in
+        "macos")
+            brew install node
+            ;;
+        "linux")
+            if command -v apt >/dev/null 2>&1; then
+                sudo apt install -y nodejs npm
+            elif command -v yum >/dev/null 2>&1; then
+                sudo yum install -y nodejs npm
+            fi
+            ;;
+    esac
+    
+    gs_success "Optional tools installed"
+}
+
+# Function: setup_shell_integration
+# Description: Set up shell integration
+# Parameters: None
+# Returns: None
+function setup_shell_integration() {
+    gs_info "Setting up shell integration..."
+    
+    local shell_config=""
+    local source_line="source ${_GS_ROOT_PATH}/gs_env.sh"
+    
+    # Determine shell configuration file
+    if [[ -n "$ZSH_VERSION" ]]; then
+        shell_config="$HOME/.zshrc"
+    elif [[ -n "$BASH_VERSION" ]]; then
+        if [[ -f "$HOME/.bashrc" ]]; then
+            shell_config="$HOME/.bashrc"
+        else
+            shell_config="$HOME/.bash_profile"
+        fi
+    fi
+    
+    if [[ -z "$shell_config" ]]; then
+        gs_error "Unable to determine shell configuration file"
+    fi
+    
+    # Add source line if not already present
+    if ! grep -q "$source_line" "$shell_config" 2>/dev/null; then
+        echo "" >> "$shell_config"
+        echo "# Global Scripts" >> "$shell_config"
+        echo "$source_line" >> "$shell_config"
+        gs_success "Added Global Scripts to $shell_config"
+    else
+        gs_info "Global Scripts already configured in $shell_config"
+    fi
+}
+
+# Function: install_oh_my_zsh
+# Description: Install Oh My Zsh if using zsh
+# Parameters: None
+# Returns: None
+function install_oh_my_zsh() {
+    if [[ -n "$ZSH_VERSION" ]]; then
+        gs_info "Installing Oh My Zsh..."
+        
+        if [[ -d "$HOME/.oh-my-zsh" ]]; then
+            gs_info "Oh My Zsh already installed"
+        else
+            sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+        fi
+        
+        # Install useful plugins
+        local custom_plugins="$HOME/.oh-my-zsh/custom/plugins"
+        
+        if [[ ! -d "$custom_plugins/zsh-autosuggestions" ]]; then
+            git clone https://github.com/zsh-users/zsh-autosuggestions "$custom_plugins/zsh-autosuggestions"
+        fi
+        
+        if [[ ! -d "$custom_plugins/zsh-syntax-highlighting" ]]; then
+            git clone https://github.com/zsh-users/zsh-syntax-highlighting.git "$custom_plugins/zsh-syntax-highlighting"
+        fi
+        
+        gs_success "Oh My Zsh and plugins installed"
+    fi
+}
+
+# Function: show_help
+# Description: Show help message
+# Parameters: None
+# Returns: None
+function show_help() {
+    cat << EOF
+Usage: $SCRIPT_NAME [OPTIONS]
+
+Install dependencies for Global Scripts project.
+
+Options:
+  -h, --help              Show this help message
+  -c, --core              Install core dependencies only
+  -a, --android           Install Android development dependencies
+  -s, --system            Install system tools
+  -o, --optional          Install optional tools
+  -S, --shell             Set up shell integration
+  -z, --zsh               Install Oh My Zsh (if using zsh)
+  --all                   Install all dependencies
+
+Examples:
+  $SCRIPT_NAME --all                 # Install all dependencies
+  $SCRIPT_NAME --core --android      # Install core and Android dependencies
+  $SCRIPT_NAME --shell               # Set up shell integration only
+
+EOF
+}
+
+# Function: main
+# Description: Main entry point
+# Parameters: Command line arguments
+# Returns: Exit code
+function main() {
+    local install_core=false
+    local install_android=false
+    local install_system=false
+    local install_optional=false
+    local setup_shell=false
+    local install_zsh=false
+    local install_all=false
+    
+    # Parse command line arguments
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -h|--help)
+                show_help
+                exit 0
+                ;;
+            -c|--core)
+                install_core=true
+                shift
+                ;;
+            -a|--android)
+                install_android=true
+                shift
+                ;;
+            -s|--system)
+                install_system=true
+                shift
+                ;;
+            -o|--optional)
+                install_optional=true
+                shift
+                ;;
+            -S|--shell)
+                setup_shell=true
+                shift
+                ;;
+            -z|--zsh)
+                install_zsh=true
+                shift
+                ;;
+            --all)
+                install_all=true
+                shift
+                ;;
+            *)
+                gs_error "Unknown option: $1"
+                ;;
+        esac
+    done
+    
+    # If no specific options, show help
+    if [[ "$install_core" == false && "$install_android" == false && 
+          "$install_system" == false && "$install_optional" == false && 
+          "$setup_shell" == false && "$install_zsh" == false && 
+          "$install_all" == false ]]; then
+        show_help
+        exit 0
+    fi
+    
+    # Install all if requested
+    if [[ "$install_all" == true ]]; then
+        install_core=true
+        install_android=true
+        install_system=true
+        install_optional=true
+        setup_shell=true
+        install_zsh=true
+    fi
+    
+    # Run installations
+    if [[ "$install_core" == true ]]; then
+        install_core_dependencies
+    fi
+    
+    if [[ "$install_android" == true ]]; then
+        install_android_dependencies
+    fi
+    
+    if [[ "$install_system" == true ]]; then
+        install_system_tools
+    fi
+    
+    if [[ "$install_optional" == true ]]; then
+        install_optional_tools
+    fi
+    
+    if [[ "$setup_shell" == true ]]; then
+        setup_shell_integration
+    fi
+    
+    if [[ "$install_zsh" == true ]]; then
+        install_oh_my_zsh
+    fi
+    
+    gs_success "Dependency installation completed!"
+    gs_info "Run 'gs_health_check' to verify the installation"
+    
+    return 0
+}
+
+# Execute main function if script is run directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi

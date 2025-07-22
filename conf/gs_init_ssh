@@ -40,28 +40,54 @@ def main():
 
     gs_config_ssh = os.path.join(gs_config_path, "gs_ssh")
     if dir_exists(gs_config_ssh) is False:
-        print("{} don't exists")
+        print("{} don't exists".format(gs_config_ssh))
         return 0
 
     dest = os.path.join(os.getenv("HOME"), ".ssh")
 
-    cmd = "rm -rf {}".format(dest)
-    # print(cmd)
-    ret, output = subprocess.getstatusoutput(cmd)
-    if ret != 0:
-        print("rm -rf ssh error, ", output)
+    # Check if template files exist
+    templates = {
+        "id_rsa.template": "id_rsa",
+        "id_rsa.pub.template": "id_rsa.pub", 
+        "config.template": "config"
+    }
+    
+    # Copy template files if actual files don't exist
+    for template, actual in templates.items():
+        template_path = os.path.join(gs_config_ssh, template)
+        actual_path = os.path.join(gs_config_ssh, actual)
+        
+        if file_exists(template_path) and not file_exists(actual_path):
+            print("WARNING: {} not found. Please copy {} to {} and edit with your actual settings".format(
+                actual, template, actual))
+            print("Command: cp {} {}".format(template_path, actual_path))
+            continue
 
-    cmd = "cp -r {} {}".format(gs_config_ssh, dest)
-    # print(cmd)
-    ret, output = subprocess.getstatusoutput(cmd)
-    if ret != 0:
-        print("cp ssh error, ", output)
+    # Create .ssh directory if it doesn't exist
+    if not dir_exists(dest):
+        os.makedirs(dest, mode=0o700)
 
-    cmd = "chmod 700 {}/id_rsa".format(dest)
-    # print(cmd)
-    ret, output = subprocess.getstatusoutput(cmd)
-    if ret != 0:
-        print("chmod 700 ssh error, ", output)
+    # Copy SSH files (excluding templates and README)
+    for filename in os.listdir(gs_config_ssh):
+        if filename.endswith('.template') or filename == 'README.md':
+            continue
+            
+        src_file = os.path.join(gs_config_ssh, filename)
+        dest_file = os.path.join(dest, filename)
+        
+        if file_exists(src_file):
+            cmd = "cp {} {}".format(src_file, dest_file)
+            ret, output = subprocess.getstatusoutput(cmd)
+            if ret != 0:
+                print("cp {} error: {}".format(filename, output))
+
+    # Set proper permissions
+    private_key = os.path.join(dest, "id_rsa")
+    if file_exists(private_key):
+        cmd = "chmod 600 {}".format(private_key)
+        ret, output = subprocess.getstatusoutput(cmd)
+        if ret != 0:
+            print("chmod 600 id_rsa error: {}".format(output))
 
     return 1
 

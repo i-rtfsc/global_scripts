@@ -90,8 +90,14 @@ function _gs_theme_start_line2() {
 }
 
 function _gs_theme_color_text() {
-    code=$1
-    text=$2
+    local code="${1:-}"
+    local text="${2:-}"
+    
+    if [[ -z "$code" || -z "$text" ]]; then
+        echo "$text"
+        return
+    fi
+    
     if [ -n "$ZSH_VERSION" ]; then
         echo "%B${FG[$code]}${text}%{$reset_color%}"
     else

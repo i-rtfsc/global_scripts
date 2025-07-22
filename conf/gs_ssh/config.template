@@ -1,0 +1,15 @@
+# SSH Config Template
+# 
+# This file should contain your SSH configuration.
+# Copy this template to config and customize it for your needs.
+# 
+# Usage:
+#   1. Copy this file: cp config.template config
+#   2. Edit config with your actual SSH settings
+#
+# Example SSH config:
+# Host example-server
+#     HostName your-server.com
+#     User your-username
+#     Port 22
+#     IdentityFile ~/.ssh/id_rsa

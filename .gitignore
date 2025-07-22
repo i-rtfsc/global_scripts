@@ -10,3 +10,25 @@ plugins/system/clash/conf/cache.db
 custom
 
 test
+
+# SSH sensitive files - never commit these
+conf/gs_ssh/id_rsa
+conf/gs_ssh/id_rsa.pub
+conf/gs_ssh/config
+conf/gs_ssh/config-vm
+conf/gs_ssh/known_hosts
+conf/gs_ssh/authorized_keys
+
+# Other sensitive files
+**/*.pem
+**/*.key
+**/*.crt
+**/*.p12
+**/*.jks
+**/secrets.yml
+**/secrets.yaml
+**/credentials.json
+**/.env
+**/.env.local
+
+.claude
