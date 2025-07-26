@@ -1,0 +1,367 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/i-rtfsc/global_scripts/blob/main/config/schema/core-schema.json",
+  "title": "Global Scripts V3 Core Configuration Schema",
+  "description": "JSON Schema for Global Scripts V3 core configuration file",
+  "type": "object",
+  "required": [
+    "version",
+    "system",
+    "paths",
+    "cache",
+    "logging"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "JSON Schema reference"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Configuration version following semantic versioning"
+    },
+    "system": {
+      "type": "object",
+      "description": "System-level configuration",
+      "required": ["log_level"],
+      "properties": {
+        "log_level": {
+          "type": "string",
+          "enum": ["DEBUG", "INFO", "WARN", "ERROR", "FATAL"],
+          "description": "Default logging level"
+        },
+        "debug_mode": {
+          "type": "boolean",
+          "description": "Enable debug mode globally"
+        },
+        "performance_monitoring": {
+          "type": "boolean",
+          "description": "Enable performance monitoring"
+        },
+        "startup_optimization": {
+          "type": "boolean",
+          "description": "Enable startup optimizations"
+        },
+        "shell_compatibility": {
+          "type": "object",
+          "properties": {
+            "bash_version_check": {
+              "type": "boolean",
+              "description": "Check bash version compatibility"
+            },
+            "zsh_compatibility": {
+              "type": "boolean",
+              "description": "Enable zsh compatibility mode"
+            },
+            "posix_mode": {
+              "type": "boolean",
+              "description": "Enable POSIX compatibility mode"
+            }
+          }
+        }
+      }
+    },
+    "paths": {
+      "type": "object",
+      "description": "Path configuration with variable expansion support",
+      "required": ["runtime_dir"],
+      "properties": {
+        "runtime_dir": {
+          "type": "string",
+          "description": "Main runtime directory (supports ${HOME} variable)"
+        },
+        "cache_dir": {
+          "type": "string",
+          "description": "Cache directory path"
+        },
+        "log_dir": {
+          "type": "string",
+          "description": "Log files directory"
+        },
+        "data_dir": {
+          "type": "string",
+          "description": "Data storage directory"
+        },
+        "tmp_dir": {
+          "type": "string",
+          "description": "Temporary files directory"
+        },
+        "plugins_dir": {
+          "type": "string",
+          "description": "Custom plugins directory"
+        },
+        "config_backup_dir": {
+          "type": "string",
+          "description": "Configuration backup directory"
+        }
+      }
+    },
+    "cache": {
+      "type": "object",
+      "description": "Dual-level cache system configuration",
+      "required": ["enabled"],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable caching system"
+        },
+        "l1_memory_cache": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "max_size": {
+              "type": "integer",
+              "minimum": 100,
+              "maximum": 10000,
+              "description": "Maximum number of cache entries"
+            },
+            "ttl": {
+              "type": "integer",
+              "minimum": 60,
+              "description": "Time to live in seconds"
+            }
+          }
+        },
+        "l2_disk_cache": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "ttl": {
+              "type": "integer",
+              "minimum": 3600,
+              "description": "Time to live in seconds"
+            },
+            "max_size": {
+              "type": "string",
+              "pattern": "^\\d+[KMGT]?B$",
+              "description": "Maximum cache size (e.g., 100MB, 1GB)"
+            },
+            "cleanup_interval": {
+              "type": "integer",
+              "minimum": 3600,
+              "description": "Cleanup interval in seconds"
+            }
+          }
+        }
+      }
+    },
+    "logging": {
+      "type": "object",
+      "description": "Logging system configuration",
+      "required": ["level"],
+      "properties": {
+        "level": {
+          "type": "string",
+          "enum": ["DEBUG", "INFO", "WARN", "ERROR", "FATAL"]
+        },
+        "file_logging": {
+          "type": "boolean",
+          "description": "Enable file logging"
+        },
+        "console_logging": {
+          "type": "boolean",
+          "description": "Enable console logging"
+        },
+        "rotation": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "max_size": {
+              "type": "string",
+              "pattern": "^\\d+[KMGT]?B$"
+            },
+            "max_files": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        },
+        "format": {
+          "type": "object",
+          "properties": {
+            "timestamp": {
+              "type": "boolean"
+            },
+            "level": {
+              "type": "boolean"
+            },
+            "location": {
+              "type": "boolean"
+            },
+            "colors": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "performance": {
+      "type": "object",
+      "description": "Performance optimization settings",
+      "properties": {
+        "startup_monitoring": {
+          "type": "boolean"
+        },
+        "lazy_loading": {
+          "type": "boolean"
+        },
+        "parallel_initialization": {
+          "type": "boolean"
+        },
+        "cache_prewarming": {
+          "type": "boolean"
+        },
+        "benchmarking": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "auto_report": {
+              "type": "boolean"
+            },
+            "report_interval": {
+              "type": "integer",
+              "minimum": 3600
+            }
+          }
+        }
+      }
+    },
+    "plugins": {
+      "type": "object",
+      "description": "Plugin system configuration",
+      "properties": {
+        "auto_discovery": {
+          "type": "boolean"
+        },
+        "auto_loading": {
+          "type": "boolean"
+        },
+        "dependency_resolution": {
+          "type": "boolean"
+        },
+        "sandbox_mode": {
+          "type": "string",
+          "enum": ["none", "lightweight", "strict"]
+        },
+        "enabled": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_-]*$"
+          },
+          "description": "List of enabled plugins"
+        },
+        "disabled": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_-]*$"
+          },
+          "description": "List of disabled plugins"
+        },
+        "config": {
+          "type": "object",
+          "description": "Plugin-specific configuration",
+          "additionalProperties": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "ui": {
+      "type": "object",
+      "description": "User interface preferences",
+      "properties": {
+        "colors": {
+          "type": "boolean"
+        },
+        "unicode_symbols": {
+          "type": "boolean"
+        },
+        "progress_bars": {
+          "type": "boolean"
+        },
+        "table_format": {
+          "type": "string",
+          "enum": ["compact", "expanded", "minimal"]
+        },
+        "json_pretty_print": {
+          "type": "boolean"
+        },
+        "help_pager": {
+          "type": "string",
+          "enum": ["auto", "always", "never"]
+        }
+      }
+    },
+    "security": {
+      "type": "object",
+      "description": "Security settings",
+      "properties": {
+        "input_validation": {
+          "type": "boolean"
+        },
+        "command_whitelist": {
+          "type": "boolean"
+        },
+        "plugin_signature_check": {
+          "type": "boolean"
+        },
+        "config_encryption": {
+          "type": "boolean"
+        }
+      }
+    },
+    "completion": {
+      "type": "object",
+      "description": "Tab completion system configuration",
+      "properties": {
+        "auto_generate": {
+          "type": "boolean"
+        },
+        "cache_completion": {
+          "type": "boolean"
+        },
+        "dynamic_completion": {
+          "type": "boolean"
+        },
+        "history_support": {
+          "type": "boolean"
+        }
+      }
+    },
+    "api": {
+      "type": "object",
+      "description": "API interface configuration",
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^v\\d+$"
+        },
+        "output_format": {
+          "type": "string",
+          "enum": ["text", "json", "table"]
+        },
+        "error_format": {
+          "type": "string",
+          "enum": ["friendly", "technical", "json"]
+        },
+        "timeout": {
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 300
+        }
+      }
+    }
+  }
+}

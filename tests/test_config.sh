@@ -260,8 +260,24 @@ test_config_reload() {
 test_config_validation() {
     test_start "配置验证"
     
-    # 创建有效的配置文件
-    echo '{"valid": "config"}' > "$TEST_CONFIG_FILE"
+    # 创建有效的配置文件，包含所有必需字段
+    cat > "$TEST_CONFIG_FILE" << 'EOF'
+{
+  "version": "3.0.0",
+  "system": {
+    "log_level": "INFO"
+  },
+  "paths": {
+    "runtime_dir": "/tmp/test"
+  },
+  "cache": {
+    "enabled": true
+  },
+  "logging": {
+    "level": "INFO"
+  }
+}
+EOF
     
     if gs_config_validate "$TEST_CONFIG_FILE" >/dev/null 2>&1; then
         test_pass
