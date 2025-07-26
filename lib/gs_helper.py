@@ -84,19 +84,142 @@ class GlobalScriptsHelper:
             print("Error: " + str(e), file=sys.stderr)
             return 1
     
-    def json_validate(self, file_path):
-        """验证JSON格式"""
+    def json_validate(self, file_path, schema_file=None):
+        """验证JSON格式和Schema"""
         try:
             if not os.path.exists(file_path):
                 print("File not found", file=sys.stderr)
                 return 1
                 
             with open_file(file_path, 'r') as f:
-                json.load(f)
+                data = json.load(f)
+            
+            # 基础JSON格式验证通过
+            if schema_file and os.path.exists(schema_file):
+                # 尝试Schema验证（如果有jsonschema库）
+                try:
+                    import jsonschema
+                    with open_file(schema_file, 'r') as f:
+                        schema = json.load(f)
+                    jsonschema.validate(data, schema)
+                    print("JSON validation passed with schema")
+                except ImportError:
+                    print("JSON format valid (jsonschema not available)")
+                except Exception as e:
+                    print("Schema validation failed: " + str(e), file=sys.stderr)
+                    return 1
+            else:
+                print("JSON format valid")
             
             return 0
         except Exception as e:
             print("JSON validation failed: " + str(e), file=sys.stderr)
+            return 1
+    
+    def config_validate(self, config_file, schema_file=None):
+        """验证配置文件，包含基础检查和Schema验证"""
+        try:
+            if not os.path.exists(config_file):
+                print("Configuration file not found: " + config_file, file=sys.stderr)
+                return 1
+            
+            # 基础JSON格式验证
+            with open_file(config_file, 'r') as f:
+                config_data = json.load(f)
+            
+            # 检查必需字段
+            required_fields = ['version', 'system', 'paths', 'cache', 'logging']
+            missing_fields = []
+            for field in required_fields:
+                if field not in config_data:
+                    missing_fields.append(field)
+            
+            if missing_fields:
+                print("Missing required fields: " + ", ".join(missing_fields), file=sys.stderr)
+                return 1
+            
+            # 验证版本格式
+            version = config_data.get('version', '')
+            if not re.match(r'^\d+\.\d+\.\d+$', version):
+                print("Invalid version format: " + version, file=sys.stderr)
+                return 1
+            
+            # 验证日志级别
+            system_log_level = config_data.get('system', {}).get('log_level', '')
+            logging_level = config_data.get('logging', {}).get('level', '')
+            valid_levels = ['DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL']
+            
+            if system_log_level and system_log_level not in valid_levels:
+                print("Invalid system.log_level: " + system_log_level, file=sys.stderr)
+                return 1
+                
+            if logging_level and logging_level not in valid_levels:
+                print("Invalid logging.level: " + logging_level, file=sys.stderr)
+                return 1
+            
+            # Schema验证（如果提供了schema文件）
+            if schema_file and os.path.exists(schema_file):
+                try:
+                    import jsonschema
+                    with open_file(schema_file, 'r') as f:
+                        schema = json.load(f)
+                    jsonschema.validate(config_data, schema)
+                    print("Configuration validation passed with schema")
+                except ImportError:
+                    print("Configuration format valid (jsonschema not available for detailed validation)")
+                except Exception as e:
+                    print("Schema validation failed: " + str(e), file=sys.stderr)
+                    return 1
+            else:
+                print("Configuration format valid (basic validation)")
+            
+            return 0
+        except Exception as e:
+            print("Configuration validation failed: " + str(e), file=sys.stderr)
+            return 1
+    
+    def config_merge(self, base_file, override_file, output_file=None):
+        """合并配置文件，override覆盖base"""
+        try:
+            # 读取基础配置
+            base_data = {}
+            if os.path.exists(base_file):
+                with open_file(base_file, 'r') as f:
+                    base_data = json.load(f)
+            
+            # 读取覆盖配置
+            override_data = {}
+            if os.path.exists(override_file):
+                with open_file(override_file, 'r') as f:
+                    override_data = json.load(f)
+            
+            # 深度合并
+            def deep_merge(base, override):
+                if isinstance(base, dict) and isinstance(override, dict):
+                    result = base.copy()
+                    for key, value in override.items():
+                        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+                            result[key] = deep_merge(result[key], value)
+                        else:
+                            result[key] = value
+                    return result
+                else:
+                    return override
+            
+            merged_data = deep_merge(base_data, override_data)
+            
+            # 输出结果
+            if output_file:
+                os.makedirs(os.path.dirname(output_file), exist_ok=True)
+                with open_file(output_file, 'w') as f:
+                    json.dump(merged_data, f, indent=2, ensure_ascii=False)
+                print("Configuration merged successfully: " + output_file)
+            else:
+                print(json.dumps(merged_data, indent=2, ensure_ascii=False))
+            
+            return 0
+        except Exception as e:
+            print("Configuration merge failed: " + str(e), file=sys.stderr)
             return 1
     
     def json_has_key(self, file_path, key):
@@ -288,6 +411,8 @@ def main():
         'json_validate': helper.json_validate,
         'json_has_key': helper.json_has_key,
         'json_keys': helper.json_keys,
+        'config_validate': helper.config_validate,
+        'config_merge': helper.config_merge,
         'array_get': helper.array_get,
         'array_set': helper.array_set,
         'array_has_key': helper.array_has_key,

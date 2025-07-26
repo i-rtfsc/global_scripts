@@ -290,6 +290,7 @@ gs_config_reload() {
 # 验证配置
 gs_config_validate() {
     local config_file="${1:-$_GS_CONFIG_USER_FILE}"
+    local schema_file="${2:-$_GS_ROOT/config/schema/core.schema.json}"
     
     gs_log_debug "验证配置文件: $config_file"
     
@@ -298,23 +299,46 @@ gs_config_validate() {
         return $_GS_ERROR_FILE_NOT_FOUND
     fi
     
-    # 使用Python验证JSON格式
+    # 使用Python进行增强配置验证
     if gs_python_available; then
-        if gs_python_call json_validate "$config_file"; then
-            gs_log_debug "配置文件格式正确"
-            return 0
+        # 如果提供了Schema文件，进行Schema验证
+        if [[ -f "$schema_file" ]]; then
+            if gs_python_call config_validate "$config_file" "$schema_file"; then
+                gs_log_debug "配置文件验证通过（包含Schema验证）"
+                return 0
+            else
+                gs_error_config "配置文件验证失败: $config_file"
+                return $_GS_ERROR_CONFIG
+            fi
         else
-            gs_error_config "配置文件JSON格式错误: $config_file"
-            return $_GS_ERROR_CONFIG
+            # 仅进行基础配置验证
+            if gs_python_call config_validate "$config_file"; then
+                gs_log_debug "配置文件基础验证通过"
+                return 0
+            else
+                gs_error_config "配置文件基础验证失败: $config_file"
+                return $_GS_ERROR_CONFIG
+            fi
         fi
     else
-        # 降级处理：简单检查是否为文本文件
-        if file "$config_file" | grep -q "text"; then
-            gs_log_debug "配置文件基本格式检查通过"
-            return 0
+        # 降级处理：简单的JSON格式检查
+        if command -v jq >/dev/null 2>&1; then
+            if jq . "$config_file" >/dev/null 2>&1; then
+                gs_log_debug "配置文件JSON格式检查通过"
+                return 0
+            else
+                gs_error_config "配置文件JSON格式错误: $config_file"
+                return $_GS_ERROR_CONFIG
+            fi
         else
-            gs_error_config "配置文件格式可能有问题: $config_file"
-            return $_GS_ERROR_CONFIG
+            # 最基础的文件检查
+            if file "$config_file" | grep -q "text"; then
+                gs_log_debug "配置文件基本格式检查通过"
+                return 0
+            else
+                gs_error_config "配置文件格式可能有问题: $config_file"
+                return $_GS_ERROR_CONFIG
+            fi
         fi
     fi
 }
@@ -366,6 +390,50 @@ gs_config_restore() {
     else
         gs_error_permission "无法恢复配置"
         return $_GS_ERROR_PERMISSION
+    fi
+}
+
+# 合并配置文件
+gs_config_merge() {
+    local base_file="${1:-$_GS_CONFIG_DEFAULT_FILE}"
+    local override_file="${2:-$_GS_CONFIG_USER_FILE}"
+    local output_file="${3:-$_GS_CONFIG_USER_FILE}"
+    
+    gs_log_debug "合并配置文件: $base_file + $override_file -> $output_file"
+    
+    # 检查输入文件是否存在
+    if [[ ! -f "$base_file" ]]; then
+        gs_error_file_not_found "基础配置文件不存在: $base_file"
+        return $_GS_ERROR_FILE_NOT_FOUND
+    fi
+    
+    # 如果覆盖文件不存在，直接复制基础文件
+    if [[ ! -f "$override_file" ]]; then
+        gs_log_debug "覆盖文件不存在，复制基础配置: $base_file -> $output_file"
+        cp "$base_file" "$output_file"
+        return 0
+    fi
+    
+    # 使用Python进行深度合并
+    if gs_python_available; then
+        if gs_python_call config_merge "$base_file" "$override_file" "$output_file"; then
+            gs_log_debug "配置文件合并成功"
+            _gs_config_clear_cache
+            return 0
+        else
+            gs_error_config "配置文件合并失败"
+            return $_GS_ERROR_CONFIG
+        fi
+    else
+        # 降级处理：简单覆盖
+        gs_log_warn "Python不可用，使用简单配置覆盖"
+        if cp "$override_file" "$output_file"; then
+            gs_log_debug "配置文件覆盖成功"
+            return 0
+        else
+            gs_error_permission "无法写入配置文件: $output_file"
+            return $_GS_ERROR_PERMISSION
+        fi
     fi
 }
 

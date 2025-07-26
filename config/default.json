@@ -1,0 +1,121 @@
+{
+  "$schema": "./schema/core.schema.json",
+  "version": "3.0.0",
+  "system": {
+    "log_level": "INFO",
+    "debug_mode": false,
+    "performance_monitoring": true,
+    "startup_optimization": true,
+    "shell_compatibility": {
+      "bash_version_check": true,
+      "zsh_compatibility": true,
+      "posix_mode": false
+    }
+  },
+  "paths": {
+    "runtime_dir": "${HOME}/.local/share/global_scripts",
+    "cache_dir": "${runtime_dir}/cache",
+    "log_dir": "${runtime_dir}/logs",
+    "data_dir": "${runtime_dir}/data",
+    "tmp_dir": "${runtime_dir}/tmp",
+    "plugins_dir": "${runtime_dir}/plugins",
+    "config_backup_dir": "${runtime_dir}/backup"
+  },
+  "cache": {
+    "enabled": true,
+    "l1_memory_cache": {
+      "enabled": true,
+      "max_size": 1000,
+      "ttl": 3600
+    },
+    "l2_disk_cache": {
+      "enabled": true,
+      "ttl": 86400,
+      "max_size": "100MB",
+      "cleanup_interval": 7200
+    }
+  },
+  "logging": {
+    "level": "INFO",
+    "file_logging": true,
+    "console_logging": true,
+    "rotation": {
+      "enabled": true,
+      "max_size": "10MB",
+      "max_files": 5
+    },
+    "format": {
+      "timestamp": true,
+      "level": true,
+      "location": true,
+      "colors": true
+    }
+  },
+  "performance": {
+    "startup_monitoring": true,
+    "lazy_loading": true,
+    "parallel_initialization": true,
+    "cache_prewarming": false,
+    "benchmarking": {
+      "enabled": false,
+      "auto_report": false,
+      "report_interval": 86400
+    }
+  },
+  "plugins": {
+    "auto_discovery": true,
+    "auto_loading": false,
+    "dependency_resolution": true,
+    "sandbox_mode": "lightweight",
+    "enabled": [
+      "android",
+      "git", 
+      "system"
+    ],
+    "disabled": [],
+    "config": {
+      "android": {
+        "adb_timeout": 30,
+        "fastboot_timeout": 60,
+        "preferred_device": "",
+        "auto_device_selection": true
+      },
+      "git": {
+        "enhanced_status": true,
+        "branch_protection": true,
+        "commit_validation": false
+      },
+      "system": {
+        "proxy_detection": true,
+        "network_monitoring": false,
+        "resource_monitoring": true
+      }
+    }
+  },
+  "ui": {
+    "colors": true,
+    "unicode_symbols": true,
+    "progress_bars": true,
+    "table_format": "compact",
+    "json_pretty_print": true,
+    "help_pager": "auto"
+  },
+  "security": {
+    "input_validation": true,
+    "command_whitelist": false,
+    "plugin_signature_check": false,
+    "config_encryption": false
+  },
+  "completion": {
+    "auto_generate": true,
+    "cache_completion": true,
+    "dynamic_completion": true,
+    "history_support": true
+  },
+  "api": {
+    "version": "v3",
+    "output_format": "text",
+    "error_format": "friendly",
+    "timeout": 30
+  }
+}
