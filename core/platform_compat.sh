@@ -155,7 +155,16 @@ _gs_init_data_structures() {
         declare -gA _GS_PLUGIN_COMMANDS 2>/dev/null || declare -A _GS_PLUGIN_COMMANDS
         declare -gA _GS_LOADED_PLUGINS 2>/dev/null || declare -A _GS_LOADED_PLUGINS
         declare -gA _GS_LOADED_SYSTEMS 2>/dev/null || declare -A _GS_LOADED_SYSTEMS
-        declare -gA _GS_COMMAND_SOURCES 2>/dev/null || declare -A _GS_COMMAND_SOURCES  # 记录命令来源
+        declare -gA _GS_COMMAND_SOURCES 2>/dev/null || declare -A _GS_COMMAND_SOURCES  # 记录当前激活命令来源
+
+        # 新的命令注册/提供者数据结构
+        declare -gA _GS_COMMAND_STACK 2>/dev/null || declare -A _GS_COMMAND_STACK      # cmd -> provider_id 列表（; 分隔）
+        declare -gA _GS_PROVIDER_INFO 2>/dev/null || declare -A _GS_PROVIDER_INFO      # provider_id -> func|source_type|source_name|priority|enabled
+        declare -gA _GS_ACTIVE_FUNC 2>/dev/null || declare -A _GS_ACTIVE_FUNC          # cmd -> 当前激活 func
+
+        # 记录优先级
+        declare -gA _GS_PLUGIN_PRIORITIES 2>/dev/null || declare -A _GS_PLUGIN_PRIORITIES  # plugin_name -> priority
+        declare -gA _GS_SYSTEM_PRIORITIES 2>/dev/null || declare -A _GS_SYSTEM_PRIORITIES  # system_name -> priority
     else
         # 兼容模式：使用变量前缀模拟
         [[ "${GS_DEBUG_MODE:-false}" == "true" ]] && \

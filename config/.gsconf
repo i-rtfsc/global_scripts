@@ -4,7 +4,7 @@
 gs_env_debug=0
 
 # prompt 主题
-gs_themes_prompt=remote
+gs_themes_prompt=ocean
 
 # core 插件
 gs_plugins=(
@@ -14,6 +14,26 @@ gs_plugins=(
     android/frida
     android/grep
     android/push
+    android/perfetto
+    android/winscope
+    git
+    git/branch
+    git/commit
+    git/flow
+    git/remote
+    system
+    system/brew
+    system/proxy
+    system/repo
+    repo
+    spider
+    utils
+    utils/cpu
+    utils/forecast
+    utils/ftp
+    utils/gerrit
+    utils/im
+    config
 )
 
 # 3rd 插件

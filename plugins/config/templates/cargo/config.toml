@@ -1,0 +1,189 @@
+# Rust Cargo 配置文件 - 优化构建性能和源配置
+# 针对中国大陆网络环境优化的 Cargo 配置
+
+# crates.io 源配置 - 使用国内镜像提升下载速度
+[source.crates-io]
+# 官方源地址
+registry = "https://github.com/rust-lang/crates.io-index"
+# 使用国内镜像源替代 (可选择: ustc, tuna, sjtu, rustcc)
+replace-with = 'ustc'
+
+# 中科大镜像源 (推荐)
+[source.ustc]
+registry = "https://mirrors.ustc.edu.cn/crates.io-index"
+
+# 清华大学镜像源 (备选)
+[source.tuna]
+registry = "https://mirrors.tuna.tsinghua.edu.cn/git/crates.io-index.git"
+
+# 上海交通大学镜像源 (备选)
+[source.sjtu]
+registry = "https://mirrors.sjtug.sjtu.edu.cn/git/crates.io-index/"
+
+# RustCC中文社区镜像源 (备选)
+[source.rustcc]
+registry = "https://code.aliyun.com/rustcc/crates.io-index.git"
+
+# 字节跳动镜像源 (备选)
+[source.rsproxy]
+registry = "https://rsproxy.cn/crates.io-index"
+
+# 构建配置 - 优化编译性能
+[build]
+# 并行编译任务数 (默认为CPU核心数，可根据内存调整)
+jobs = 4
+
+# 目标架构 (可指定交叉编译目标)
+# target = "x86_64-unknown-linux-gnu"
+
+# 目标目录 (可自定义构建输出目录)
+# target-dir = "target"
+
+# 增量编译 (提升重新编译速度)
+incremental = true
+
+# 默认发布模式优化
+[profile.release]
+# 优化级别 (0=不优化, 1=基本优化, 2=默认优化, 3=最高优化, "s"=大小优化, "z"=最小大小)
+opt-level = 3
+
+# 启用链接时优化 (LTO) - 减小二进制大小，提升运行性能
+lto = true
+
+# 压缩调试信息级别 (0=无, 1=有限, 2=完整)
+debug = false
+
+# 代码生成单元数 (1=更好的优化，但编译较慢)
+codegen-units = 1
+
+# panic处理策略 ("unwind"=展开堆栈, "abort"=直接终止)
+panic = "abort"
+
+# 删除未使用代码 (减小二进制大小)
+strip = true
+
+# 开发模式配置 - 优化开发体验
+[profile.dev]
+# 开发模式的优化级别 (0=无优化，编译快)
+opt-level = 0
+
+# 保留调试信息
+debug = true
+
+# 开启增量编译
+incremental = true
+
+# 溢出检查 (debug模式推荐开启)
+overflow-checks = true
+
+# 测试配置
+[profile.test]
+opt-level = 1
+debug = true
+
+# 基准测试配置
+[profile.bench]
+opt-level = 3
+debug = false
+lto = true
+
+# 注册表配置
+[registry]
+# 默认注册表
+default = "crates-io"
+
+# 发布token (请设置环境变量 CARGO_REGISTRY_TOKEN)
+# token = "your-crates-io-token"
+
+# HTTP配置
+[http]
+# 请求超时时间 (秒)
+timeout = 30
+
+# 代理配置 (如需要)
+# proxy = "http://proxy.example.com:8080"
+
+# 用户代理
+user-agent = "cargo"
+
+# SSL配置
+check-revoke = true
+
+# 网络配置
+[net]
+# 离线模式
+offline = false
+
+# 重试次数
+retry = 2
+
+# Git配置
+[net.git]
+# Git传输超时
+fetch-with-cli = true
+
+# 别名配置 - 常用命令简写
+[alias]
+# 构建相关
+b = "build"
+r = "run"
+t = "test"
+c = "check"
+cl = "clippy"
+f = "fmt"
+
+# 发布相关
+p = "publish"
+pkg = "package"
+
+# 依赖管理
+u = "update"
+s = "search"
+i = "install"
+
+# 文档相关
+d = "doc"
+do = "doc --open"
+
+# 清理
+clean-all = "clean"
+
+# 查看依赖树
+tree = "tree"
+
+# 审计安全漏洞
+audit = "audit"
+
+# 基准测试
+bench = "bench"
+
+# 示例运行
+ex = "run --example"
+
+# 发布模式运行
+rr = "run --release"
+
+# 发布模式构建
+br = "build --release"
+
+# 检查所有目标
+ca = "check --all"
+
+# 测试所有目标
+ta = "test --all"
+
+# 条件编译配置
+[cfg]
+# 自定义条件编译标志
+# my_feature = true
+
+# 工作空间配置 (针对多包项目)
+# [workspace]
+# members = ["crate1", "crate2"]
+# exclude = ["legacy"]
+
+# 环境变量
+[env]
+# 设置默认环境变量
+# RUST_LOG = "info"
+# RUST_BACKTRACE = "1"

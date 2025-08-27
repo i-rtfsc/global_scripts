@@ -1,0 +1,6 @@
+PLUGIN_TYPE=submodule
+NAME=forecast
+PARENT=utils
+VERSION=3.0.0
+DESCRIPTION=天气预报查询工具
+SYSTEM_DEPS=curl,jq

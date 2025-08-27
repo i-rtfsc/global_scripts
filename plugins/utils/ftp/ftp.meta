@@ -1,0 +1,6 @@
+PLUGIN_TYPE=submodule
+NAME=ftp
+PARENT=utils
+VERSION=3.0.0
+DESCRIPTION=FTP文件传输工具
+SYSTEM_DEPS=curl,python3

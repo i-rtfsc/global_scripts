@@ -1,0 +1,50 @@
+# Git 推送配置 - 优化推送行为和安全性
+# 针对现代Git工作流的推送策略配置
+
+[push]
+    # 默认推送策略
+    # simple: 只推送当前分支到同名的上游分支 (Git 2.0+默认，推荐)
+    # upstream: 推送当前分支到配置的上游分支
+    # matching: 推送所有本地和远程都存在的同名分支 (旧版默认，不推荐)
+    # current: 推送当前分支到远程同名分支，如果不存在则创建
+    default = simple
+    
+    # 推送时自动设置上游分支
+    # true: git push 时自动设置 --set-upstream
+    autoSetupRemote = true
+    
+    # 推送标签的策略
+    # false: 默认不推送标签 (需要显式 git push --tags)
+    # true: 推送时总是包含标签
+    # followTags: 只推送当前分支历史中的标签 (推荐)
+    followTags = true
+    
+    # 推送前检查提交签名
+    # true: 推送前验证GPG签名
+    # false: 不检查签名 (默认)
+    gpgSign = false
+    
+    # 原子性推送
+    # true: 要么全部推送成功，要么全部失败 (避免部分推送)
+    # false: 尽可能推送成功的引用
+    atomic = false
+    
+    # 推送时的钩子输出
+    # true: 显示服务器端钩子的输出
+    # false: 不显示钩子输出
+    quiet = false
+
+[branch]
+    # 新分支自动设置上游
+    # true: git checkout -b 时自动设置上游分支
+    autosetupmerge = always
+    
+    # 新分支自动使用rebase
+    # true: 新分支默认使用 git pull --rebase
+    # false: 新分支默认使用 git pull (创建合并提交)
+    autosetuprebase = always
+
+[remote]
+    # 推送到多个远程仓库时的默认行为
+    # true: 推送到所有配置的远程仓库
+    pushdefault = origin

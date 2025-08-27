@@ -1,0 +1,9 @@
+# Homebrew包管理器配置子模块
+# Homebrew Package Manager Configuration Submodule
+
+PLUGIN_TYPE=submodule
+NAME=brew
+PARENT=system
+VERSION=1.0.0
+DESCRIPTION=Homebrew包管理器配置和镜像管理
+SYSTEM_DEPS=brew
