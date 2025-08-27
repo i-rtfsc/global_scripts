@@ -1,0 +1,6 @@
+PLUGIN_TYPE=submodule
+NAME=cpu
+PARENT=utils
+VERSION=3.0.0
+DESCRIPTION=
+SYSTEM_DEPS=uname,lscpu

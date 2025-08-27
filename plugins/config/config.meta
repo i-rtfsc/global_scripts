@@ -1,0 +1,8 @@
+PLUGIN_TYPE=main
+NAME=config
+VERSION=3.0.0
+DESCRIPTION=开发环境配置管理工具 - 统一管理Git、Vim、Tmux、Zsh等配置
+AUTHOR=Solo
+SYSTEM_DEPS=git
+PLUGIN_DEPS=
+MIN_GS_VERSION=3.0.0

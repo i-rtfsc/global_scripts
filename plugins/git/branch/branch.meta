@@ -1,10 +1,6 @@
+PLUGIN_TYPE=submodule
 NAME=branch
-VERSION=1.0.0  
-DESCRIPTION=Git分支管理工具
-DESCRIPTION_EN=Git branch management tools
-AUTHOR=Global Scripts Team
 PARENT=git
-STATUS=enabled
-DEPENDENCIES=git
-SHELL_SUPPORT=bash,zsh
-PLATFORM_SUPPORT=darwin,linux
+VERSION=3.0.0
+DESCRIPTION=Git分支管理工具
+SYSTEM_DEPS=git

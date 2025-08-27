@@ -1,27 +1,6 @@
-# Git Flow管理子模块
-# Git Flow Management Submodule
-
-name="flow"
-description="Git flow工作流管理"
-description_en="Git flow workflow management"
-version="1.0.0"
-author="Global Scripts V3"
-
-# 依赖项
-dependencies=""
-
-# 支持的平台
-platforms="macos,linux"
-
-# 支持的Shell
-shells="bash,zsh"
-
-# 子模块特性
-features="flow工作流,分支策略,发布管理"
-features_en="flow workflow,branch strategy,release management"
-
-# 标签
-tags="git,flow,workflow,branch,release"
-
-# 主要功能
-main_functions="gs_git_flow_init,gs_git_flow_feature,gs_git_flow_release,gs_git_flow_hotfix"
+PLUGIN_TYPE=submodule
+NAME=flow
+PARENT=git
+VERSION=3.0.0
+DESCRIPTION=Gitflow工作流管理
+SYSTEM_DEPS=git

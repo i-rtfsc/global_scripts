@@ -1,0 +1,159 @@
+# Git 颜色配置 - 美化Git命令输出，提高可读性
+# 针对现代终端优化的颜色方案
+
+[color]
+    # 全局颜色开关
+    # auto: 仅在输出到终端时使用颜色 (推荐)
+    # true: 总是使用颜色
+    # false: 从不使用颜色
+    ui = auto
+    
+    # 各模块颜色开关
+    branch = auto      # 分支相关命令的颜色
+    diff = auto        # diff命令的颜色
+    interactive = auto # 交互式命令的颜色
+    status = auto      # status命令的颜色
+    grep = auto        # grep命令的颜色
+    pager = true       # 分页器中的颜色支持
+
+# 分支显示的颜色配置
+[color "branch"]
+    # 当前分支 - 黄色高亮
+    current = yellow reverse bold
+    
+    # 本地分支 - 绿色
+    local = green
+    
+    # 远程分支 - 红色
+    remote = red
+    
+    # 上游分支 - 蓝色
+    upstream = blue
+    
+    # 普通分支 - 默认颜色
+    plain = normal
+
+# 差异显示的颜色配置
+[color "diff"]
+    # 元信息 (文件名、行号等) - 蓝色粗体
+    meta = blue bold
+    
+    # 代码块分隔符 (@@ ... @@) - 青色粗体
+    frag = cyan bold
+    
+    # 旧内容 (删除的行) - 红色
+    old = red
+    
+    # 新内容 (添加的行) - 绿色
+    new = green
+    
+    # 移动的内容 - 紫色
+    oldMoved = magenta
+    newMoved = magenta bold
+    
+    # 移动的内容 (替代方案)
+    oldMovedAlternative = blue
+    newMovedAlternative = blue bold
+    
+    # 空白字符错误 - 红色背景
+    whitespace = red reverse
+    
+    # 提交信息 - 黄色
+    commit = yellow
+
+# 状态显示的颜色配置
+[color "status"]
+    # 已添加到暂存区的文件 - 绿色
+    added = green
+    
+    # 已修改的文件 - 红色
+    changed = red
+    
+    # 未跟踪的文件 - 青色
+    untracked = cyan
+    
+    # 已修改但未暂存的文件 - 黄色
+    updated = yellow
+    
+    # 已删除的文件 - 红色
+    deleted = red
+    
+    # 重命名的文件 - 蓝色
+    renamed = blue
+    
+    # 未合并的文件 - 紫色粗体
+    unmerged = magenta bold
+    
+    # 本地分支 - 绿色
+    localBranch = green
+    
+    # 远程分支 - 红色
+    remoteBranch = red
+    
+    # 无变化的分支 - 灰色
+    nobranch = red reverse
+
+# 交互式添加的颜色配置
+[color "interactive"]
+    # 提示信息 - 蓝色粗体
+    prompt = blue bold
+    
+    # 标题 - 红色粗体
+    header = red bold
+    
+    # 帮助信息 - 绿色
+    help = green
+    
+    # 错误信息 - 红色粗体
+    error = red bold
+
+# 搜索结果的颜色配置
+[color "grep"]
+    # 匹配的文本 - 红色粗体
+    match = red bold
+    
+    # 匹配的行号 - 绿色
+    lineNumber = green
+    
+    # 文件名 - 紫色
+    filename = magenta
+    
+    # 分隔符 - 青色
+    separator = cyan
+    
+    # 选中的匹配 - 黄色背景
+    selected = yellow reverse
+    
+    # 上下文行 - 默认颜色
+    context = normal
+    
+    # 函数名 - 蓝色
+    function = blue
+
+# 日志显示的颜色配置
+[color "log"]
+    # 日期 - 绿色
+    date = green
+    
+    # 作者 - 蓝色
+    author = blue
+    
+    # 提交哈希 - 黄色
+    commit = yellow
+
+# 装饰元素的颜色配置 (分支、标签等)
+[color "decorate"]
+    # 分支名 - 绿色粗体
+    branch = green bold
+    
+    # 远程分支 - 红色粗体
+    remoteBranch = red bold
+    
+    # 标签 - 黄色粗体
+    tag = yellow bold
+    
+    # stash - 紫色
+    stash = magenta
+    
+    # HEAD指针 - 青色粗体
+    HEAD = cyan bold

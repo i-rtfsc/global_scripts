@@ -1,0 +1,9 @@
+# 系统代理管理子模块
+# System Proxy Management Submodule
+
+PLUGIN_TYPE=submodule
+NAME=proxy
+PARENT=system
+VERSION=1.0.0
+DESCRIPTION=系统代理配置和管理
+SYSTEM_DEPS=brew

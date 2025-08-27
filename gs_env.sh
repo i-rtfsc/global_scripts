@@ -293,6 +293,35 @@ _gs_initialize_components() {
     fi
 }
 
+# 加载提示符主题
+_gs_load_prompt_theme() {
+    local theme_name="${gs_themes_prompt:-tech-dev}"
+    local theme_file="$GS_ROOT/themes/prompt/${theme_name}.sh"
+    
+    # 检查主题文件是否存在
+    if [[ ! -f "$theme_file" ]]; then
+        _gs_warn "gs_env" "主题文件不存在: $theme_file，尝试加载默认主题"
+        theme_file="$GS_ROOT/themes/prompt/tech-dev.sh"
+        
+        # 如果默认主题也不存在，跳过主题加载
+        if [[ ! -f "$theme_file" ]]; then
+            _gs_error "gs_env" "默认主题文件也不存在，跳过主题加载"
+            return 1
+        fi
+    fi
+    
+    _gs_debug "gs_env" "加载提示符主题: $theme_name"
+    
+    # 加载主题
+    if source "$theme_file" 2>/dev/null; then
+        _gs_debug "gs_env" "主题加载成功: $theme_name"
+        return 0
+    else
+        _gs_error "gs_env" "主题加载失败: $theme_name"
+        return 1
+    fi
+}
+
 # 显示启动摘要
 _gs_show_startup_summary() {
     if [[ "${GS_DEBUG_MODE:-false}" == "true" ]]; then
@@ -379,6 +408,11 @@ _gs_main_init() {
         _gs_error "gs_env" "组件初始化存在错误，但继续执行"
     }
 
+    # 7. 加载配置的提示符主题
+    _gs_load_prompt_theme || {
+        _gs_error "gs_env" "主题加载失败，使用默认提示符"
+    }
+
     _gs_info "gs_env" "✅ Global Scripts V3 启动完成"
 
     return 0
@@ -420,41 +454,4 @@ main() {
     return 0
 }
 
-# 简化的主函数调用（避免复杂的错误处理和陷阱）
-_gs_simple_init() {
-    # 1. 引导日志系统
-    _gs_bootstrap_logger || {
-        echo "❌ [FATAL] 日志系统引导失败，无法继续" >&2
-        return 1
-    }
-
-    # 2. 基本启动信息
-    _gs_info "gs_env" "🚀 Global Scripts V3 启动中..."
-
-    # 3. 检查必要文件
-    _gs_check_required_files || {
-        _gs_warn "gs_env" "必要文件检查失败，但继续执行"
-    }
-
-    # 4. 检查运行环境
-    _gs_check_environment || {
-        _gs_warn "gs_env" "环境检查失败，但继续执行"
-    }
-
-    # 5. 加载核心模块
-    _gs_load_core_modules || {
-        _gs_warn "gs_env" "核心模块加载存在错误，但继续执行"
-    }
-
-    # 6. 初始化组件
-    _gs_initialize_components || {
-        _gs_warn "gs_env" "组件初始化存在错误，但继续执行"
-    }
-
-    _gs_info "gs_env" "✅ Global Scripts V3 启动完成"
-
-    return 0
-}
-
-# 执行简化的初始化
-_gs_simple_init
+main

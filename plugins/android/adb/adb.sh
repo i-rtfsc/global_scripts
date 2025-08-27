@@ -111,17 +111,37 @@ gs_android_adb_screenrecord() {
     echo "开始录屏，时长: ${duration}秒"
     echo "录制中... (按Ctrl+C提前停止)"
     
-    if _gs_android_adb_execute "$device_id" shell screenrecord --time-limit "$duration" "$remote_path"; then
-        echo "录屏完成，正在传输..."
-        if _gs_android_adb_execute "$device_id" pull "$remote_path" "$local_path"; then
-            _gs_android_adb_execute "$device_id" shell rm "$remote_path"
+    # 启动录屏进程在后台
+    _gs_android_execute "$resolved_device_id" shell screenrecord --time-limit "$duration" "$remote_path" &
+    local screenrecord_pid=$!
+    
+    # 等待录屏进程完成或用户中断
+    wait $screenrecord_pid 2>/dev/null
+    local wait_result=$?
+    
+    # 给设备一点时间完成文件写入
+    sleep 1
+    
+    # 无论录屏如何结束，都尝试拉取文件
+    echo ""
+    echo "正在传输录屏文件..."
+    
+    # 检查设备上是否有文件
+    if _gs_android_execute "$resolved_device_id" shell "ls $remote_path" >/dev/null 2>&1; then
+        if _gs_android_execute "$resolved_device_id" pull "$remote_path" "$local_path"; then
+            _gs_android_execute "$resolved_device_id" shell rm "$remote_path" 2>/dev/null
             echo "录屏成功: $local_path"
             return 0
+        else
+            echo "警告: 文件传输失败，但录屏文件已保存到设备: $remote_path" >&2
+            echo "您可以手动使用以下命令拉取文件:" >&2
+            echo "  adb pull $remote_path $local_path" >&2
+            return 1
         fi
+    else
+        echo "错误: 设备上未找到录屏文件，可能录屏时间太短" >&2
+        return 2
     fi
-    
-    echo "错误: 录屏失败" >&2
-    return 2
 }
 
 _show_android_adb_screenrecord_help() {
@@ -161,10 +181,10 @@ EOF
 }
 
 gs_android_adb_logcat() {
-    local package_name="${1:-}"
-    local device_id="${2:-}"
-    local filter_level="V"
+    local package_name=""
+    local device_id=""
     
+    local positional_args=()
     while [[ $# -gt 0 ]]; do
         case $1 in
             --help|-h)
@@ -179,18 +199,20 @@ gs_android_adb_logcat() {
                 device_id="$2"
                 shift 2
                 ;;
-            -l|--level)
-                filter_level="$2"
-                shift 2
-                ;;
             *)
-                if [[ -z "$package_name" ]]; then
-                    package_name="$1"
-                fi
+                positional_args+=("$1")
                 shift
                 ;;
         esac
     done
+    
+    # 解析非选项参数
+    if [[ ${#positional_args[@]} -ge 1 ]]; then
+        package_name="${positional_args[0]}"
+    fi
+    if [[ ${#positional_args[@]} -ge 2 ]]; then
+        device_id="${positional_args[1]}"
+    fi
     
     if ! command -v adb >/dev/null 2>&1; then
         echo "错误: 缺少必需命令: adb" >&2
@@ -210,11 +232,11 @@ gs_android_adb_logcat() {
             _gs_android_execute "$resolved_device_id" logcat --pid="$pid"
         else
             echo "正在监控应用日志: $package_name (使用grep过滤)"
-            _gs_android_execute "$resolved_device_id" logcat -v threadtime | grep -i "$package_name"
+            _gs_android_execute "$resolved_device_id" logcat threadtime | grep -i "$package_name"
         fi
     else
         echo "正在监控系统日志 (过滤级别: $filter_level)"
-        _gs_android_execute "$resolved_device_id" logcat -v threadtime "*:$filter_level"
+        _gs_android_execute "$resolved_device_id" logcat threadtime
     fi
     
     return 0
@@ -225,25 +247,26 @@ _show_android_adb_logcat_help() {
 gs_android_adb_logcat - Android日志监控
 
 功能描述:
-  实时监控Android设备的日志输出，支持应用过滤和级别过滤
+  实时监控Android设备的日志输出，支持应用过滤
 
 使用方式:
-  gs-android-adb-logcat [-p 包名] [-l 级别] [-d 设备ID]
+  gs-android-adb-logcat [-p 包名] [-d 设备ID]
   gs-android-adb-logcat [包名] [设备ID]
 
 参数:
   包名           要监控的应用包名（可选）
+  设备ID         要监控的设备ID（可选）
 
 选项:
   -p, --package  指定应用包名
-  -l, --level    日志级别(V|D|I|W|E)，默认V
   -d, --device   指定设备ID
   --help, -h     显示此帮助信息
 
 示例:
   gs-android-adb-logcat
   gs-android-adb-logcat com.example.app
-  gs-android-adb-logcat -p com.example.app -l I
+  gs-android-adb-logcat com.example.app emulator-5554
+  gs-android-adb-logcat -p com.example.app
   gs-android-adb-logcat -d emulator-5554
   gs-android-adb-logcat --help
 
@@ -253,7 +276,6 @@ gs_android_adb_logcat - Android日志监控
 
 注意事项:
   - 按Ctrl+C停止监控
-  - 日志级别: V(详细) D(调试) I(信息) W(警告) E(错误)
   - 指定包名时优先使用PID过滤
 EOF
 }

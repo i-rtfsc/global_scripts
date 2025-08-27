@@ -1,4 +1,6 @@
-TYPE=submodule
-DESCRIPTION="Android Winscope window and surface analysis tools"
+PLUGIN_TYPE=submodule
+NAME=winscope
+PARENT=android
 VERSION=3.0.0
+DESCRIPTION=Android Winscope window and surface analysis tools
 SYSTEM_DEPS=adb,python3

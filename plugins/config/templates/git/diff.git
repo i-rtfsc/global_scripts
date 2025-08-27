@@ -1,0 +1,97 @@
+# Git 差异显示配置 - 优化diff输出和比较算法
+# 提供更清晰、更准确的文件差异显示
+
+[diff]
+    # 重命名检测限制
+    # 0: 无限制，检测所有可能的重命名 (可能较慢但更准确)
+    # N: 限制检测N个文件的重命名
+    renamelimit = 0
+    
+    # 重命名和复制检测
+    # true: 检测文件重命名
+    # copy: 检测文件重命名和复制 (推荐)
+    # false: 不检测重命名和复制
+    renames = copy
+    
+    # 差异算法选择
+    # myers: 默认算法，平衡速度和质量
+    # minimal: 生成最小差异，但可能较慢
+    # patience: 耐心算法，对大幅重构更友好 (推荐)
+    # histogram: histogram算法，patience的改进版
+    algorithm = patience
+    
+    # 启用启发式算法
+    # true: 使用启发式算法改善diff质量
+    compactionHeuristic = true
+    
+    # 显示函数名
+    # true: 在diff块头显示函数名
+    showFunctionNames = true
+    
+    # 空白字符处理
+    # true: 忽略行尾空白字符的变化
+    ignoreSpaceAtEol = false
+    
+    # 颜色移动检测
+    # default: 启用移动检测
+    # plain: 不使用颜色标记移动
+    # blocks: 按块标记移动
+    # zebra: 交替颜色标记移动
+    # dimmed_zebra: 暗色交替标记移动 (推荐)
+    colorMoved = dimmed_zebra
+    
+    # 移动检测的最小长度
+    colorMovedWS = allow-indentation-change
+
+[difftool]
+    # 启动diff工具前的提示
+    # true: 每次启动前询问
+    # false: 直接启动diff工具 (推荐)
+    prompt = false
+    
+    # 信任diff工具的退出代码
+    trustExitCode = true
+
+# 特定文件类型的diff配置
+[diff "bin"]
+    # 二进制文件的处理
+    textconv = hexdump -v -C
+
+[diff "image"]
+    # 图片文件的处理
+    textconv = identify
+
+[diff "zip"]
+    # ZIP文件的处理
+    textconv = unzip -l
+
+[diff "pdf"]
+    # PDF文件的处理
+    textconv = pdfinfo
+
+# Word文档差异 (需要安装pandoc)
+[diff "docx"]
+    textconv = pandoc --to=markdown
+    
+[diff "odt"]
+    textconv = odt2txt
+
+# 常用diff工具配置
+[difftool "vimdiff"]
+    cmd = vim -d \"$LOCAL\" \"$REMOTE\"
+    
+[difftool "meld"]
+    cmd = meld \"$LOCAL\" \"$REMOTE\"
+    
+[difftool "vscode"]
+    cmd = code --wait --diff \"$LOCAL\" \"$REMOTE\"
+    
+[difftool "idea"]
+    cmd = idea diff \"$LOCAL\" \"$REMOTE\"
+
+# 外部diff工具路径 (根据系统调整)
+# [difftool "beyond"]
+#     cmd = bcomp \"$LOCAL\" \"$REMOTE\"
+    
+# [difftool "kdiff3"]
+#     cmd = kdiff3 \"$LOCAL\" \"$REMOTE\"
