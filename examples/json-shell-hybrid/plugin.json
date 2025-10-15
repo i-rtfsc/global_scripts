@@ -1,0 +1,30 @@
+{
+  "name": "json-shell-hybrid",
+  "version": "1.0.0",
+  "author": "Solo",
+  "homepage": "https://github.com/i-rtfsc/global_scripts",
+  "description": {
+    "zh": "JSON+Shell混合插件示例 - 演示JSON配置与Shell函数结合",
+    "en": "JSON+Shell hybrid plugin example - demonstrates JSON config combined with shell functions"
+  },
+  "type": "json",
+  "entry": "commands.json",
+  "enabled": true,
+  "license": "MIT",
+  "category": "example",
+  "keywords": [
+    "example",
+    "json",
+    "shell",
+    "hybrid",
+    "demo"
+  ],
+  "priority": 90,
+  "subplugins": [
+    {
+      "name": "shell",
+      "type": "shell",
+      "entry": "plugin.sh"
+    }
+  ]
+}

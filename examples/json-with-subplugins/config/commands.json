@@ -1,0 +1,29 @@
+{
+  "name": "config",
+  "description": {
+    "zh": "配置管理子插件 - JSON插件的配置相关功能",
+    "en": "Configuration management subplugin - config-related features for JSON plugin"
+  },
+  "commands": {
+    "show": {
+      "type": "command",
+      "command": "echo '⚙️ json-with-subplugins config show | Subplugin: config | Type: JSON | Function: Show configuration'",
+      "description": {
+        "zh": "显示配置信息",
+        "en": "Show configuration information"
+      },
+      "usage": "gs json-with-subplugins config show",
+      "examples": ["gs json-with-subplugins config show"]
+    },
+    "validate": {
+      "type": "command",
+      "command": "echo '✅ json-with-subplugins config validate | Subplugin: config | Status: Valid | All settings OK'",
+      "description": {
+        "zh": "验证配置有效性",
+        "en": "Validate configuration validity"
+      },
+      "usage": "gs json-with-subplugins config validate",
+      "examples": ["gs json-with-subplugins config validate"]
+    }
+  }
+}

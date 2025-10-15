@@ -1,7 +1,0 @@
-
-PLUGIN_TYPE=submodule
-NAME=perfetto
-PARENT=android
-VERSION=3.0.0
-DESCRIPTION=Android Perfetto performance tracing tools
-SYSTEM_DEPS=adb,python3

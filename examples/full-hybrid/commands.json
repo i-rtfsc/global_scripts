@@ -1,0 +1,39 @@
+{
+  "name": "full-hybrid-main",
+  "description": {
+    "zh": "Full Hybrid 插件的主 JSON 命令配置",
+    "en": "Main JSON command configuration for the Full Hybrid plugin"
+  },
+  "commands": {
+    "json_info": {
+      "type": "command",
+      "command": "echo '📋 full-hybrid JSON Info | Components: JSON ✅ Shell ✅ Python ✅'",
+      "description": {
+        "zh": "显示 full-hybrid 插件的 JSON 信息",
+        "en": "Show JSON info of the full-hybrid plugin"
+      },
+      "usage": "gs full-hybrid json_info",
+      "examples": ["gs full-hybrid json_info"]
+    },
+    "json_health": {
+      "type": "command",
+      "command": "echo '🩺 full-hybrid JSON Health | All components responsive'",
+      "description": {
+        "zh": "显示 full-hybrid 插件组件健康状态",
+        "en": "Show health status of full-hybrid components"
+      },
+      "usage": "gs full-hybrid json_health",
+      "examples": ["gs full-hybrid json_health"]
+    },
+    "json_components": {
+      "type": "command",
+      "command": "echo '🧩 Components: config(json) | shell(plugin.sh) | python(plugin.py)'",
+      "description": {
+        "zh": "列出 full-hybrid 插件的组成部分",
+        "en": "List the components of the full-hybrid plugin"
+      },
+      "usage": "gs full-hybrid json_components",
+      "examples": ["gs full-hybrid json_components"]
+    }
+  }
+}

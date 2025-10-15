@@ -1,0 +1,44 @@
+# Example YAML Plugin Definition
+# This file demonstrates how to define plugin functions in YAML format
+
+functions:
+  - name: hello
+    description: Say hello to someone
+    command: echo "Hello, {{args[0]}}!"
+    type: shell
+    args:
+      - name
+    options:
+      greeting:
+        description: Custom greeting message
+        default: Hello
+    examples:
+      - hello world
+      - hello --greeting=Hi Alice
+
+  - name: goodbye
+    description: Say goodbye
+    command: echo "Goodbye, have a nice day!"
+    type: shell
+    examples:
+      - goodbye
+
+  - name: greet
+    description: Greet someone with a custom message
+    command: |
+      if [ -n "{{options.formal}}" ]; then
+        echo "Good day, {{args[0]}}!"
+      else
+        echo "Hey {{args[0]}}!"
+      fi
+    type: shell
+    args:
+      - name
+    options:
+      formal:
+        description: Use formal greeting
+        type: boolean
+        default: false
+    examples:
+      - greet Alice
+      - greet --formal Bob

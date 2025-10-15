@@ -1,0 +1,39 @@
+{
+  "name": "hybrid-with-subplugins-main",
+  "description": {
+    "zh": "混合插件主配置 - JSON 命令定义",
+    "en": "Hybrid plugin main configuration - JSON command definitions"
+  },
+  "commands": {
+    "info": {
+      "type": "command",
+      "command": "echo '📋 hybrid-with-subplugins Main Info | Type: Full Hybrid with Subplugins | JSON: ✅ | Shell: ✅ | Python: ✅ | Subplugins: main-shell, main-python, tools, services'",
+      "description": {
+        "zh": "显示混合主插件信息",
+        "en": "Show hybrid main plugin info"
+      },
+      "usage": "gs hybrid-with-subplugins info",
+      "examples": ["gs hybrid-with-subplugins info"]
+    },
+    "list_components": {
+      "type": "command",
+      "command": "echo '🧩 Components: | 1. main-shell (shell) | 2. main-python (python) | 3. tools (shell subplugin) | 4. services (python subplugin)'",
+      "description": {
+        "zh": "列出所有组件和子插件",
+        "en": "List all components and subplugins"
+      },
+      "usage": "gs hybrid-with-subplugins list_components",
+      "examples": ["gs hybrid-with-subplugins list_components"]
+    },
+    "architecture": {
+      "type": "command",
+      "command": "echo '🏗️  Architecture: | Main Plugin (JSON) → commands.json | ├── main-shell (Shell) → plugin.sh | ├── main-python (Python) → plugin.py | ├── tools (Shell Subplugin) → tools/plugin.sh | └── services (Python Subplugin) → services/plugin.py'",
+      "description": {
+        "zh": "显示插件架构结构",
+        "en": "Show plugin architecture structure"
+      },
+      "usage": "gs hybrid-with-subplugins architecture",
+      "examples": ["gs hybrid-with-subplugins architecture"]
+    }
+  }
+}

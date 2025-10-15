@@ -1,0 +1,47 @@
+{
+  "name": "hybrid-with-subplugins",
+  "version": "1.0.0",
+  "author": "Solo",
+  "homepage": "https://github.com/i-rtfsc/global_scripts",
+  "description": {
+    "zh": "带子插件的混合插件示例 - 演示JSON+Shell+Python主插件与子插件结构",
+    "en": "Hybrid plugin with subplugins example - demonstrates JSON+Shell+Python main plugin with subplugin structure"
+  },
+  "type": "json",
+  "entry": "commands.json",
+  "enabled": true,
+  "license": "MIT",
+  "category": "example",
+  "keywords": [
+    "example",
+    "hybrid",
+    "json",
+    "shell",
+    "python",
+    "subplugins",
+    "demo"
+  ],
+  "priority": 90,
+  "subplugins": [
+    {
+      "name": "main-shell",
+      "type": "shell",
+      "entry": "plugin.sh"
+    },
+    {
+      "name": "main-python",
+      "type": "python",
+      "entry": "plugin.py"
+    },
+    {
+      "name": "tools",
+      "type": "shell",
+      "entry": "tools/plugin.sh"
+    },
+    {
+      "name": "services",
+      "type": "python",
+      "entry": "services/plugin.py"
+    }
+  ]
+}

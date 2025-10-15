@@ -1,9 +1,0 @@
-# Git Repo工具管理子模块
-# Git Repo Tool Management Submodule
-
-PLUGIN_TYPE=submodule
-NAME=repo
-PARENT=system
-VERSION=1.0.0
-DESCRIPTION=Android Repo工具配置和管理
-SYSTEM_DEPS=brew

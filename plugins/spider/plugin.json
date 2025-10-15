@@ -1,0 +1,52 @@
+{
+  "name": "spider",
+  "version": "1.0.0",
+  "author": "Solo",
+  "homepage": "https://github.com/i-rtfsc/global_scripts",
+  "description": {
+    "zh": "网络爬虫插件 - 支持从各大博客平台抓取文章内容",
+    "en": "Web spider plugin - Extract articles from major blog platforms"
+  },
+  "type": "python",
+  "entry": "plugin.py",
+  "enabled": true,
+  "license": "Apache-2.0",
+  "category": "tools",
+  "keywords": [
+    "spider",
+    "crawler",
+    "blog",
+    "articles",
+    "web-scraping"
+  ],
+  "priority": 50,
+  "subplugins": [
+    {
+      "name": "jianshu",
+      "type": "python",
+      "entry": "plugin.py",
+      "description": {
+        "zh": "简书爬虫 - 爬取简书用户文章",
+        "en": "JianShu spider - Crawl articles from JianShu"
+      }
+    },
+    {
+      "name": "cnblogs",
+      "type": "python",
+      "entry": "plugin.py",
+      "description": {
+        "zh": "博客园爬虫 - 爬取博客园用户文章",
+        "en": "CNBlogs spider - Crawl articles from CNBlogs"
+      }
+    },
+    {
+      "name": "csdn",
+      "type": "python",
+      "entry": "plugin.py",
+      "description": {
+        "zh": "CSDN爬虫 - 爬取CSDN用户文章",
+        "en": "CSDN spider - Crawl articles from CSDN"
+      }
+    }
+  ]
+}

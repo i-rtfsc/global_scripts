@@ -1,0 +1,466 @@
+{
+  "locale": {
+    "default": "en",
+    "supported": ["en", "zh"]
+  },
+  "messages": {
+    "cli": {
+      "plugin_details": {
+        "en": "Plugin Details",
+        "zh": "插件详情"
+      },
+      "basic_info": {
+        "en": "Basic Information", 
+        "zh": "基本信息"
+      },
+      "name": {
+        "en": "Name",
+        "zh": "名称"
+      },
+      "version": {
+        "en": "Version",
+        "zh": "版本"
+      },
+      "author": {
+        "en": "Author",
+        "zh": "作者"
+      },
+      "description": {
+        "en": "Description",
+        "zh": "描述"
+      },
+      "status": {
+        "en": "Status",
+        "zh": "状态"
+      },
+      "enabled": {
+        "en": "✅ Enabled",
+        "zh": "✅ 已启用"
+      },
+      "disabled": {
+        "en": "❌ Disabled",
+        "zh": "❌ 已禁用"
+      },
+      "type": {
+        "en": "Type",
+        "zh": "类型"
+      },
+      "priority": {
+        "en": "Priority",
+        "zh": "优先级"
+      },
+      "directory": {
+        "en": "Directory",
+        "zh": "目录"
+      },
+      "available_commands": {
+        "en": "Available Commands",
+        "zh": "可用命令"
+      },
+      "command": {
+        "en": "Command",
+        "zh": "命令"
+      },
+      "shell_function": {
+        "en": "Function",
+        "zh": "函数"
+      },
+      "usage": {
+        "en": "Usage",
+        "zh": "用法"
+      }
+    },
+    "setup": {
+      "banner_title": {
+        "en": "Global Scripts v6.0 Setup",
+        "zh": "全局脚本系统 v6.0 安装"
+      },
+      "language_selection": {
+        "en": "Please select your language:",
+        "zh": "请选择您的语言："
+      },
+      "language_english": {
+        "en": "English",
+        "zh": "English"
+      },
+      "language_chinese": {
+        "en": "中文",
+        "zh": "中文"
+      },
+      "enter_choice": {
+        "en": "Enter your choice (1-2):",
+        "zh": "请输入您的选择 (1-2):"
+      },
+      "invalid_choice": {
+        "en": "Invalid choice. Please enter 1 or 2.",
+        "zh": "无效选择。请输入 1 或 2。"
+      },
+      "selected_english": {
+        "en": "✅ English selected",
+        "zh": "✅ 已选择英语"
+      },
+      "selected_chinese": {
+        "en": "✅ 中文已选择", 
+        "zh": "✅ 中文已选择"
+      },
+      "generating_completion": {
+        "en": "Generating bash completion scripts...",
+        "zh": "正在生成bash补全脚本..."
+      },
+      "completion_generated": {
+        "en": "✅ Bash completion generated successfully!",
+        "zh": "✅ Bash补全脚本生成成功！"
+      },
+      "source_instruction": {
+        "en": "Please run: source env.sh",
+        "zh": "请运行: source env.sh"
+      }
+    },
+    "errors": {
+      "plugin_not_found": {
+        "en": "Plugin '{name}' not found",
+        "zh": "未找到插件 '{name}'"
+      },
+      "function_not_found": {
+        "en": "Function '{function}' not found in plugin '{plugin}'", 
+        "zh": "在插件 '{plugin}' 中未找到函数 '{function}'"
+      },
+      "command_execution_failed": {
+        "en": "Command execution failed",
+        "zh": "命令执行失败"
+      },
+      "plugin_disabled": {
+        "en": "Plugin '{name}' is disabled",
+        "zh": "插件 '{name}' 已禁用"
+      },
+      "unknown_function_type": {
+        "en": "Unknown function type: {type}",
+        "zh": "未知的函数类型: {type}"
+      },
+      "python_file_not_found": {
+        "en": "Python file not found: {path}",
+        "zh": "未找到Python文件: {path}"
+      },
+      "execution_timeout": {
+        "en": "Script execution timed out",
+        "zh": "脚本执行超时"
+      }
+    },
+    "success": {
+    },
+    "plugin_list": {
+      "title": {
+        "en": "Global Scripts - Plugin Management",
+        "zh": "Global Scripts - 插件管理"
+      },
+      "enabled_plugins": {
+        "en": "Enabled Plugins",
+        "zh": "已启用插件"
+      },
+      "disabled_plugins": {
+        "en": "Disabled Plugins", 
+        "zh": "已禁用插件"
+      },
+      "statistics": {
+        "en": "Statistics",
+        "zh": "统计信息"
+      },
+      "table_headers": {
+        "plugin_name": {
+          "en": "Plugin Name",
+          "zh": "插件名称"
+        },
+        "status": {
+          "en": "Status",
+          "zh": "状态"
+        },
+        "type": {
+          "en": "Type",
+          "zh": "类型"
+        },
+        "priority": {
+          "en": "Priority",
+          "zh": "优先级"
+        },
+        "version": {
+          "en": "Version",
+          "zh": "版本"
+        },
+        "commands": {
+          "en": "Commands",
+          "zh": "命令数量"
+        },
+        "description": {
+          "en": "Description",
+          "zh": "描述"
+        }
+      },
+      "status_values": {
+        "active": {
+          "en": "Active",
+          "zh": "正常"
+        },
+        "disabled": {
+          "en": "Disabled",
+          "zh": "已禁用"
+        }
+      },
+      "stats_format": {
+        "total_plugins": {
+          "en": "Total plugins",
+          "zh": "总插件数"
+        },
+        "enabled": {
+          "en": "enabled",
+          "zh": "已启用"
+        },
+        "disabled": {
+          "en": "disabled", 
+          "zh": "已禁用"
+        },
+        "total_commands": {
+          "en": "Total commands",
+          "zh": "总命令数"
+        }
+      }
+    }
+  },
+  "plugin_source_types": {
+    "system": {
+      "en": "System Plugin",
+      "zh": "系统插件"
+    },
+    "third_party": {
+      "en": "Third-party Plugin",
+      "zh": "第三方插件"
+    },
+    "example": {
+      "en": "Example Plugin",
+      "zh": "示例插件"
+    }
+  },
+  "plugin_implementation_types": {
+    "python": {
+      "en": "Python Plugin",
+      "zh": "Python插件"
+    },
+    "script": {
+      "en": "Shell Plugin",
+      "zh": "Shell插件"
+    },
+    "config": {
+      "en": "Config Plugin",
+      "zh": "配置插件"
+    },
+    "core": {
+      "en": "Core Plugin",
+      "zh": "核心插件"
+    },
+    "hybrid": {
+      "en": "Hybrid Plugin",
+      "zh": "混合插件"
+    },
+    "unknown": {
+      "en": "Unknown Plugin",
+      "zh": "未知插件"
+    }
+  },
+  "errors": {
+    "command_not_found": {
+      "en": "Command not found: {command}",
+      "zh": "命令未找到: {command}"
+    },
+    "plugin_not_found": {
+      "en": "Plugin not found: {plugin}",
+      "zh": "插件未找到: {plugin}"
+    },
+    "subplugin_not_found": {
+      "en": "Sub-plugin '{subplugin}' not found in {plugin}",
+      "zh": "子插件 '{subplugin}' 在 {plugin} 中未找到"
+    },
+    "function_not_found": {
+      "en": "Function '{function}' not found in {subplugin}",
+      "zh": "函数 '{function}' 在 {subplugin} 中未找到"
+    },
+    "invalid_arguments": {
+      "en": "Invalid arguments",
+      "zh": "参数无效"
+    },
+    "permission_denied": {
+      "en": "Permission denied",
+      "zh": "权限被拒绝"
+    },
+    "timeout": {
+      "en": "Command timeout ({timeout}s)",
+      "zh": "命令超时 ({timeout}秒)"
+    },
+    "execution_failed": {
+      "en": "Execution failed: {error}",
+      "zh": "执行失败: {error}"
+    },
+    "config_load_failed": {
+      "en": "Failed to load configuration: {error}",
+      "zh": "加载配置失败: {error}"
+    },
+    "plugin_load_failed": {
+      "en": "Failed to load plugin: {error}",
+      "zh": "加载插件失败: {error}"
+    },
+    "unsafe_command": {
+      "en": "Unsafe command detected",
+      "zh": "检测到不安全命令"
+    },
+    "file_not_found": {
+      "en": "File not found: {file}",
+      "zh": "文件未找到: {file}"
+    },
+    "directory_not_found": {
+      "en": "Directory not found: {directory}",
+      "zh": "目录未找到: {directory}"
+    }
+  },
+  "success": {
+    "command_executed": {
+      "en": "Command executed successfully",
+      "zh": "命令执行成功"
+    },
+    "plugin_loaded": {
+      "en": "Plugin loaded successfully: {plugin}",
+      "zh": "插件加载成功: {plugin}"
+    },
+    "plugin_enabled": {
+      "en": "Plugin enabled: {plugin}",
+      "zh": "插件已启用: {plugin}"
+    },
+    "plugin_disabled": {
+      "en": "Plugin disabled: {plugin}",
+      "zh": "插件已禁用: {plugin}"
+    },
+    "config_saved": {
+      "en": "Configuration saved",
+      "zh": "配置已保存"
+    },
+    "cache_cleared": {
+      "en": "Cache cleared",
+      "zh": "缓存已清理"
+    }
+  },
+  "commands": {
+    "help": {
+      "en": "Show help information",
+      "zh": "显示帮助信息"
+    },
+    "version": {
+      "en": "Show version information",
+      "zh": "显示版本信息"
+    },
+    "list_plugins": {
+      "en": "List all plugins",
+      "zh": "列出所有插件"
+    },
+    "plugin_info": {
+      "en": "Show plugin information",
+      "zh": "显示插件信息"
+    },
+    "enable_plugin": {
+      "en": "Enable plugin",
+      "zh": "启用插件"
+    },
+    "disable_plugin": {
+      "en": "Disable plugin",
+      "zh": "禁用插件"
+    },
+    "reload_plugins": {
+      "en": "Reload all plugins",
+      "zh": "重新加载所有插件"
+    },
+    "system_status": {
+      "en": "Show system status",
+      "zh": "显示系统状态"
+    },
+    "doctor": {
+      "en": "Check system health",
+      "zh": "系统诊断"
+    },
+    "plugin_management": {
+      "en": "Plugin management",
+      "zh": "插件管理"
+    },
+    "parser_management": {
+      "en": "Parser management",
+      "zh": "解析器管理"
+    },
+    "refresh": {
+      "en": "Refresh system",
+      "zh": "刷新系统"
+    },
+    "no_plugins_found": {
+      "en": "No plugins found",
+      "zh": "未找到任何插件"
+    },
+    "plugin_disabled": {
+      "en": "Plugin is disabled",
+      "zh": "插件已被禁用"
+    },
+    "loading_plugins": {
+      "en": "Loading plugins...",
+      "zh": "正在加载插件..."
+    },
+    "plugins_loaded": {
+      "en": "{count} plugins loaded",
+      "zh": "已加载 {count} 个插件"
+    },
+    "available_commands": {
+      "en": "Available commands:",
+      "zh": "可用命令:"
+    },
+    "usage": {
+      "en": "Usage: {usage}",
+      "zh": "用法: {usage}"
+    },
+    "examples": {
+      "en": "Examples:",
+      "zh": "示例:"
+    },
+    "command_success": {
+      "en": "Command executed successfully",
+      "zh": "命令执行成功"
+    },
+    "command_failed": {
+      "en": "Command execution failed",
+      "zh": "命令执行失败"
+    },
+    "timeout_error": {
+      "en": "Command timeout",
+      "zh": "命令超时"
+    },
+    "invalid_command": {
+      "en": "Invalid command",
+      "zh": "无效命令"
+    },
+    "plugin_not_found": {
+      "en": "Plugin not found: {name}",
+      "zh": "插件未找到: {name}"
+    },
+    "function_not_found": {
+      "en": "Function not found: {name}",
+      "zh": "函数未找到: {name}"
+    },
+    "permission_denied": {
+      "en": "Permission denied",
+      "zh": "权限被拒绝"
+    },
+    "config_error": {
+      "en": "Configuration error",
+      "zh": "配置错误"
+    },
+    "loading_error": {
+      "en": "Loading error",
+      "zh": "加载错误"
+    },
+    "execution_error": {
+      "en": "Execution error: {error}",
+      "zh": "执行错误: {error}"
+    }
+  }
+}

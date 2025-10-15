@@ -1,0 +1,119 @@
+{
+  "name": "navigator-commands",
+  "description": {
+    "zh": "Navigator 插件命令定义",
+    "en": "Navigator plugin command definitions"
+  },
+  "commands": {
+    "house": {
+      "type": "command",
+      "command": "cd $HOME/code/github/house && pwd && echo '📁 已切换到 house 项目目录'",
+      "description": {
+        "zh": "跳转到 house 项目目录",
+        "en": "Navigate to house project directory"
+      },
+      "usage": "gs navigator house",
+      "examples": ["gs navigator house"]
+    },
+    "global-scripts": {
+      "type": "command", 
+      "command": "cd $HOME/code/github/global_scripts && pwd && echo '📁 已切换到 global_scripts 项目目录'",
+      "description": {
+        "zh": "跳转到 global_scripts 项目目录",
+        "en": "Navigate to global_scripts project directory"
+      },
+      "usage": "gs navigator global-scripts",
+      "examples": ["gs navigator global-scripts"]
+    },
+    "as-aosp": {
+      "type": "command",
+      "command": "cd $HOME/code/github/as-aosp && pwd && echo '📁 已切换到 as-aosp 项目目录'",
+      "description": {
+        "zh": "跳转到 as-aosp 项目目录", 
+        "en": "Navigate to as-aosp project directory"
+      },
+      "usage": "gs navigator as-aosp",
+      "examples": ["gs navigator as-aosp"]
+    },
+    "aosp": {
+      "type": "command",
+      "command": "cd $HOME/code/aosp && pwd && echo '📁 已切换到 AOSP 源码目录'",
+      "description": {
+        "zh": "跳转到 AOSP 源码目录",
+        "en": "Navigate to AOSP source directory"
+      },
+      "usage": "gs navigator aosp", 
+      "examples": ["gs navigator aosp"]
+    },
+    "lineage": {
+      "type": "command",
+      "command": "cd $HOME/code/lineage && pwd && echo '📁 已切换到 LineageOS 源码目录'",
+      "description": {
+        "zh": "跳转到 LineageOS 源码目录",
+        "en": "Navigate to LineageOS source directory"
+      },
+      "usage": "gs navigator lineage",
+      "examples": ["gs navigator lineage"]
+    },
+    "flyme": {
+      "type": "command",
+      "command": "cd $HOME/code/flyme && pwd && echo '📁 已切换到 FlymeOS 源码目录'",
+      "description": {
+        "zh": "跳转到 FlymeOS 源码目录",
+        "en": "Navigate to FlymeOS source directory"
+      },
+      "usage": "gs navigator flyme",
+      "examples": ["gs navigator flyme"]
+    },
+    "miui": {
+      "type": "command",
+      "command": "cd $HOME/code/miui && pwd && echo '📁 已切换到 MIUI 源码目录'",
+      "description": {
+        "zh": "跳转到 MIUI 源码目录",
+        "en": "Navigate to MIUI source directory"
+      },
+      "usage": "gs navigator miui",
+      "examples": ["gs navigator miui"]
+    },
+    "oppo": {
+      "type": "command",
+      "command": "cd $HOME/code/oppo && pwd && echo '📁 已切换到 OPPO 源码目录'",
+      "description": {
+        "zh": "跳转到 OPPO 源码目录",
+        "en": "Navigate to OPPO source directory"
+      },
+      "usage": "gs navigator oppo",
+      "examples": ["gs navigator oppo"]
+    },
+    "vivo": {
+      "type": "command",
+      "command": "cd $HOME/code/vivo && pwd && echo '📁 已切换到 VIVO 源码目录'",
+      "description": {
+        "zh": "跳转到 VIVO 源码目录", 
+        "en": "Navigate to VIVO source directory"
+      },
+      "usage": "gs navigator vivo",
+      "examples": ["gs navigator vivo"]
+    },
+    "list": {
+      "type": "command",
+      "command": "echo '📂 Navigator 可用目录:' && echo '🏠 house        → $HOME/code/github/house' && echo '🌍 global-scripts → $HOME/code/github/global_scripts' && echo '📱 as-aosp     → $HOME/code/github/as-aosp' && echo '🤖 aosp        → $HOME/code/aosp' && echo '📲 lineage     → $HOME/code/lineage' && echo '🎨 flyme       → $HOME/code/flyme' && echo '🎯 miui        → $HOME/code/miui' && echo '💚 oppo        → $HOME/code/oppo' && echo '💙 vivo        → $HOME/code/vivo'",
+      "description": {
+        "zh": "列出所有可导航的目录",
+        "en": "List all available navigation directories"
+      },
+      "usage": "gs navigator list",
+      "examples": ["gs navigator list"]
+    },
+    "status": {
+      "type": "command",
+      "command": "echo '📍 当前位置: '$(pwd) && echo '🏠 HOME: $HOME' && echo '💻 CODE: $HOME/code'",
+      "description": {
+        "zh": "显示当前位置和环境信息",
+        "en": "Show current location and environment info"
+      },
+      "usage": "gs navigator status",
+      "examples": ["gs navigator status"]
+    }
+  }
+}

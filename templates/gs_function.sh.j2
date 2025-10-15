@@ -1,0 +1,104 @@
+# Load router script
+if [[ -r "$GS_ROOT/src/gscripts/scripts/gs-router.sh" ]]; then
+    source "$GS_ROOT/src/gscripts/scripts/gs-router.sh"
+fi
+
+# Main gs() function with command routing
+gs() {
+    local router_index="${GS_CACHE_DIR}/router.json"
+
+    # If no router index or jq not available, fall back to Python
+    if [[ ! -f "$router_index" ]] || ! command -v jq &>/dev/null; then
+        uv run --directory "$GS_ROOT" python -m gscripts.cli.main "$@"
+        return $?
+    fi
+
+    # System commands always go to Python
+    case "$1" in
+        help|version|plugin|status|doctor|refresh|"")
+            uv run --directory "$GS_ROOT" python -m gscripts.cli.main "$@"
+            return $?
+            ;;
+    esac
+
+    # Query router index to determine command type
+    local plugin="$1"
+    local query=""
+
+    if [[ $# -eq 1 ]]; then
+        # Single argument: might be plugin info
+        query="$plugin"
+    elif [[ $# -eq 2 ]]; then
+        # Two arguments: plugin + command
+        query="$2"
+    elif [[ $# -ge 3 ]]; then
+        # Three or more: try two-token form first
+        local two_token="$2 $3"
+        local has_two_token=$(jq -r --arg plugin "$plugin" --arg query "$two_token" \
+            ".plugins[\$plugin].commands[\$query] // empty" "$router_index" 2>/dev/null)
+
+        if [[ -n "$has_two_token" ]]; then
+            query="$two_token"
+        else
+            query="$3"
+        fi
+    fi
+
+    # Get command metadata
+    local meta=$(jq -c --arg plugin "$plugin" --arg query "$query" \
+        ".plugins[\$plugin].commands[\$query] // empty" "$router_index" 2>/dev/null)
+
+    if [[ -z "$meta" ]] || [[ "$meta" == "null" ]]; then
+        # Command not found in router, fall back to Python
+        uv run --directory "$GS_ROOT" python -m gscripts.cli.main "$@"
+        return $?
+    fi
+
+    # Check if plugin is enabled
+    local plugin_enabled=$(jq -r --arg plugin "$plugin" \
+        '.plugins[$plugin].enabled' "$router_index" 2>/dev/null)
+
+    if [[ -z "$plugin_enabled" ]] || [[ "$plugin_enabled" == "null" ]]; then
+        plugin_enabled=true
+    fi
+
+    if [[ "$plugin_enabled" == "false" ]]; then
+        echo "错误: 插件 '$plugin' 已被禁用" >&2
+        echo "提示: 使用 'gs plugin enable $plugin' 启用插件" >&2
+        return 1
+    fi
+
+    local kind=$(echo "$meta" | jq -r '.kind // "python"')
+
+    # Route based on command type
+    case "$kind" in
+        json)
+            # JSON commands: execute in current shell
+            local command_tpl=$(echo "$meta" | jq -r '.command // empty')
+            if [[ -z "$command_tpl" ]]; then
+                echo "Error: No command template defined for json type" >&2
+                return 1
+            fi
+
+            # Replace {args} placeholder if present
+            shift 2  # Remove plugin and command name
+            local cmd="$command_tpl"
+            if [[ "$cmd" == *"{args}"* ]]; then
+                cmd="${cmd//\{args\}/$*}"
+            elif [[ $# -gt 0 ]]; then
+                cmd="$cmd $*"
+            fi
+
+            # Execute command in current shell
+            eval "$cmd"
+            ;;
+        shell)
+            # Use shell router for shell scripts
+            gs-router "$@"
+            ;;
+        *)
+            # Use Python CLI (default)
+            uv run --directory "$GS_ROOT" python -m gscripts.cli.main "$@"
+            ;;
+    esac
+}

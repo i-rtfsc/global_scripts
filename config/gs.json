@@ -1,0 +1,31 @@
+{
+    "system_plugins": {
+        "grep": true,
+        "system": true,
+        "android": true,
+        "gerrit": true,
+        "navigator": true,
+        "alias": true,
+        "spider": true
+    },
+    "custom_plugins": {
+        "secrets": true,
+        "flyme": true,
+        "sgm": true
+    },
+    "parsers": {
+        "enabled": ["python", "shell", "config"],
+        "disabled": [],
+        "custom_paths": [
+            "~/.gscripts/parsers",
+            "./custom_parsers"
+        ],
+        "priority_overrides": {}
+    },
+    "logging_level": "INFO",
+    "language": "zh",
+    "show_examples": false,
+    "prompt_theme": "bitstream",
+    "completion_show_descriptions": true,
+    "completion_show_subcommand_descriptions": true
+}

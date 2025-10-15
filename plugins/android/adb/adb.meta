@@ -1,6 +1,0 @@
-PLUGIN_TYPE=submodule
-NAME=adb
-PARENT=android
-VERSION=3.0.0
-DESCRIPTION=Android Debug Bridge工具集，提供设备管理、应用调试、系统控制功能
-SYSTEM_DEPS=adb

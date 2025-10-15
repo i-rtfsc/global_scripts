@@ -1,6 +1,0 @@
-PLUGIN_TYPE=submodule
-NAME=gerrit
-PARENT=utils
-VERSION=3.0.0
-DESCRIPTION=Gerrit代码审查工具
-SYSTEM_DEPS=git,curl

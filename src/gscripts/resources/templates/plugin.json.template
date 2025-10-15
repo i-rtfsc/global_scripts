@@ -1,0 +1,29 @@
+{
+  "name": "example",
+  "version": "1.0.0",
+  "author": "Plugin Author",
+  "homepage": "https://github.com/user/global_scripts-v6",
+  "description": {
+    "zh": "插件的中文描述",
+    "en": "English description of the plugin"
+  },
+  "type": "python",
+  "entry": "plugin.py",
+  "enabled": true,
+  "license": "MIT",
+  "category": "utility",
+  "keywords": ["example", "template", "plugin"],
+  "priority": 50,
+  "subplugins": [
+    {
+      "name": "subplugin1",
+      "type": "python",
+      "entry": "plugin.py"
+    },
+    {
+      "name": "subplugin2",
+      "type": "shell",
+      "entry": "plugin.sh"
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "name": "system",
+  "version": "6.0.0",
+  "author": "Solo",
+  "homepage": "https://github.com/i-rtfsc/global_scripts",
+  "description": {
+    "zh": "系统管理工具集",
+    "en": "System management utilities"
+  },
+  "type": "python",
+  "entry": "plugin.py",
+  "enabled": true,
+  "license": "MIT",
+  "category": "utility",
+  "keywords": [],
+  "priority": 50,
+  "subplugins": [
+    {
+      "name": "proxy",
+      "type": "shell",
+      "entry": "plugin.sh",
+      "description": {
+        "zh": "系统代理管理 - 开启、关闭和查看代理配置",
+        "en": "System proxy management - Enable, disable and view proxy configuration"
+      }
+    },
+    {
+      "name": "brew",
+      "type": "shell",
+      "entry": "plugin.sh",
+      "description": {
+        "zh": "Homebrew镜像源管理 - 切换国内外镜像源",
+        "en": "Homebrew mirror management - Switch between mirrors"
+      }
+    },
+    {
+      "name": "repo",
+      "type": "python",
+      "entry": "plugin.py",
+      "description": {
+        "zh": "Repo工具管理 - AOSP源码同步和镜像源切换",
+        "en": "Repo tool management - AOSP sync and mirror switching"
+      }
+    },
+    {
+      "name": "prompt",
+      "type": "python",
+      "entry": "plugin.py",
+      "description": {
+        "zh": "命令提示符主题 - 切换和管理Shell提示符样式",
+        "en": "Prompt themes - Switch and manage shell prompt styles"
+      }
+    },
+    {
+      "name": "config",
+      "type": "python",
+      "entry": "plugin.py",
+      "description": {
+        "zh": "配置文件管理 - 初始化、安装和备份配置文件",
+        "en": "Configuration management - Init, install and backup config files"
+      }
+    }
+  ]
+}

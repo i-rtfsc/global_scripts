@@ -1,0 +1,29 @@
+{
+  "name": "json-with-subplugins-main",
+  "description": {
+    "zh": "JSON子插件示例主配置",
+    "en": "JSON subplugins example main configuration"
+  },
+  "commands": {
+    "info": {
+      "type": "command",
+      "command": "echo '📋 json-with-subplugins Main Info | Type: JSON with Subplugins | Subplugins: config, utility | Total Commands: 7'",
+      "description": {
+        "zh": "显示主插件信息",
+        "en": "Show main plugin information"
+      },
+      "usage": "gs json-with-subplugins info",
+      "examples": ["gs json-with-subplugins info"]
+    },
+    "list_subplugins": {
+      "type": "command",
+      "command": "echo '📂 json-with-subplugins Subplugins: | 1. config (配置管理) | 2. utility (实用工具)'",
+      "description": {
+        "zh": "列出所有子插件",
+        "en": "List all subplugins"
+      },
+      "usage": "gs json-with-subplugins list_subplugins",
+      "examples": ["gs json-with-subplugins list_subplugins"]
+    }
+  }
+}

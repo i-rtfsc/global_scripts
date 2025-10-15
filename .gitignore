@@ -1,4 +1,4 @@
-# Global Scripts V3 - .gitignore
+# Global Scripts - .gitignore
 
 # ===================================
 # 操作系统相关文件
@@ -242,3 +242,62 @@ docs/_build/
 *.html.generated
 
 cache/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# UV
+.uv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Custom
+/custom/
+/tmp/
+
+# Cache
+*.cache
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Logs
+*.log
+
+# Global Scripts Environment Configuration
+env.fish
+env.sh

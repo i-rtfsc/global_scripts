@@ -1,0 +1,49 @@
+{
+  "name": "alias",
+  "version": "1.0.0",
+  "author": "Solo",
+  "homepage": "https://github.com/i-rtfsc/global_scripts",
+  "description": {
+    "zh": "Shell 别名管理插件 - 为常用命令提供快捷别名",
+    "en": "Shell alias management plugin - Provides shortcuts for common commands"
+  },
+  "type": "json",
+  "entry": "plugin.json",
+  "enabled": true,
+  "license": "MIT",
+  "category": "system",
+  "keywords": [
+    "alias",
+    "shell",
+    "shortcuts",
+    "productivity"
+  ],
+  "priority": 10,
+  "subplugins": [],
+  "alias": {
+    "interactive_only": true,
+    "priority": 10,
+    "shells": [
+      "bash",
+      "zsh",
+      "fish"
+    ],
+    "sources": {
+      "bash": [
+        "common/aliases.sh",
+        "darwin/aliases.sh",
+        "linux/aliases.sh"
+      ],
+      "zsh": [
+        "common/aliases.sh",
+        "darwin/aliases.sh",
+        "linux/aliases.sh"
+      ],
+      "fish": [
+        "common/aliases.fish",
+        "darwin/aliases.fish",
+        "linux/aliases.fish"
+      ]
+    }
+  }
+}

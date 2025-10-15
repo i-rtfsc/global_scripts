@@ -1,0 +1,397 @@
+# Global Scripts System Configuration
+# This file contains system-level configurations that were previously hardcoded
+# Version: 6.0.0
+
+# ============= Project Information =============
+project:
+  name: "Global Scripts"
+  version: "6.0.0"
+  default_author: "Unknown"
+
+# ============= Directory Paths =============
+paths:
+  # User-level directories (relative to ~/.config/global-scripts)
+  gs_home: ".config/global-scripts"
+  config_dir: "config"
+  cache_dir: "cache"
+  logs_dir: "logs"
+  temp_dir: "tmp"
+
+  # Project-level directories (relative to project root)
+  plugins_dir: "plugins"
+  custom_dir: "custom"
+  templates_dir: "templates"
+  schemas_dir: "schemas"
+  themes_dir: "themes"
+
+# ============= File Names =============
+files:
+  main_config: "gs.json"
+  i18n_config: "i18n.json"
+  plugin_schema: "plugin-schema.json"
+  plugin_template: "plugin.json.template"
+  plugin_json: "plugin.json"
+  plugin_py: "plugin.py"
+  plugin_sh: "plugin.sh"
+  env_sh: "env.sh"
+  env_fish: "env.fish"
+  log_file: "gs.log"
+  router_index: "router.json"
+
+# ============= Plugin Configuration =============
+plugins:
+  supported_types:
+    python: "Python"
+    shell: "Shell"
+    hybrid: "Hybrid"
+    config: "Config"
+    json: "JSON"
+
+  priority:
+    default: 10
+    min: 1
+    max: 100
+
+# ============= Command Execution =============
+execution:
+  timeouts:
+    default: 30      # seconds
+    short: 10
+    long: 300
+
+  limits:
+    max_output_size: 1048576  # 1MB in bytes
+    max_concurrent: 10
+    max_command_length: 1000
+
+  # Safe commands whitelist
+  safe_commands:
+    # File system operations
+    filesystem:
+      - ls
+      - dir
+      - pwd
+      - cd
+      - find
+      - locate
+      - which
+      - whereis
+      - cat
+      - less
+      - more
+      - head
+      - tail
+      - grep
+      - awk
+      - sed
+      - wc
+      - sort
+      - uniq
+      - cut
+      - tr
+      - basename
+      - dirname
+
+    # System information
+    system:
+      - ps
+      - top
+      - htop
+      - df
+      - du
+      - free
+      - uptime
+      - uname
+      - whoami
+      - id
+      - groups
+      - env
+      - printenv
+      - date
+      - cal
+      - hostname
+      - echo
+
+    # Network tools
+    network:
+      - ping
+      - curl
+      - wget
+      - telnet
+      - nslookup
+      - dig
+      - host
+
+    # Version control
+    vcs:
+      - git
+      - svn
+      - hg
+
+    # Development tools
+    development:
+      - python
+      - python3
+      - pip
+      - pip3
+      - node
+      - npm
+      - yarn
+      - java
+      - javac
+      - gcc
+      - make
+      - cmake
+
+    # Container tools
+    containers:
+      - docker
+      - docker-compose
+      - podman
+      - kubectl
+      - helm
+
+    # Mobile tools
+    mobile:
+      - adb
+      - fastboot
+
+    # Compression tools
+    compression:
+      - tar
+      - gzip
+      - gunzip
+      - zip
+      - unzip
+      - 7z
+
+  # Dangerous commands blacklist
+  dangerous_commands:
+    - rm
+    - rmdir
+    - del
+    - format
+    - fdisk
+    - mkfs
+    - dd
+    - shred
+    - wipe
+    - shutdown
+    - reboot
+    - halt
+    - kill
+    - killall
+    - pkill
+    - sudo
+    - su
+
+  # Forbidden command patterns
+  forbidden_patterns:
+    - "rm -rf /"
+    - "format"
+    - "mkfs"
+    - "dd if="
+    - "> /dev/"
+    - "chmod 777"
+    - "chown root"
+
+# ============= Language Configuration =============
+language:
+  default: "en"
+  supported:
+    - en
+    - zh
+
+# ============= System Commands =============
+commands:
+  system:
+    help:
+      aliases:
+        - help
+        - --help
+        - -h
+    version:
+      aliases:
+        - version
+        - --version
+        - -v
+    plugin:
+      aliases:
+        - plugin
+    status:
+      aliases:
+        - status
+        - st
+    update:
+      aliases:
+        - update
+        - up
+    refresh:
+      aliases:
+        - refresh
+    doctor:
+      aliases:
+        - doctor
+
+  plugin_management:
+    list:
+      aliases:
+        - list
+        - ls
+    info:
+      aliases:
+        - info
+        - show
+        - details
+    enable:
+      aliases:
+        - enable
+        - "on"
+    disable:
+      aliases:
+        - disable
+        - "off"
+    reload:
+      aliases:
+        - reload
+        - refresh
+    install:
+      aliases:
+        - install
+        - add
+    uninstall:
+      aliases:
+        - uninstall
+        - remove
+        - rm
+    create:
+      aliases:
+        - create
+        - new
+
+# ============= Cache Configuration =============
+cache:
+  default_ttl: 300        # 5 minutes in seconds
+  max_entries: 100
+  max_file_age: 3600      # 1 hour
+
+# ============= Logging Configuration =============
+logging:
+  levels:
+    DEBUG: 10
+    INFO: 20
+    WARNING: 30
+    ERROR: 40
+    CRITICAL: 50
+    VERBOSE: 15          # Custom level between DEBUG and INFO
+    NONE: 1000           # Disable logging
+
+  level_aliases:
+    E: "ERROR"
+    W: "WARNING"
+    I: "INFO"
+    D: "DEBUG"
+    V: "VERBOSE"
+    NANO: "NONE"
+
+  max_file_size: 10485760  # 10MB in bytes
+  backup_count: 3
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  date_format: "%Y-%m-%d %H:%M:%S"
+
+# ============= Exit Codes =============
+exit_codes:
+  success: 0
+  general_error: 1
+  misuse: 2
+  execution_error: 126
+  command_not_found: 127
+  timeout: 124
+  interrupted: 130
+  security_violation: 125
+
+# ============= Status Constants =============
+status:
+  enabled: "enabled"
+  disabled: "disabled"
+  error: "error"
+  loading: "loading"
+  unknown: "unknown"
+
+# ============= UI Configuration =============
+ui:
+  colors:
+    red: "\x1b[91m"
+    green: "\x1b[92m"
+    yellow: "\x1b[93m"
+    blue: "\x1b[94m"
+    magenta: "\x1b[95m"
+    cyan: "\x1b[96m"
+    white: "\x1b[97m"
+    reset: "\x1b[0m"
+    bold: "\x1b[1m"
+    underline: "\x1b[4m"
+
+  icons:
+    success: "✅"
+    error: "❌"
+    warning: "⚠️"
+    info: "ℹ️"
+    folder: "📁"
+    file: "📄"
+    plugin: "🔌"
+    command: "⚡"
+    loading: "⏳"
+
+# ============= Network Configuration =============
+network:
+  request_timeout: 30
+  max_retry_attempts: 3
+  retry_delay: 1          # seconds
+  user_agent: "Global-Scripts/6.0.0"
+
+# ============= Shell Configuration =============
+shell:
+  reload_alias: "gsreload"
+  supported_shells:
+    - bash
+    - zsh
+    - fish
+
+  prompt_themes:
+    - minimalist
+    - bitstream
+    - powerline
+    - simple
+
+# ============= Security Configuration =============
+security:
+  enable_sandbox: true
+  allow_network_access: true
+  max_subprocess_depth: 3
+  require_confirmation_for_destructive: true
+
+  # Commands requiring user confirmation
+  confirmation_required:
+    - sudo
+    - rm
+    - format
+    - dd
+
+# ============= Feature Flags =============
+features:
+  enable_auto_update: false
+  enable_telemetry: false
+  enable_plugin_marketplace: false
+  enable_command_history: true
+  enable_completion_cache: true
+  show_examples: true
+  show_tips: true
+
+# ============= Performance Configuration =============
+performance:
+  lazy_load_plugins: true
+  cache_plugin_metadata: true
+  parallel_plugin_load: true
+  max_parallel_loaders: 4
+  startup_timeout: 10

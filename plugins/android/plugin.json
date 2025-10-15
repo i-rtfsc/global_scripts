@@ -1,0 +1,151 @@
+{
+  "name": "android",
+  "version": "6.0.0",
+  "author": "Solo",
+  "homepage": "https://github.com/i-rtfsc/global_scripts",
+  "description": {
+    "zh": "Android 开发与调试",
+    "en": "Android development & debugging"
+  },
+  "type": "python",
+  "entry": "plugin.py",
+  "enabled": true,
+  "license": "MIT",
+  "category": "development",
+  "keywords": [
+    "android",
+    "adb",
+    "debugging",
+    "mobile",
+    "development"
+  ],
+  "priority": 20,
+  "subplugins": [
+    {
+      "name": "device",
+      "type": "python",
+      "entry": "plugin.py",
+      "description": {
+        "zh": "设备管理 - 连接、选择和控制Android设备",
+        "en": "Device management - Connect, select and control Android devices"
+      }
+    },
+    {
+      "name": "emulator",
+      "type": "python",
+      "entry": "plugin.py",
+      "description": {
+        "zh": "模拟器管理 - 启动、停止和管理Android模拟器",
+        "en": "Emulator management - Start, stop and manage Android emulators"
+      }
+    },
+    {
+      "name": "input",
+      "type": "python",
+      "entry": "plugin.py",
+      "description": {
+        "zh": "输入控制 - 模拟触摸、按键和文本输入",
+        "en": "Input control - Simulate touch, keys and text input"
+      }
+    },
+    {
+      "name": "logcat",
+      "type": "python",
+      "entry": "plugin.py",
+      "description": {
+        "zh": "日志查看 - 查看和过滤Android系统日志",
+        "en": "Log viewing - View and filter Android system logs"
+      }
+    },
+    {
+      "name": "dump",
+      "type": "python",
+      "entry": "plugin.py",
+      "description": {
+        "zh": "系统信息 - 导出电池、内存、CPU等系统信息",
+        "en": "System info - Dump battery, memory, CPU and other system information"
+      }
+    },
+    {
+      "name": "fs",
+      "type": "python",
+      "entry": "plugin.py",
+      "description": {
+        "zh": "文件系统 - 设备文件推送、拉取和管理",
+        "en": "File system - Push, pull and manage device files"
+      }
+    },
+    {
+      "name": "proc",
+      "type": "python",
+      "entry": "plugin.py",
+      "description": {
+        "zh": "进程管理 - 查看和管理Android进程",
+        "en": "Process management - View and manage Android processes"
+      }
+    },
+    {
+      "name": "surface",
+      "type": "python",
+      "entry": "plugin.py",
+      "description": {
+        "zh": "显示控制 - 屏幕刷新率和显示相关设置",
+        "en": "Display control - Screen refresh rate and display settings"
+      }
+    },
+    {
+      "name": "perfetto",
+      "type": "python",
+      "entry": "plugin.py",
+      "description": {
+        "zh": "性能追踪 - 使用Perfetto采集系统性能数据",
+        "en": "Performance tracing - Collect system performance data with Perfetto"
+      }
+    },
+    {
+      "name": "winscope",
+      "type": "python",
+      "entry": "plugin.py",
+      "description": {
+        "zh": "界面分析 - Winscope窗口和图层分析工具",
+        "en": "UI analysis - Winscope window and layer analysis tool"
+      }
+    },
+    {
+      "name": "frida",
+      "type": "python",
+      "entry": "plugin.py",
+      "description": {
+        "zh": "动态插桩 - Frida脚本注入和调试",
+        "en": "Dynamic instrumentation - Frida script injection and debugging"
+      }
+    },
+    {
+      "name": "system",
+      "type": "python",
+      "entry": "plugin.py",
+      "description": {
+        "zh": "系统设置 - SELinux、Hidden API等系统级配置",
+        "en": "System settings - SELinux, Hidden API and system-level configurations"
+      }
+    },
+    {
+      "name": "app",
+      "type": "python",
+      "entry": "plugin.py",
+      "description": {
+        "zh": "应用管理 - 应用列表、版本查询和数据清理",
+        "en": "App management - List apps, check versions and clear data"
+      }
+    },
+    {
+      "name": "build",
+      "type": "shell",
+      "entry": "plugin.sh",
+      "description": {
+        "zh": "编译构建 - Android系统和模块编译",
+        "en": "Build - Android system and module compilation"
+      }
+    }
+  ]
+}

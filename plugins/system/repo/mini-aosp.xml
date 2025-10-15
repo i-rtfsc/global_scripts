@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (c) 2023 anqi.huang@outlook.com
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+  -->
+
+<manifest>
+
+    <remote name="aosp"
+            fetch="https://mirrors.tuna.tsinghua.edu.cn/git/AOSP"
+            review="https://android-review.googlesource.com/"/>
+    <default revision="refs/tags/android-14.0.0_r45"
+             remote="aosp"
+             sync-j="4"/>
+
+    <manifest-server url="http://android-smartsync.corp.google.com/android.googlesource.com/manifestserver"/>
+
+    <superproject name="platform/superproject/main" remote="aosp"/>
+    <contactinfo bugurl="go/repo-bug"/>
+
+    <project path="art" name="platform/art" groups="pdk"/>
+
+    <project path="bionic" name="platform/bionic" groups="pdk"/>
+
+    <project path="bootable/recovery" name="platform/bootable/recovery" groups="pdk"/>
+    <project path="bootable/libbootloader" name="platform/bootable/libbootloader" groups="vts,pdk"/>
+
+    <project path="external/libcxx" name="platform/external/libcxx" groups="pdk"/>
+    <project path="external/libcxxabi" name="platform/external/libcxxabi" groups="pdk"/>
+    <project path="external/tensorflow" name="platform/external/tensorflow" groups="pdk"/>
+
+    <project path="frameworks/av" name="platform/frameworks/av" groups="pdk" depth="-1" />
+    <project path="frameworks/base" name="platform/frameworks/base" groups="pdk-cw-fs,pdk-fs" depth="-1" />
+    <project path="frameworks/native" name="platform/frameworks/native" groups="pdk" depth="-1" />
+    <project path="frameworks/hardware/interfaces" name="platform/frameworks/hardware/interfaces" groups="pdk" depth="-1" />
+    <project path="frameworks/libs/modules-utils" name="platform/frameworks/libs/modules-utils"
+             groups="pdk-cw-fs,pdk-fs"/>
+    <project path="frameworks/libs/net" name="platform/frameworks/libs/net" groups="pdk-cw-fs,pdk-fs" revision="main" />
+    <project path="frameworks/libs/systemui" name="platform/frameworks/libs/systemui" groups="pdk-cw-fs,pdk-fs"/>
+    <project path="frameworks/opt/car/services" name="platform/frameworks/opt/car/services" groups="pdk-fs"/>
+
+    <project path="hardware/interfaces" name="platform/hardware/interfaces" groups="pdk" depth="-1" />
+    <project path="hardware/libhardware" name="platform/hardware/libhardware" groups="pdk" depth="-1" />
+    <project path="hardware/libhardware_legacy" name="platform/hardware/libhardware_legacy" groups="pdk"/>
+    <project path="hardware/qcom/display" name="platform/hardware/qcom/display" groups="pdk-qcom,qcom,qcom_display"/>
+
+    <project path="libcore" name="platform/libcore" groups="pdk"/>
+
+    <project path="libnativehelper" name="platform/libnativehelper" groups="pdk"/>
+
+    <project path="packages/apps/Settings" name="platform/packages/apps/Settings" groups="pdk-fs"/>
+    <project path="packages/services/Car" name="platform/packages/services/Car" groups="pdk-cw-fs,pdk-fs" depth="-1" />
+    <project path="packages/modules/Connectivity" name="platform/packages/modules/Connectivity"
+             groups="pdk-cw-fs,pdk-fs"/>
+    <project path="packages/modules/ExtServices" name="platform/packages/modules/ExtServices"
+             groups="pdk-cw-fs,pdk-fs"/>
+    <project path="packages/modules/NeuralNetworks" name="platform/packages/modules/NeuralNetworks"
+             groups="pdk-cw-fs,pdk-fs"/>
+    <project path="packages/modules/Wifi" name="platform/packages/modules/Wifi" groups="pdk-cw-fs,pdk-fs"/>
+    <project path="packages/modules/Permission" name="platform/packages/modules/Permission" groups="pdk-cw-fs,pdk-fs"/>
+    <project path="packages/modules/ConfigInfrastructure" name="platform/packages/modules/ConfigInfrastructure"
+             groups="pdk-cw-fs,pdk-fs"/>
+
+    <project path="packages/apps/Car/SystemUI" name="platform/packages/apps/Car/SystemUI" groups="pdk-fs"/>
+    <project path="packages/apps/Car/Settings" name="platform/packages/apps/Car/Settings" groups="pdk-fs"/>
+
+    <project path="system/core" name="platform/system/core" groups="pdk"/>
+    <project path="system/libbase" name="platform/system/libbase" groups="pdk"/>
+    <project path="system/libfmq" name="platform/system/libfmq" groups="pdk"/>
+    <project path="system/libhidl" name="platform/system/libhidl" groups="pdk"/>
+    <project path="system/libhwbinder" name="platform/system/libhwbinder" groups="pdk"/>
+    <!-- <project path="system/librustutils" name="platform/system/librustutils" groups="pdk" />
+    <project path="system/libsysprop" name="platform/system/libsysprop" groups="pdk" />-->
+    <project path="system/libvintf" name="platform/system/libvintf" groups="pdk"/>
+    <project path="system/logging" name="platform/system/logging" groups="pdk"/>
+    <project path="system/media" name="platform/system/media" groups="pdk"/>
+    <project path="system/memory/lmkd" name="platform/system/memory/lmkd" groups="pdk"/>
+    <project path="system/server_configurable_flags" name="platform/system/server_configurable_flags" groups="pdk"/>
+    <project path="system/tools/aidl" name="platform/system/tools/aidl" groups="pdk"/>
+    <project path="system/tools/hidl" name="platform/system/tools/hidl" groups="pdk"/>
+
+    <!-- for fwk gen aidl -->
+    <project path="system/gsid" name="platform/system/gsid" groups="pdk"/>
+
+    <project path="tools/platform-compat" name="tools/platform-compat" groups="pdk-cw-fs,pdk-fs,pdk"/>
+</manifest>

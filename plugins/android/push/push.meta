@@ -1,6 +1,0 @@
-PLUGIN_TYPE=submodule
-NAME=push
-PARENT=android
-VERSION=3.0.0
-DESCRIPTION=Android开发推送工具集，提供系统组件和应用的快速部署功能
-SYSTEM_DEPS=adb

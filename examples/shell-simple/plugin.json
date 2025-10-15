@@ -1,0 +1,24 @@
+{
+  "name": "shell-simple",
+  "version": "1.0.0",
+  "author": "Solo",
+  "homepage": "https://github.com/i-rtfsc/global_scripts",
+  "description": {
+    "zh": "纯Shell脚本插件示例 - 演示仅使用Shell函数实现命令",
+    "en": "Pure Shell script plugin example - demonstrates commands implemented only as shell functions"
+  },
+  "type": "shell",
+  "entry": "plugin.sh",
+  "enabled": true,
+  "license": "MIT",
+  "category": "example",
+  "keywords": [
+    "example",
+    "shell",
+    "bash",
+    "scripting",
+    "demo"
+  ],
+  "priority": 90,
+  "subplugins": []
+}

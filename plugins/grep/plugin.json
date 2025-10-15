@@ -1,0 +1,25 @@
+{
+  "name": "grep",
+  "version": "1.0.0",
+  "author": "Solo",
+  "homepage": "https://github.com/i-rtfsc/global_scripts",
+  "description": {
+    "zh": "代码搜索工具 - 针对不同文件类型的智能grep功能",
+    "en": "Code search utilities - intelligent grep functions for different file types"
+  },
+  "type": "shell",
+  "entry": "plugin.sh",
+  "enabled": true,
+  "license": "Apache-2.0",
+  "category": "development",
+  "keywords": [
+    "grep",
+    "search",
+    "code",
+    "find",
+    "development",
+    "source"
+  ],
+  "priority": 50,
+  "subplugins": []
+}

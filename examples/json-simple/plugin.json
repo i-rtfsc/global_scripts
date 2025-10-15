@@ -1,0 +1,23 @@
+{
+  "name": "json-simple",
+  "version": "1.0.0",
+  "author": "Solo",
+  "homepage": "https://github.com/i-rtfsc/global_scripts",
+  "description": {
+    "zh": "纯JSON配置插件示例 - 演示仅使用JSON配置定义命令",
+    "en": "Pure JSON configuration plugin example - demonstrates commands defined only in JSON config"
+  },
+  "type": "json",
+  "entry": "commands.json",
+  "enabled": true,
+  "license": "MIT",
+  "category": "example",
+  "keywords": [
+    "example",
+    "json",
+    "configuration",
+    "demo"
+  ],
+  "priority": 90,
+  "subplugins": []
+}

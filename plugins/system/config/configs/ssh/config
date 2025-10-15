@@ -1,0 +1,29 @@
+# SSH Configuration
+# 全局默认设置
+
+Host *
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+    TCPKeepAlive yes
+    Compression yes
+    ControlMaster auto
+    ControlPath ~/.ssh/sockets/ssh_%h_%p_%r
+    ControlPersist 10m
+    StrictHostKeyChecking ask
+    UserKnownHostsFile ~/.ssh/known_hosts
+
+# 常用的公共服务器配置示例
+Host github.com
+    HostName github.com
+    User git
+    Port 22
+    # IdentityFile ~/.ssh/github_rsa  # 在私有配置中指定
+
+Host gitlab.com
+    HostName gitlab.com
+    User git
+    Port 22
+    # IdentityFile ~/.ssh/gitlab_rsa  # 在私有配置中指定
+
+# 包含私有配置文件
+Include ~/.config/global-scripts/custom/private/ssh/config-private
