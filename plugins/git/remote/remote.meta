@@ -1,9 +1,0 @@
-# Git Remote管理子模块
-# Git Remote Management Submodule
-
-PLUGIN_TYPE=submodule
-NAME=remote
-PARENT=git
-VERSION=3.0.0
-DESCRIPTION=
-SYSTEM_DEPS=git

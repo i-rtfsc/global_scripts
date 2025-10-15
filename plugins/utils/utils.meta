@@ -1,9 +1,0 @@
-PLUGIN_TYPE=main
-NAME=utils
-VERSION=3.0.0
-DESCRIPTION=系统工具集合
-AUTHOR=Solo
-SYSTEM_DEPS=curl,jq
-PLUGIN_DEPS=
-MIN_GS_VERSION=3.0.0
-SUBMODULES=cpu,forecast,gerrit,im,ftp

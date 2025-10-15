@@ -1,0 +1,19 @@
+{
+  "name": "tools",
+  "description": {
+    "zh": "工具子插件 - 混合插件的工具功能（JSON实现）",
+    "en": "Tools subplugin - tool features for hybrid plugin (JSON implementation)"
+  },
+  "commands": {
+    "json_tool": {
+      "type": "command", 
+      "command": "echo '🔧 hybrid-with-subplugins tools json_tool | Subplugin: tools | Implementation: JSON | Parent: Full hybrid'",
+      "description": {
+        "zh": "JSON工具命令",
+        "en": "JSON tool command"
+      },
+      "usage": "gs hybrid-with-subplugins tools json_tool",
+      "examples": ["gs hybrid-with-subplugins tools json_tool"]
+    }
+  }
+}

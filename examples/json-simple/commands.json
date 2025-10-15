@@ -1,0 +1,39 @@
+{
+  "name": "json-simple-commands",
+  "description": {
+    "zh": "JSON简单插件命令定义",
+    "en": "JSON simple plugin command definitions"
+  },
+  "commands": {
+    "info": {
+      "type": "command",
+      "command": "echo '📋 Plugin: json-simple | Type: Pure JSON | Implementation: Configuration-only | Commands: 3'",
+      "description": {
+        "zh": "显示插件基本信息",
+        "en": "Show plugin basic information"
+      },
+      "usage": "gs json-simple info",
+      "examples": ["gs json-simple info"]
+    },
+    "status": {
+      "type": "command", 
+      "command": "echo '✅ json-simple Status: Active | Source: examples/json-simple | Config: commands.json only'",
+      "description": {
+        "zh": "显示插件运行状态",
+        "en": "Show plugin running status"
+      },
+      "usage": "gs json-simple status",
+      "examples": ["gs json-simple status"]
+    },
+    "demo": {
+      "type": "command",
+      "command": "echo '🎯 json-simple Demo | Feature: JSON commands | No script files needed | Easy to configure'",
+      "description": {
+        "zh": "演示插件功能",
+        "en": "Demonstrate plugin functionality"
+      },
+      "usage": "gs json-simple demo",
+      "examples": ["gs json-simple demo"]
+    }
+  }
+}

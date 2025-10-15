@@ -1,0 +1,166 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Global Scripts Plugin Configuration",
+  "description": "Schema for plugin.json configuration files",
+  "type": "object",
+  "required": ["name", "version", "author", "description"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Plugin name (lowercase, no spaces)",
+      "pattern": "^[a-z0-9_-]+$"
+    },
+    "version": {
+      "type": "string",
+      "description": "Plugin version (semver format)",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "author": {
+      "type": "string",
+      "description": "Plugin author name"
+    },
+    "license": {
+      "type": "string",
+      "description": "Plugin license",
+      "default": "MIT"
+    },
+    "homepage": {
+      "type": "string",
+      "format": "uri",
+      "description": "Plugin homepage URL"
+    },
+    "description": {
+      "type": "object",
+      "description": "Multi-language plugin description",
+      "properties": {
+        "zh": {"type": "string"},
+        "en": {"type": "string"}
+      },
+      "required": ["zh", "en"]
+    },
+    "category": {
+      "type": "string",
+      "enum": ["development", "system", "devops", "network", "security", "utility"],
+      "description": "Plugin category"
+    },
+    "keywords": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Keywords for plugin discovery"
+    },
+    "priority": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Plugin loading priority (0-100)"
+    },
+    "enabled": {
+      "type": "boolean",
+      "description": "Whether plugin is enabled by default",
+      "default": true
+    },
+    "subplugins": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "List of subplugin names"
+    },
+    "requirements": {
+      "type": "object",
+      "properties": {
+        "system": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Required system commands"
+        },
+        "python": {
+          "type": "array", 
+          "items": {"type": "string"},
+          "description": "Required Python packages"
+        },
+        "minimum_version": {
+          "type": "string",
+          "description": "Minimum Python version required"
+        },
+        "optional": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Optional dependencies"
+        }
+      }
+    },
+    "configuration": {
+      "type": "object",
+      "description": "Plugin-specific configuration options"
+    },
+    "capabilities": {
+      "type": "object",
+      "properties": {
+        "async": {
+          "type": "boolean",
+          "description": "Supports async operations"
+        },
+        "offline": {
+          "type": "boolean", 
+          "description": "Works offline"
+        },
+        "interactive": {
+          "type": "boolean",
+          "description": "Supports interactive mode"
+        },
+        "background": {
+          "type": "boolean",
+          "description": "Can run in background"
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "created": {
+          "type": "string",
+          "format": "date",
+          "description": "Creation date"
+        },
+        "last_updated": {
+          "type": "string", 
+          "format": "date",
+          "description": "Last update date"
+        },
+        "compatibility": {
+          "type": "object",
+          "properties": {
+            "platforms": {
+              "type": "array",
+              "items": {"type": "string"}
+            }
+          }
+        },
+        "documentation": {
+          "type": "object",
+          "properties": {
+            "readme": {"type": "string"},
+            "examples": {"type": "string"},
+            "api": {"type": "string"}
+          }
+        }
+      }
+    },
+    "commands_summary": {
+      "type": "object",
+      "properties": {
+        "total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "by_category": {
+          "type": "object"
+        }
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Plugin tags for categorization"
+    }
+  }
+}

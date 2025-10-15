@@ -1,0 +1,37 @@
+{
+  "name": "full-hybrid",
+  "version": "1.0.0",
+  "author": "Solo",
+  "homepage": "https://github.com/i-rtfsc/global_scripts",
+  "description": {
+    "zh": "完整混合插件示例 - 演示JSON配置、Shell函数和Python装饰器的完整结合",
+    "en": "Full hybrid plugin example - demonstrates complete combination of JSON config, shell functions, and Python decorators"
+  },
+  "type": "json",
+  "entry": "commands.json",
+  "enabled": true,
+  "license": "MIT",
+  "category": "example",
+  "keywords": [
+    "example",
+    "json",
+    "shell",
+    "python",
+    "hybrid",
+    "complete",
+    "demo"
+  ],
+  "priority": 90,
+  "subplugins": [
+    {
+      "name": "shell",
+      "type": "shell",
+      "entry": "plugin.sh"
+    },
+    {
+      "name": "python",
+      "type": "python",
+      "entry": "plugin.py"
+    }
+  ]
+}

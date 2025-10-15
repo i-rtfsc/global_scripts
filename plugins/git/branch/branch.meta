@@ -1,6 +1,0 @@
-PLUGIN_TYPE=submodule
-NAME=branch
-PARENT=git
-VERSION=3.0.0
-DESCRIPTION=Git分支管理工具
-SYSTEM_DEPS=git

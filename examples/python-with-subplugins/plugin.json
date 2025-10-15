@@ -1,0 +1,35 @@
+{
+  "name": "python-with-subplugins",
+  "version": "1.0.0",
+  "author": "Solo",
+  "homepage": "https://github.com/i-rtfsc/global_scripts",
+  "description": {
+    "zh": "带子插件的Python插件示例 - 演示Python主插件与子插件结构",
+    "en": "Python plugin with subplugins example - demonstrates Python main plugin with subplugin structure"
+  },
+  "type": "python",
+  "entry": "plugin.py",
+  "enabled": true,
+  "license": "MIT",
+  "category": "example",
+  "keywords": [
+    "example",
+    "python",
+    "subplugins",
+    "scripting",
+    "demo"
+  ],
+  "priority": 90,
+  "subplugins": [
+    {
+      "name": "analysis",
+      "type": "python",
+      "entry": "plugin.py"
+    },
+    {
+      "name": "processing",
+      "type": "python",
+      "entry": "plugin.py"
+    }
+  ]
+}

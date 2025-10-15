@@ -1,9 +1,0 @@
-PLUGIN_TYPE=main
-NAME=git
-VERSION=3.0.0
-DESCRIPTION=Git版本控制增强工具集
-AUTHOR=Solo
-SYSTEM_DEPS=git
-PLUGIN_DEPS=
-MIN_GS_VERSION=3.0.0
-SUBMODULES=branch,commit,flow,remote

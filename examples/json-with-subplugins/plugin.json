@@ -1,0 +1,35 @@
+{
+  "name": "json-with-subplugins",
+  "version": "1.0.0",
+  "author": "Solo",
+  "homepage": "https://github.com/i-rtfsc/global_scripts",
+  "description": {
+    "zh": "带子插件的JSON插件示例 - 演示JSON主插件与子插件结构",
+    "en": "JSON plugin with subplugins example - demonstrates JSON main plugin with subplugin structure"
+  },
+  "type": "json",
+  "entry": "commands.json",
+  "enabled": true,
+  "license": "MIT",
+  "category": "example",
+  "keywords": [
+    "example",
+    "json",
+    "subplugins",
+    "configuration",
+    "demo"
+  ],
+  "priority": 90,
+  "subplugins": [
+    {
+      "name": "config",
+      "type": "json",
+      "entry": "config/commands.json"
+    },
+    {
+      "name": "utility",
+      "type": "json",
+      "entry": "utility/commands.json"
+    }
+  ]
+}

@@ -1,6 +1,0 @@
-PLUGIN_TYPE=submodule
-NAME=flow
-PARENT=git
-VERSION=3.0.0
-DESCRIPTION=Gitflow工作流管理
-SYSTEM_DEPS=git

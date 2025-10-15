@@ -1,0 +1,24 @@
+{
+  "name": "shell-python-hybrid",
+  "version": "1.0.0",
+  "author": "Solo",
+  "homepage": "https://github.com/i-rtfsc/global_scripts",
+  "description": {
+    "zh": "Shell+Python混合插件示例 - 演示Shell函数与Python函数结合",
+    "en": "Shell+Python hybrid plugin example - demonstrates shell functions combined with Python functions"
+  },
+  "type": "shell",
+  "entry": "plugin.sh",
+  "enabled": true,
+  "license": "MIT",
+  "category": "example",
+  "keywords": [
+    "example",
+    "shell",
+    "python",
+    "hybrid",
+    "demo"
+  ],
+  "priority": 90,
+  "subplugins": []
+}

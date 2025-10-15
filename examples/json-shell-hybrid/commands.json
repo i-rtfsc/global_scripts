@@ -1,0 +1,29 @@
+{
+  "name": "json-shell-hybrid-main",
+  "description": {
+    "zh": "JSON+Shell混合插件主配置",
+    "en": "JSON+Shell hybrid plugin main configuration"
+  },
+  "commands": {
+    "info": {
+      "type": "command",
+      "command": "echo '📋 json-shell-hybrid Info | Type: JSON+Shell Hybrid | JSON Commands: 1 | Shell Functions: 2'",
+      "description": {
+        "zh": "显示混合插件基本信息（JSON命令）",
+        "en": "Show hybrid plugin basic information (JSON command)"
+      },
+      "usage": "gs json-shell-hybrid info",
+      "examples": ["gs json-shell-hybrid info"]
+    },
+    "architecture": {
+      "type": "command",
+      "command": "echo '🏗️  Architecture: | Main Plugin (JSON) → commands.json | └── shell (Shell) → plugin.sh'",
+      "description": {
+        "zh": "显示插件架构结构",
+        "en": "Show plugin architecture structure"
+      },
+      "usage": "gs json-shell-hybrid architecture",
+      "examples": ["gs json-shell-hybrid architecture"]
+    }
+  }
+}

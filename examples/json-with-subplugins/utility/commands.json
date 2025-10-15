@@ -1,0 +1,39 @@
+{
+  "name": "utility",
+  "description": {
+    "zh": "实用工具子插件 - JSON插件的工具功能",
+    "en": "Utility tools subplugin - utility features for JSON plugin"
+  },
+  "commands": {
+    "test": {
+      "type": "command",
+      "command": "echo '🧪 json-with-subplugins utility test | Subplugin: utility | Type: JSON | Function: Test utilities'",
+      "description": {
+        "zh": "测试实用工具",
+        "en": "Test utility tools"
+      },
+      "usage": "gs json-with-subplugins utility test",
+      "examples": ["gs json-with-subplugins utility test"]
+    },
+    "benchmark": {
+      "type": "command",
+      "command": "echo '📊 json-with-subplugins utility benchmark | Subplugin: utility | Performance: Excellent | Time: $(date +%s)ms'",
+      "description": {
+        "zh": "运行性能基准测试",
+        "en": "Run performance benchmark"
+      },
+      "usage": "gs json-with-subplugins utility benchmark",
+      "examples": ["gs json-with-subplugins utility benchmark"]
+    },
+    "info": {
+      "type": "command",
+      "command": "echo '📋 json-with-subplugins utility info | Subplugin: utility | Parent: json-with-subplugins | Commands: 3'",
+      "description": {
+        "zh": "显示工具子插件信息",
+        "en": "Show utility subplugin information"
+      },
+      "usage": "gs json-with-subplugins utility info",
+      "examples": ["gs json-with-subplugins utility info"]
+    }
+  }
+}

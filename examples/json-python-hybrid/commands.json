@@ -1,0 +1,29 @@
+{
+  "name": "json-python-hybrid-main",
+  "description": {
+    "zh": "JSON+Python混合插件主配置",
+    "en": "JSON+Python hybrid plugin main configuration"
+  },
+  "commands": {
+    "info": {
+      "type": "command",
+      "command": "echo '📋 json-python-hybrid Info | Type: JSON+Python Hybrid | JSON Commands: 1 | Python Functions: 2'",
+      "description": {
+        "zh": "显示混合插件基本信息（JSON命令）",
+        "en": "Show hybrid plugin basic information (JSON command)"
+      },
+      "usage": "gs json-python-hybrid info",
+      "examples": ["gs json-python-hybrid info"]
+    },
+    "architecture": {
+      "type": "command",
+      "command": "echo '🏗️  Architecture: | Main Plugin (JSON) → commands.json | └── python (Python) → plugin.py'",
+      "description": {
+        "zh": "显示插件架构结构",
+        "en": "Show plugin architecture structure"
+      },
+      "usage": "gs json-python-hybrid architecture",
+      "examples": ["gs json-python-hybrid architecture"]
+    }
+  }
+}

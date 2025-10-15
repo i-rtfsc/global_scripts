@@ -1,0 +1,18 @@
+{
+  "name": "gerrit",
+  "version": "6.0.0",
+  "author": "Solo",
+  "homepage": "https://github.com/i-rtfsc/global_scripts",
+  "description": {
+    "zh": "Gerrit代码审查工具",
+    "en": "Gerrit code review tool"
+  },
+  "type": "python",
+  "entry": "plugin.py",
+  "enabled": true,
+  "license": "MIT",
+  "category": "utility",
+  "keywords": [],
+  "priority": 50,
+  "subplugins": []
+}

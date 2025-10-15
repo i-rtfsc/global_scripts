@@ -1,0 +1,24 @@
+{
+  "name": "navigator",
+  "version": "6.0.0",
+  "author": "Solo",
+  "homepage": "https://github.com/i-rtfsc/global_scripts",
+  "description": {
+    "zh": "目录快速导航工具 - 快速跳转到常用开发目录",
+    "en": "Directory navigation tool - Quick navigation to common development directories"
+  },
+  "type": "json",
+  "entry": "commands.json",
+  "enabled": true,
+  "license": "Apache-2.0",
+  "category": "development",
+  "keywords": [
+    "navigation",
+    "directory",
+    "goto",
+    "cd",
+    "development"
+  ],
+  "priority": 60,
+  "subplugins": []
+}
