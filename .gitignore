@@ -1,255 +1,26 @@
+# ============================================================
 # Global Scripts - .gitignore
+# 项目忽略文件配置 - 按类别组织，去除重复
+# ============================================================
 
-# ===================================
-# 操作系统相关文件
-# ===================================
-
-# macOS
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# Windows
-*.tmp
-*.temp
-Desktop.ini
-$RECYCLE.BIN/
-
-# Linux
-*~
-.fuse_hidden*
-.directory
-.Trash-*
-
-# ===================================
-# 编辑器和IDE文件
-# ===================================
-
-# VSCode
-.vscode/
-*.code-workspace
-
-# Vim
-*.swp
-*.swo
-*~
-.viminfo
-
-# Emacs
-*~
-\#*\#
-/.emacs.desktop
-/.emacs.desktop.lock
-*.elc
-auto-save-list
-tramp
-.\#*
-
-# Sublime Text
-*.sublime-project
-*.sublime-workspace
-
-# PyCharm / IntelliJ
-.idea/
-**/venv/
-**/__pycache__/
-**/*.pyc
-
-# ===================================
-# 项目相关文件
-# ===================================
-
-# 缓存目录
-.cache/
-*.cache
-*.tmp
-temp/
-tmp/
-
-# 日志文件
-*.log
-logs/
-*.log.*
-
-# 数据库文件
-**/*.db
-**/*.db-shm
-**/*.db-wal
-
-# 配置文件（敏感信息）
-config/local.json
-config/user.json
-config/private.json
-*.secret
-*.key
-*.pem
-
-# 用户自定义插件目录
-custom/
-!custom/.gitkeep
-!custom/README.md
-
-# 测试输出
-test-results/
-coverage/
-*.test
-*.spec
-test/
-
-# 构建产物
-build/
-dist/
-out/
-*.tar.gz
-*.zip
-*.deb
-*.rpm
-
-# ===================================
-# 运行时文件
-# ===================================
-
-# PID文件
-*.pid
-
-# 锁文件
-*.lock
-
-# 套接字文件
-*.sock
-
-# 补全缓存
-.completion_cache/
-*.completion
-
-# 性能分析文件
-*.prof
-*.trace
-
-# ===================================
-# 开发工具文件
-# ===================================
-
-# Node.js (如果使用)
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Python (如果使用)
+# ============================================================
+# 1. Python 相关
+# ============================================================
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-env/
+
+# 虚拟环境
 venv/
+env/
+.venv/
 ENV/
-*.pyc
+.uv/
 
-# Go (如果使用)
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-*.test
-*.out
-
-# ===================================
-# 版本控制相关
-# ===================================
-
-# Git
-*.orig
-*.rej
-
-# SVN
-.svn/
-
-# ===================================
-# 特定于Global Scripts的忽略规则
-# ===================================
-
-# 插件开发临时文件
-plugins/*/test_*
-plugins/*/.temp/
-
-# 特定插件日志和缓存
-plugins/system/clash/logs/
-plugins/system/clash/conf/cache.db
-
-# 性能测试结果
-benchmark_results/
-performance_logs/
-
-# 用户特定配置
-user_aliases.sh
-user_functions.sh
-
-# 临时脚本
-scratch/
-sandbox/
-
-# 备份文件
-*.bak
-*.backup
-
-# 调试文件
-debug.sh
-temp_*.sh
-
-# ===================================
-# 安全相关
-# ===================================
-
-# SSH密钥
-id_rsa
-id_rsa.pub
-id_ed25519
-id_ed25519.pub
-*.pem
-*.key
-
-# 证书文件
-*.crt
-*.cert
-*.p12
-
-# 密码文件
-passwords.txt
-secrets.txt
-.env.local
-.env.secret
-
-# Claude相关
-.claude/
-
-# ===================================
-# AI和文档相关（根据项目需要）
-# ===================================
-
-# AI相关文件（如果不想提交）
-docs/ai/
-
-# 文档生成
-docs/build/
-docs/_build/
-*.html.generated
-
-cache/
-
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
+# 构建和分发
+# build/
 develop-eggs/
 dist/
 downloads/
@@ -265,39 +36,191 @@ wheels/
 .installed.cfg
 *.egg
 
-# Virtual Environment
-.venv/
-venv/
-ENV/
-env/
-
-# UV
-.uv/
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Custom
-/custom/
-/tmp/
-
-# Cache
-*.cache
+# 缓存
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+*.cache
 
-# Logs
-*.log
+# ============================================================
+# 2. 操作系统文件
+# ============================================================
 
-# Global Scripts Environment Configuration
-env.fish
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+
+# ============================================================
+# 3. 编辑器和 IDE
+# ============================================================
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# PyCharm / IntelliJ IDEA
+.idea/
+
+# Vim
+*.swp
+*.swo
+.viminfo
+
+# Emacs
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# ============================================================
+# 4. Global Scripts 项目特定文件
+# ============================================================
+
+# 环境配置文件（自动生成，不提交）
 env.sh
+env.fish
+
+# 用户自定义插件目录（私有插件，不提交）
+custom/
+!custom/.gitkeep
+!custom/README.md
+
+# 缓存和临时文件
+cache/
+.cache/
+temp/
+tmp/
+*.tmp
+*.temp
+scratch/
+sandbox/
+
+# 日志文件
+*.log
+logs/
+*.log.*
+
+# 数据库文件
+*.db
+*.db-shm
+*.db-wal
+
+# 补全缓存
+.completion_cache/
+*.completion
+
+# 性能分析和测试
+*.prof
+*.trace
+benchmark_results/
+performance_logs/
+
+# 插件开发临时文件
+plugins/*/test_*
+plugins/*/.temp/
+
+# 特定插件的缓存和日志
+plugins/system/clash/logs/
+plugins/system/clash/conf/cache.db
+
+# 测试输出
+test/
+test-results/
+coverage/
+*.test
+*.spec
+
+# 构建产物
+out/
+*.tar.gz
+*.zip
+*.deb
+*.rpm
+
+# ============================================================
+# 5. 敏感信息和安全文件
+# ============================================================
+
+# 配置文件（包含敏感信息）
+config/local.json
+config/user.json
+config/private.json
+
+# 密钥和证书
+*.secret
+*.key
+*.pem
+*.crt
+*.cert
+*.p12
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+
+# 密码和环境变量
+passwords.txt
+secrets.txt
+.env.local
+.env.secret
+
+# ============================================================
+# 6. 版本控制和备份
+# ============================================================
+
+# Git
+*.orig
+*.rej
+
+# SVN
+.svn/
+
+# 备份文件
+*.bak
+*.backup
+
+# ============================================================
+# 7. 其他工具和开发文件
+# ============================================================
+
+# 运行时文件
+*.pid
+*.lock
+*.sock
+
+# Claude AI 相关
+.claude/
+
+# 文档生成
+docs/ai/
+docs/build/
+docs/_build/
+*.html.generated
+
+# 用户特定脚本
+user_aliases.sh
+user_functions.sh
+debug.sh
+temp_*.sh

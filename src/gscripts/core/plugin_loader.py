@@ -279,7 +279,7 @@ class PluginLoader:
             plugin_json = plugin_dir / "plugin.json"
 
             if not plugin_json.exists():
-                logger.warning(f"跳过没有plugin.json的目录: {plugin_dir}")
+                logger.debug(f"跳过没有plugin.json的目录: {plugin_dir}")
                 continue
 
             try:
@@ -479,7 +479,7 @@ class PluginLoader:
         for subplugin_name in plugin.subplugins:
             subplugin_dir = plugin.plugin_dir / subplugin_name
             if not subplugin_dir.exists() or not subplugin_dir.is_dir():
-                logger.warning(f"Subplugin directory {subplugin_dir} not found")
+                logger.debug(f"Subplugin directory {subplugin_dir} not found")
                 continue
             
             # 查找子插件目录中的plugin.py文件

@@ -379,25 +379,19 @@ def generate_fish_completion(plugins: Dict[str, Dict]) -> str:
     language = 'zh'
 
     try:
-        config_dir = Path.home() / ".config" / "global-scripts"
-        json_config_path = config_dir / "config" / "gs.json"
-        project_json_path = Path.cwd() / "config" / "gs.json"
+        from gscripts.core.config_manager import ConfigManager
 
-        cfg_path = json_config_path if json_config_path.exists() else project_json_path
+        # 使用 ConfigManager 获取合并后的配置
+        config_manager = ConfigManager()
+        cfg = config_manager.get_config() or {}
 
-        if cfg_path.exists():
-            with open(cfg_path, 'r', encoding='utf-8') as f:
-                cfg = json.load(f)
+        system_map = cfg.get('system_plugins', {}) or {}
+        custom_map = cfg.get('custom_plugins', {}) or {}
+        language = cfg.get('language', 'zh')
 
-            system_map = cfg.get('system_plugins', {}) or {}
-            custom_map = cfg.get('custom_plugins', {}) or {}
-            language = cfg.get('language', 'zh')
-
-            for name, pinfo in plugins.items():
-                if system_map.get(name, False) or custom_map.get(name, False):
-                    enabled_plugins[name] = pinfo
-        else:
-            enabled_plugins = plugins
+        for name, pinfo in plugins.items():
+            if system_map.get(name, False) or custom_map.get(name, False):
+                enabled_plugins[name] = pinfo
     except Exception:
         enabled_plugins = plugins
 
@@ -1128,6 +1122,8 @@ async def discover_plugins(plugins_root: Path) -> Dict[str, Dict]:
                         if subplugin not in plugin_info['subplugin_functions']:
                             plugin_info['subplugin_functions'][subplugin] = []
                         plugin_info['subplugin_functions'][subplugin].append(func_name)
+                        # 也添加到总函数列表中
+                        plugin_info['functions'].append(func_key)
                     else:
                         # 直接函数
                         plugin_info['functions'].append(func_key)
@@ -1328,39 +1324,29 @@ gs() {
 
 
 def get_enabled_plugins(plugins: Dict[str, Dict]) -> Dict[str, Dict]:
-    """获取启用的插件列表 (优先 ~/.config/.../config/gs.json，使用system_plugins/custom_plugins布尔映射)"""
+    """获取启用的插件列表 (使用 ConfigManager 获取合并后的配置)"""
     try:
-        from pathlib import Path
-        import json
-        import re
+        from gscripts.core.config_manager import ConfigManager
 
-        config_dir = Path.home() / ".config" / "global-scripts"
-        json_config_path = config_dir / "config" / "gs.json"
-        project_json_path = Path.cwd() / "config" / "gs.json"
-        
         enabled_plugins: Dict[str, Dict] = {}
 
-        # 优先级：用户配置 > 项目配置
-        cfg_path = json_config_path if json_config_path.exists() else project_json_path
-        
-        if cfg_path.exists():
-            with open(cfg_path, 'r', encoding='utf-8') as f:
-                cfg = json.load(f)
-            
-            # 使用新的system_plugins/custom_plugins布尔映射
-            system_map = cfg.get('system_plugins', {}) or {}
-            custom_map = cfg.get('custom_plugins', {}) or {}
-            
-            for name, pinfo in plugins.items():
-                # 检查是否在system_plugins或custom_plugins中启用
-                if system_map.get(name, False) or custom_map.get(name, False):
-                    enabled_plugins[name] = pinfo
-            return enabled_plugins
-        else:
-            # 如果没有配置文件，返回空字典（禁用所有插件）
-            return {}
+        # 使用 ConfigManager 获取合并后的配置（项目配置 + 用户配置）
+        config_manager = ConfigManager()
+        cfg = config_manager.get_config() or {}
+
+        # 使用新的system_plugins/custom_plugins布尔映射
+        system_map = cfg.get('system_plugins', {}) or {}
+        custom_map = cfg.get('custom_plugins', {}) or {}
+
+        for name, pinfo in plugins.items():
+            # 检查是否在system_plugins或custom_plugins中启用
+            if system_map.get(name, False) or custom_map.get(name, False):
+                enabled_plugins[name] = pinfo
+        return enabled_plugins
     except Exception as e:
         print(f"Warning: Failed to read plugin config, using all plugins: {e}")
+        import traceback
+        traceback.print_exc()
         return plugins
 
 
@@ -1375,19 +1361,15 @@ def generate_bash_completion(plugins: Dict[str, Dict]) -> str:
     language = 'zh'
 
     try:
-        config_dir = Path.home() / ".config" / "global-scripts"
-        json_config_path = config_dir / "config" / "gs.json"
-        project_json_path = Path.cwd() / "config" / "gs.json"
+        from gscripts.core.config_manager import ConfigManager
 
-        cfg_path = json_config_path if json_config_path.exists() else project_json_path
+        # 使用 ConfigManager 获取合并后的配置
+        config_manager = ConfigManager()
+        cfg = config_manager.get_config() or {}
 
-        if cfg_path.exists():
-            with open(cfg_path, 'r', encoding='utf-8') as f:
-                cfg = json.load(f)
-
-            show_descriptions = cfg.get('completion_show_descriptions', True)
-            show_subcommand_descriptions = cfg.get('completion_show_subcommand_descriptions', True)
-            language = cfg.get('language', 'zh')
+        show_descriptions = cfg.get('completion_show_descriptions', True)
+        show_subcommand_descriptions = cfg.get('completion_show_subcommand_descriptions', True)
+        language = cfg.get('language', 'zh')
     except Exception:
         pass
 
@@ -1555,19 +1537,15 @@ def generate_zsh_completion(plugins: Dict[str, Dict]) -> str:
     language = 'zh'
 
     try:
-        config_dir = Path.home() / ".config" / "global-scripts"
-        json_config_path = config_dir / "config" / "gs.json"
-        project_json_path = Path.cwd() / "config" / "gs.json"
+        from gscripts.core.config_manager import ConfigManager
 
-        cfg_path = json_config_path if json_config_path.exists() else project_json_path
+        # 使用 ConfigManager 获取合并后的配置
+        config_manager = ConfigManager()
+        cfg = config_manager.get_config() or {}
 
-        if cfg_path.exists():
-            with open(cfg_path, 'r', encoding='utf-8') as f:
-                cfg = json.load(f)
-
-            show_descriptions = cfg.get('completion_show_descriptions', True)
-            show_subcommand_descriptions = cfg.get('completion_show_subcommand_descriptions', True)
-            language = cfg.get('language', 'zh')
+        show_descriptions = cfg.get('completion_show_descriptions', True)
+        show_subcommand_descriptions = cfg.get('completion_show_subcommand_descriptions', True)
+        language = cfg.get('language', 'zh')
     except Exception:
         pass
 
@@ -2107,9 +2085,11 @@ async def main():
     else:
         show_examples = ask_show_examples(language=language, auto_mode=auto_mode)
     
-    print(f"\n{config['install_title']}")
-    print("=" * 50)
-    
+    # 显示安装标题
+    print(f"\n{'=' * 70}")
+    print(f"{config['install_title']:^70}")
+    print(f"{'=' * 70}\n")
+
     # 检查Python版本
     if sys.version_info < (3, 8):
         if language == 'en':
@@ -2117,47 +2097,73 @@ async def main():
         else:
             print("❌ 错误: 需要Python 3.8或更高版本")
         sys.exit(1)
-    
+
+    # ========== 第一部分：环境检测 ==========
+    print(f"{'[1/5] 环境检测' if language == 'zh' else '[1/5] Environment Check':^70}")
+    print(f"{'-' * 70}")
+
     # 获取源码目录 (SOURCE_DIR)
     source_dir = Path(__file__).parent.parent.absolute()  # 从 scripts/ 向上到项目根目录
-    print(f"{config['source_dir']}: {source_dir}")
-    
+    print(f"  {config['source_dir']}")
+    print(f"  └─ {source_dir}")
+
     # 创建缓存目录 (CACHE_DIR)
     cache_dir = Path.home() / ".config" / "global-scripts"
     create_cache_structure(cache_dir)
-    print(f"{config['cache_dir']}: {cache_dir}")
-    
+    print(f"\n  {config['cache_dir']}")
+    print(f"  └─ {cache_dir}")
+
+    # ========== 第二部分：插件扫描 ==========
+    print(f"\n{'[2/5] 插件扫描' if language == 'zh' else '[2/5] Plugin Scanning':^70}")
+    print(f"{'-' * 70}")
+
     # 发现插件
     plugins_root = source_dir / "plugins"
     custom_root = source_dir / "custom"
-    print(f"{config['scanning']}: {plugins_root}")
+    print(f"  📦 {'扫描系统插件目录' if language == 'zh' else 'Scanning system plugins'}: {plugins_root}")
     plugins = await discover_plugins(plugins_root)
+    system_count = len(plugins)
 
     # 同时扫描 custom 目录
+    custom_count = 0
     if custom_root.exists():
-        print(f"{config['scanning']}: {custom_root}")
+        print(f"  📦 {'扫描自定义插件目录' if language == 'zh' else 'Scanning custom plugins'}: {custom_root}")
         custom_plugins = await discover_plugins(custom_root)
         plugins.update(custom_plugins)
-    plugin_count_text = f"{len(plugins)} 个插件" if language == 'zh' else f"{len(plugins)} plugins"
-    print(f"{config['found_plugins']} {plugin_count_text}: {', '.join(plugins.keys())}")
-    
+        custom_count = len(custom_plugins)
+
+    # 显示插件统计
+    print(f"\n  {'插件统计' if language == 'zh' else 'Plugin Statistics'}:")
+    print(f"  ├─ {'系统插件' if language == 'zh' else 'System plugins'}: {system_count}")
+    if custom_count > 0:
+        print(f"  ├─ {'自定义插件' if language == 'zh' else 'Custom plugins'}: {custom_count}")
+    print(f"  └─ {'总计' if language == 'zh' else 'Total'}: {len(plugins)}")
+
+    # ========== 第三部分：Shell 检测与环境文件生成 ==========
+    print(f"\n{'[3/5] Shell 检测与环境配置' if language == 'zh' else '[3/5] Shell Detection & Environment':^70}")
+    print(f"{'-' * 70}")
+
     # 检测当前 Shell（可通过 --shell 参数覆盖）
     if args.shell:
         current_shell = args.shell
-        print(f"🐚 使用指定 Shell: {current_shell}" if language == 'zh' else f"🐚 Using specified Shell: {current_shell}")
+        print(f"  🐚 {'使用指定 Shell' if language == 'zh' else 'Using specified Shell'}: {current_shell}")
     else:
         current_shell = detect_current_shell()
-        print(f"🐚 检测到 Shell: {current_shell}" if language == 'zh' else f"🐚 Detected Shell: {current_shell}")
+        print(f"  🐚 {'检测到当前 Shell' if language == 'zh' else 'Detected current Shell'}: {current_shell}")
 
     # 根据 shell 类型生成相应的环境文件
     if current_shell == 'fish':
         env_file = source_dir / "env.fish"
-        print(f"{config['generating_env']}: {env_file}")
+    else:
+        env_file = source_dir / "env.sh"
+
+    print(f"\n  📝 {'生成环境配置文件' if language == 'zh' else 'Generating environment file'}:")
+    print(f"  └─ {env_file}")
+
+    # 生成环境文件内容
+    if current_shell == 'fish':
         env_content = generate_env_fish(source_dir, cache_dir, plugins, language, show_examples)
     else:
-        # bash/zsh 使用 env.sh
-        env_file = source_dir / "env.sh"
-        print(f"{config['generating_env']}: {env_file}")
         env_content = generate_env_sh(source_dir, cache_dir, plugins, language, show_examples)
 
     # 确保可以写入环境文件（如果存在且只读，则修改权限）
@@ -2171,9 +2177,14 @@ async def main():
         f.write(env_content)
 
     env_file.chmod(0o755)
-    print(config['env_success'])
+    print(f"  ✅ {'环境配置文件生成成功' if language == 'zh' else 'Environment file generated successfully'}")
+
+    # ========== 第四部分：生成 Router Index 和补全脚本 ==========
+    print(f"\n{'[4/5] 命令路由与补全脚本' if language == 'zh' else '[4/5] Command Routing & Completion':^70}")
+    print(f"{'-' * 70}")
 
     # 生成 router.json
+    print(f"  🔗 {'生成命令路由索引' if language == 'zh' else 'Generating command routing index'}...")
     try:
         from gscripts.router.indexer import build_router_index, write_router_index
         from gscripts.core.plugin_loader import PluginLoader
@@ -2190,13 +2201,15 @@ async def main():
 
         router_index = build_router_index(full_plugins)
         router_path = write_router_index(router_index)
-        print(f"✅ Router index: {router_path}" if language == 'zh' else f"✅ Router index: {router_path}")
+        print(f"  └─ {router_path}")
+        print(f"  ✅ {'命令路由索引生成成功' if language == 'zh' else 'Router index generated successfully'}")
     except Exception as e:
         import traceback
         traceback.print_exc()
-        print(f"⚠️  Router index生成失败: {e}" if language == 'zh' else f"⚠️  Router index generation failed: {e}")
+        print(f"  ⚠️  {'路由索引生成失败' if language == 'zh' else 'Router index generation failed'}: {e}")
 
-    # 生成补全脚本 - 使用统一的 generator 从 router.json
+    # 生成补全脚本
+    print(f"\n  ⚙️  {'生成 Shell 补全脚本' if language == 'zh' else 'Generating shell completions'}...")
     try:
         from gscripts.shell_completion.generator import generate_completions_from_index
 
@@ -2210,15 +2223,15 @@ async def main():
             language=language
         )
 
-        print(f"{config['bash_completion']}: {bash_file}")
-        print(f"{config['zsh_completion']}: {zsh_file}")
-        print(f"✅ Fish {'补全脚本' if language == 'zh' else 'completion script'}: {fish_file}")
+        print(f"  ├─ Bash: {bash_file.name}")
+        print(f"  ├─ Zsh:  {zsh_file.name}")
+        print(f"  └─ Fish: {fish_file.name}")
+        print(f"  ✅ {'补全脚本生成成功' if language == 'zh' else 'Completion scripts generated successfully'}")
     except Exception as e:
         import traceback
         traceback.print_exc()
-        print(f"⚠️  补全生成失败: {e}" if language == 'zh' else f"⚠️  Completion generation failed: {e}")
+        print(f"  ⚠️  {'补全生成失败，使用传统方法' if language == 'zh' else 'Completion generation failed, using fallback'}")
         # Fallback to old method
-        print(f"⚠️  使用传统方法生成补全..." if language == 'zh' else f"⚠️  Falling back to legacy method...")
         completions_dir = cache_dir / "completions"
 
         # 生成bash补全
@@ -2226,21 +2239,24 @@ async def main():
         bash_file = completions_dir / "gs.bash"
         with open(bash_file, 'w', encoding='utf-8') as f:
             f.write(bash_completion)
-        print(f"{config['bash_completion']}: {bash_file}")
 
         # 生成zsh补全
         zsh_completion = generate_zsh_completion(plugins)
         zsh_file = completions_dir / "gs.zsh"
         with open(zsh_file, 'w', encoding='utf-8') as f:
             f.write(zsh_completion)
-        print(f"{config['zsh_completion']}: {zsh_file}")
 
-        # 生成fish补全（总是生成，不管当前shell是什么）
+        # 生成fish补全
         fish_completion = generate_fish_completion(plugins)
         fish_file = completions_dir / "gs.fish"
         with open(fish_file, 'w', encoding='utf-8') as f:
             f.write(fish_completion)
-        print(f"✅ Fish {'补全脚本' if language == 'zh' else 'completion script'}: {fish_file}")
+
+        print(f"  └─ {'使用传统方法生成成功' if language == 'zh' else 'Generated using fallback method'}")
+
+    # ========== 第五部分：Shell 配置说明 ==========
+    print(f"\n{'[5/5] Shell 配置说明' if language == 'zh' else '[5/5] Shell Configuration':^70}")
+    print(f"{'-' * 70}")
 
     # 检测Shell类型并给出配置建议
     shell_name = current_shell
@@ -2253,60 +2269,104 @@ async def main():
         config_file = Path.home() / ".bashrc"
     else:
         config_file = Path.home() / ".profile"
-    
-    print(f"\n{config['config_info']}")
-    print(f"{config['detected_shell']}: {shell_name}")
-    print(f"{config['config_file']}: {config_file}")
-    
+
+    print(f"  {'配置信息' if language == 'zh' else 'Configuration Info'}:")
+    print(f"  ├─ Shell: {shell_name}")
+    print(f"  └─ {'配置文件' if language == 'zh' else 'Config file'}: {config_file}")
+
     # 检查是否已经配置
     if config_file.exists():
         with open(config_file, 'r', encoding='utf-8') as f:
             content = f.read()
-        
+
         if str(env_file) in content:
-            print(config['shell_configured'])
+            print(f"\n  ✅ {'Shell 配置已存在' if language == 'zh' else 'Shell already configured'}")
         else:
-            add_text = "请在" if language == 'zh' else "Please add the following line to"
-            print(f"\n📝 {add_text} {config_file} {'中添加以下行:' if language == 'zh' else ':'}")
-            print(f"source {env_file}")
-            
+            print(f"\n  ⚠️  {'需要手动配置 Shell' if language == 'zh' else 'Shell configuration needed'}")
+            print(f"\n  {'请在配置文件中添加以下行' if language == 'zh' else 'Please add the following line to your config file'}:")
+            print(f"  {CYAN}source {env_file}{RESET}")
+
             # 询问是否自动添加
             try:
-                response = input("\n是否自动添加到配置文件? (y/N): ").strip().lower()
+                prompt = "  是否自动添加到配置文件? (y/N): " if language == 'zh' else "  Automatically add to config file? (y/N): "
+                response = input(prompt).strip().lower()
                 if response in ['y', 'yes']:
                     with open(config_file, 'a', encoding='utf-8') as f:
                         f.write(f"\n# Global Scripts v6\nsource {env_file}\n")
-                    print("✅ 已自动添加到配置文件")
+                    print(f"  ✅ {'已自动添加到配置文件' if language == 'zh' else 'Automatically added to config file'}")
                 else:
-                    print("⚠️  请手动添加配置")
+                    print(f"  ℹ️  {'请手动添加配置' if language == 'zh' else 'Please add configuration manually'}")
             except KeyboardInterrupt:
-                print("\n⚠️  配置已取消")
+                print(f"\n  ⚠️  {'配置已取消' if language == 'zh' else 'Configuration cancelled'}")
     else:
-        print(f"\n📝 请创建 {config_file} 并添加以下行:")
-        print(f"source {env_file}")
-    
-    # 显示完成信息
-    print(f"\n🎉 安装完成!")
-    print(f"\n📋 使用方法:")
-    print(f"1. 重新加载Shell配置: source {config_file}")
-    print(f"2. 使用命令: gs help")
-    print(f"3. 可试试: gs plugin list, gs status")
-    
-    # 显示可用插件 - 根据配置文件显示实际状态
-    print(f"\n📦 可用插件:")
+        print(f"\n  ℹ️  {'配置文件不存在，请创建' if language == 'zh' else 'Config file does not exist, please create it'}: {config_file}")
+        print(f"  {'并添加以下行' if language == 'zh' else 'And add the following line'}:")
+        print(f"  {CYAN}source {env_file}{RESET}")
+
+    # ========== 安装完成 ==========
+    print(f"\n{'=' * 70}")
+    print(f"{'🎉 ' + ('安装完成！' if language == 'zh' else 'Installation Complete!'):^70}")
+    print(f"{'=' * 70}\n")
+
+    # 显示使用说明
+    print(f"{'📋 ' + ('使用说明' if language == 'zh' else 'Usage'):^70}")
+    print(f"{'-' * 70}")
+    print(f"  1. {'重新加载 Shell 配置' if language == 'zh' else 'Reload shell configuration'}:")
+    print(f"     {CYAN}source {config_file}{RESET}")
+    print(f"\n  2. {'使用命令' if language == 'zh' else 'Use commands'}:")
+    print(f"     {CYAN}gs help{RESET}         # {'查看帮助' if language == 'zh' else 'Show help'}")
+    print(f"     {CYAN}gs status{RESET}       # {'查看系统状态' if language == 'zh' else 'Show system status'}")
+    print(f"     {CYAN}gs plugin list{RESET}  # {'查看插件列表' if language == 'zh' else 'List plugins'}")
+
+    # 显示可用插件统计
+    print(f"\n{'📦 ' + ('插件统计' if language == 'zh' else 'Plugin Statistics'):^70}")
+    print(f"{'-' * 70}")
+
     enabled_plugins = get_enabled_plugins(plugins)
-    
-    for plugin_name, plugin_info in plugins.items():
-        # 检查插件是否在启用列表中
-        is_enabled = plugin_name in enabled_plugins
-        status = "✅" if is_enabled else "❌"
-        subplugins_count = len(plugin_info.get('subplugins', []))
-        functions_count = len(plugin_info.get('functions', []))
-        print(f"  {status} {plugin_name} ({subplugins_count} 子插件, {functions_count} 函数)")
-    
-    print(f"\n📚 更多信息请参考: README.md")
-    print(f"📝 配置目录: {cache_dir}")
-    print(f"📄 日志文件: {cache_dir / 'logs' / 'gs.log'}")
+    enabled_count = len(enabled_plugins)
+    total_count = len(plugins)
+    disabled_count = total_count - enabled_count
+
+    # 计算总函数数
+    total_functions = sum(len(p.get('functions', [])) for p in enabled_plugins.values())
+
+    print(f"  {'已启用插件' if language == 'zh' else 'Enabled plugins'}: {GREEN}{enabled_count}{RESET} / {total_count}")
+    if disabled_count > 0:
+        print(f"  {'已禁用插件' if language == 'zh' else 'Disabled plugins'}: {YELLOW}{disabled_count}{RESET}")
+    print(f"  {'可用命令数' if language == 'zh' else 'Available commands'}: {CYAN}{total_functions}{RESET}")
+
+    # 显示启用的插件列表（分组显示）
+    if enabled_plugins:
+        print(f"\n  {'启用的插件' if language == 'zh' else 'Enabled Plugins'}:")
+
+        # 按类型分组
+        system_plugins = {k: v for k, v in enabled_plugins.items() if k in plugins and 'custom' not in str(plugins[k].get('directory', ''))}
+        custom_plugins_list = {k: v for k, v in enabled_plugins.items() if k in plugins and 'custom' in str(plugins[k].get('directory', ''))}
+
+        if system_plugins:
+            print(f"    {'系统插件' if language == 'zh' else 'System Plugins'}:")
+            for plugin_name, plugin_info in sorted(system_plugins.items()):
+                functions_count = len(plugin_info.get('functions', []))
+                subplugins_count = len(plugin_info.get('subplugins', []))
+                print(f"      {GREEN}✓{RESET} {plugin_name:15} ({functions_count} {'命令' if language == 'zh' else 'cmds'}, {subplugins_count} {'子插件' if language == 'zh' else 'subs'})")
+
+        if custom_plugins_list:
+            print(f"    {'自定义插件' if language == 'zh' else 'Custom Plugins'}:")
+            for plugin_name, plugin_info in sorted(custom_plugins_list.items()):
+                functions_count = len(plugin_info.get('functions', []))
+                subplugins_count = len(plugin_info.get('subplugins', []))
+                print(f"      {GREEN}✓{RESET} {plugin_name:15} ({functions_count} {'命令' if language == 'zh' else 'cmds'}, {subplugins_count} {'子插件' if language == 'zh' else 'subs'})")
+
+    # 显示项目信息
+    print(f"\n{'📚 ' + ('项目信息' if language == 'zh' else 'Project Info'):^70}")
+    print(f"{'-' * 70}")
+    print(f"  {'版本' if language == 'zh' else 'Version'}:    {GS_VERSION}")
+    print(f"  {'源码目录' if language == 'zh' else 'Source'}:    {source_dir}")
+    print(f"  {'配置目录' if language == 'zh' else 'Config'}:    {cache_dir}")
+    print(f"  {'日志文件' if language == 'zh' else 'Log file'}:  {cache_dir / 'logs' / 'gs.log'}")
+    print(f"  {'文档' if language == 'zh' else 'Docs'}:      README.md\n")
+
+    print(f"{'=' * 70}\n")
     
     return True
 
