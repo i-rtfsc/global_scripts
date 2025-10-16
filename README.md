@@ -76,8 +76,10 @@ uv sync
 uv run python scripts/setup.py
 
 # 5. 重新加载Shell配置
-source ~/.bashrc   # bash用户
-source ~/.zshrc    # zsh用户
+source ~/.bashrc                    # bash用户
+source ~/.zshrc                     # zsh用户
+source ~/.config/fish/config.fish   # fish用户
+
 ```
 
 详细安装说明请查看 [安装指南](./docs/installation.md)

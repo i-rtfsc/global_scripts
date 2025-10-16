@@ -8,20 +8,6 @@
         "alias": true,
         "spider": true
     },
-    "custom_plugins": {
-        "secrets": true,
-        "flyme": true,
-        "sgm": true
-    },
-    "parsers": {
-        "enabled": ["python", "shell", "config"],
-        "disabled": [],
-        "custom_paths": [
-            "~/.gscripts/parsers",
-            "./custom_parsers"
-        ],
-        "priority_overrides": {}
-    },
     "logging_level": "INFO",
     "language": "zh",
     "show_examples": false,

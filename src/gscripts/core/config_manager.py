@@ -227,41 +227,50 @@ class ConfigManager:
             logger.error(f"加载配置失败: {e}")
             self.config_data = {}
 
+    def _deep_merge(self, base: Any, override: Any) -> Any:
+        """深度合并两个值（递归合并嵌套字典）
+
+        规则：
+        1. 如果两个值都是字典，递归合并（用户配置优先）
+        2. 如果两个值都是列表，使用用户配置的列表（覆盖）
+        3. 其他情况，如果 override 不为 None，使用 override，否则使用 base
+        """
+        # 如果 override 为 None，返回 base
+        if override is None:
+            return base
+
+        # 如果两个都是字典，递归合并
+        if isinstance(base, dict) and isinstance(override, dict):
+            result = dict(base)  # 复制 base
+            for key, value in override.items():
+                if key in result:
+                    # 递归合并
+                    result[key] = self._deep_merge(result[key], value)
+                else:
+                    # 新键，直接添加
+                    result[key] = value
+            return result
+
+        # 其他情况（包括列表、基本类型等），用户配置优先
+        return override
+
     def _merge_configs(self, base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
-        """合并配置：base(项目) + override(用户)；空的用户插件映射不覆盖项目映射"""
+        """合并配置：base(项目) + override(用户)，使用深度合并策略
+
+        用户配置的优先级高于项目配置，但会递归合并嵌套的字典结构。
+        """
         if not base:
             base = {}
         if not override:
             override = {}
 
-        result: Dict[str, Any] = {}
+        # 使用深度合并
+        result = self._deep_merge(base, override)
 
-        # 先复制基础
-        for k, v in base.items():
-            # 深拷贝简单结构
-            result[k] = v if not isinstance(v, dict) else dict(v)
-
-        # 处理 system_plugins / custom_plugins 特殊合并
-        for map_key in ('system_plugins', 'custom_plugins'):
-            base_map = base.get(map_key, {}) or {}
-            override_map = override.get(map_key, {}) or {}
-            if not isinstance(base_map, dict):
-                base_map = {}
-            if not isinstance(override_map, dict):
-                override_map = {}
-            # 如果用户映射为空，继承项目映射；否则按键覆盖
-            merged_map = dict(base_map)
-            if override_map:  # 只有非空才覆盖
-                for pk, pv in override_map.items():
-                    merged_map[pk] = pv
-            result[map_key] = merged_map
-
-        # 其它顶层键：用户文件里存在则覆盖
-        for k, v in override.items():
-            if k in ('system_plugins', 'custom_plugins'):
-                continue
-            if v is not None:
-                result[k] = v
+        # 确保返回的是字典
+        if not isinstance(result, dict):
+            logger.warning(f"配置合并结果不是字典类型，使用空字典")
+            return {}
 
         return result
 

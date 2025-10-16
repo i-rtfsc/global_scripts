@@ -76,8 +76,9 @@ uv sync
 uv run python scripts/setup.py
 
 # 5. Reload shell configuration
-source ~/.bashrc   # for bash users
-source ~/.zshrc    # for zsh users
+source ~/.bashrc                    # for bash users
+source ~/.zshrc                     # for zsh users
+source ~/.config/fish/config.fish   # for fish users
 ```
 
 For detailed installation instructions, see [Installation Guide](./docs/en/installation-en.md)
