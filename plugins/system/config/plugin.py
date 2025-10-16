@@ -48,13 +48,22 @@ class SystemConfigSubplugin(BasePlugin):
                 "source": self.config_dir / "zsh" / ".zshrc",
                 "target": Path.home() / ".zshrc",
                 "description": "Zsh shell configuration",
-                "category": "shell"
+                "category": "shell",
+                "add_timestamp": True
             },
             "fish": {
                 "source": self.config_dir / "fish" / "config.fish",
                 "target": Path.home() / ".config" / "fish" / "config.fish",
                 "description": "Fish shell configuration",
-                "category": "shell"
+                "category": "shell",
+                "add_timestamp": True,
+                "extra_dirs": [
+                    (self.config_dir / "fish" / "conf.d", Path.home() / ".config" / "fish" / "conf.d")
+                ],
+                "extra_files": [
+                    (self.config_dir / "fish" / "apply-tide-config.fish", Path.home() / ".config" / "fish" / "apply-tide-config.fish"),
+                    (self.config_dir / "fish" / "README.md", Path.home() / ".config" / "fish" / "README.md")
+                ]
             },
             "vim": {
                 "source": self.config_dir / "vim" / ".vimrc",
@@ -158,8 +167,11 @@ class SystemConfigSubplugin(BasePlugin):
             # 确保目标目录存在
             target.parent.mkdir(parents=True, exist_ok=True)
 
-            # 复制主配置文件
-            shutil.copy2(source, target)
+            # 复制主配置文件（带时间戳）
+            if mapping.get("add_timestamp", False):
+                await self._copy_with_timestamp(source, target, config_name)
+            else:
+                shutil.copy2(source, target)
 
             # 处理私有配置源文件 - 仅提示用户手动配置
             if "private_sources" in mapping:
@@ -176,7 +188,30 @@ class SystemConfigSubplugin(BasePlugin):
                             print(f"[CONFIG] 请手动创建并编辑该文件")
 
 
-            # 处理额外的目录复制
+            # 处理额外的目录复制（新增支持 extra_dirs）
+            if "extra_dirs" in mapping:
+                for src_dir, dst_dir in mapping["extra_dirs"]:
+                    if src_dir.exists():
+                        # 确保目标目录存在
+                        dst_dir.mkdir(parents=True, exist_ok=True)
+                        # 递归复制目录内容
+                        shutil.copytree(src_dir, dst_dir, dirs_exist_ok=True)
+                        print(f"[CONFIG] 复制目录: {src_dir.name}/ -> {dst_dir}")
+
+            # 处理额外的文件复制（新增支持 extra_files）
+            if "extra_files" in mapping:
+                for src_file, dst_file in mapping["extra_files"]:
+                    if src_file.exists():
+                        # 确保目标目录存在
+                        dst_file.parent.mkdir(parents=True, exist_ok=True)
+                        # 复制文件
+                        shutil.copy2(src_file, dst_file)
+                        # 如果是 .fish 文件，设置可执行权限
+                        if dst_file.suffix == '.fish' and dst_file.name != 'config.fish':
+                            dst_file.chmod(0o755)
+                        print(f"[CONFIG] 复制文件: {src_file.name} -> {dst_file}")
+
+            # 处理额外的目录复制（旧的 backup_dirs）
             if "backup_dirs" in mapping:
                 for src_dir, dst_dir in mapping["backup_dirs"]:
                     if src_dir.exists():
@@ -360,21 +395,119 @@ class SystemConfigSubplugin(BasePlugin):
         # 清理旧备份，只保留最新2份
         await self._cleanup_old_backups(backup_name)
 
+    async def _copy_with_timestamp(self, source: Path, target: Path, config_name: str):
+        """复制配置文件并添加时间戳注释"""
+        # 读取源文件内容
+        with open(source, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        # 根据文件类型确定注释符号
+        comment_prefix = "#"  # Fish 和 Zsh 都使用 #
+
+        # 生成时间戳
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # 检测 shebang 行
+        lines = content.split('\n')
+        has_shebang = lines and lines[0].startswith('#!')
+
+        # 获取项目根目录（动态获取）
+        project_root = Path(__file__).resolve().parents[3]
+
+        # 构建带时间戳的头部
+        if config_name == "fish":
+            header = f"""#!/usr/bin/env fish
+# Global Scripts - Fish Shell Configuration
+# Generated automatically by: gs system config install fish
+# Generated at: {timestamp}
+# Source: plugins/system/config/configs/fish/
+#
+# ============================================
+"""
+            # Fish 配置末尾添加 env.fish source
+            env_fish_path = project_root / "env.fish"
+            if env_fish_path.exists():
+                footer = f"""
+# ============================================
+# Global Scripts Environment
+# ============================================
+source {env_fish_path}
+"""
+            else:
+                footer = ""
+        elif config_name == "zsh":
+            header = f"""#!/usr/bin/env zsh
+# Global Scripts - Zsh Shell Configuration
+# Generated automatically by: gs system config install zsh
+# Generated at: {timestamp}
+# Source: plugins/system/config/configs/zsh/
+#
+# ============================================
+"""
+            # Zsh 配置末尾添加 env.sh source
+            env_sh_path = project_root / "env.sh"
+            if env_sh_path.exists():
+                footer = f"""
+# ============================================
+# Global Scripts Environment
+# ============================================
+source {env_sh_path}
+"""
+            else:
+                footer = ""
+        else:
+            header = f"""{comment_prefix} Global Scripts - {config_name.upper()} Configuration
+{comment_prefix} Generated automatically by: gs system config install {config_name}
+{comment_prefix} Generated at: {timestamp}
+{comment_prefix}
+"""
+            footer = ""
+
+        # 如果源文件有 shebang，去掉它（我们会添加自己的）
+        if has_shebang:
+            content = '\n'.join(lines[1:])
+
+        # 组合最终内容（头部 + 内容 + 尾部）
+        final_content = header + content + footer
+
+        # 写入目标文件
+        with open(target, 'w', encoding='utf-8') as f:
+            f.write(final_content)
+
+        print(f"[CONFIG] 安装配置: {config_name} (时间戳: {timestamp})")
+        if footer:
+            print(f"[CONFIG] 添加环境变量: {project_root}/env.{'fish' if config_name == 'fish' else 'sh'}")
+
     async def _cleanup_old_backups(self, current_backup: str):
         """清理旧备份，只保留最新2份"""
-        # 从备份文件名提取配置名称（例如: zsh_20250101_120000 -> zsh）
-        config_name = current_backup.split('_')[0]
+        try:
+            # 从备份文件名提取配置名称（例如: zsh_20250101_120000 -> zsh）
+            config_name = current_backup.split('_')[0]
 
-        # 获取该配置的所有备份文件
-        pattern = f"{config_name}_*"
-        backups = sorted(
-            self.backup_dir.glob(pattern),
-            key=lambda p: p.stat().st_mtime,
-            reverse=True  # 最新的在前
-        )
+            # 获取该配置的所有备份文件
+            pattern = f"{config_name}_*"
+            backups = sorted(
+                self.backup_dir.glob(pattern),
+                key=lambda p: p.stat().st_mtime,
+                reverse=True  # 最新的在前
+            )
 
-        # 只保留最新2份，删除其余的
-        if len(backups) > 2:
-            for old_backup in backups[2:]:
-                old_backup.unlink()
-                print(f"[CONFIG] 删除旧备份: {old_backup.name}")
+            # 只保留最新2份，删除其余的
+            if len(backups) > 2:
+                for old_backup in backups[2:]:
+                    try:
+                        if old_backup.is_file():
+                            # 确保文件有写权限
+                            old_backup.chmod(0o644)
+                            old_backup.unlink()
+                            print(f"[CONFIG] 删除旧备份: {old_backup.name}")
+                        elif old_backup.is_dir():
+                            # 如果是目录，递归删除
+                            shutil.rmtree(old_backup)
+                            print(f"[CONFIG] 删除旧备份目录: {old_backup.name}")
+                    except PermissionError as e:
+                        print(f"[CONFIG] 警告: 无法删除旧备份 {old_backup.name}: 权限不足")
+                    except Exception as e:
+                        print(f"[CONFIG] 警告: 无法删除旧备份 {old_backup.name}: {str(e)}")
+        except Exception as e:
+            print(f"[CONFIG] 警告: 清理旧备份时出错: {str(e)}")
