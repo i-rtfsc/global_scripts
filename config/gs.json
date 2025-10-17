@@ -2,6 +2,7 @@
     "system_plugins": {
         "grep": true,
         "system": true,
+        "dotfiles": true,
         "android": true,
         "gerrit": true,
         "navigator": true,

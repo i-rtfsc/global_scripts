@@ -1,0 +1,79 @@
+{
+  "name": "dotfiles",
+  "version": "1.0.0",
+  "author": "Solo",
+  "homepage": "https://github.com/i-rtfsc/global_scripts",
+  "description": {
+    "zh": "配置文件管理 - 安装、备份和恢复各种工具配置",
+    "en": "Dotfiles management - Install, backup and restore tool configurations"
+  },
+  "type": "python",
+  "entry": "plugin.py",
+  "enabled": true,
+  "license": "MIT",
+  "category": "utility",
+  "keywords": [
+    "dotfiles",
+    "config",
+    "configuration",
+    "shell",
+    "editor"
+  ],
+  "priority": 40,
+  "subplugins": [
+    {
+      "name": "fish",
+      "type": "python",
+      "entry": "plugin.py",
+      "description": {
+        "zh": "Fish Shell 配置管理",
+        "en": "Fish Shell configuration management"
+      }
+    },
+    {
+      "name": "nvim",
+      "type": "python",
+      "entry": "plugin.py",
+      "description": {
+        "zh": "Neovim 配置管理",
+        "en": "Neovim configuration management"
+      }
+    },
+    {
+      "name": "tmux",
+      "type": "python",
+      "entry": "plugin.py",
+      "description": {
+        "zh": "Tmux 配置管理",
+        "en": "Tmux configuration management"
+      }
+    },
+    {
+      "name": "zsh",
+      "type": "python",
+      "entry": "plugin.py",
+      "description": {
+        "zh": "Zsh Shell 配置管理",
+        "en": "Zsh Shell configuration management"
+      }
+    },
+    {
+      "name": "git",
+      "type": "python",
+      "entry": "plugin.py",
+      "description": {
+        "zh": "Git 配置管理",
+        "en": "Git configuration management"
+      }
+    },
+    {
+      "name": "vim",
+      "type": "python",
+      "entry": "plugin.py",
+      "description": {
+        "zh": "Vim 配置管理",
+        "en": "Vim configuration management"
+      }
+    }
+  ]
+}
