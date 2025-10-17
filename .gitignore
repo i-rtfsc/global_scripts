@@ -224,3 +224,5 @@ user_aliases.sh
 user_functions.sh
 debug.sh
 temp_*.sh
+
+.coverage

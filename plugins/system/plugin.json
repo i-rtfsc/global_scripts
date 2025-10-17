@@ -50,15 +50,6 @@
         "zh": "命令提示符主题 - 切换和管理Shell提示符样式",
         "en": "Prompt themes - Switch and manage shell prompt styles"
       }
-    },
-    {
-      "name": "config",
-      "type": "python",
-      "entry": "plugin.py",
-      "description": {
-        "zh": "配置文件管理 - 初始化、安装和备份配置文件",
-        "en": "Configuration management - Init, install and backup config files"
-      }
     }
   ]
 }
