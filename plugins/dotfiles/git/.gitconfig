@@ -2,6 +2,8 @@
     editor = nvim
     autocrlf = input
     filemode = true
+    # Global hooks directory (managed by Global Scripts)
+    hooksPath = ~/.config/global-scripts/git/hooks
 
 [color]
     ui = auto
@@ -54,16 +56,3 @@
 
 [credential]
 	helper = store
-
-# 默认 user 配置
-[include]
-    path = ~/.config/global-scripts/git/.gitconfig-user
-
-[includeIf "gitdir:~/work/"]
-    path = ~/.config/global-scripts/git/.gitconfig-work
-
-[includeIf "gitdir:~/code/work/"]
-    path = ~/.config/global-scripts/git/.gitconfig-work
-
-[includeIf "gitdir:~/code/sgm/"]
-    path = ~/.config/global-scripts/git/.gitconfig-work
