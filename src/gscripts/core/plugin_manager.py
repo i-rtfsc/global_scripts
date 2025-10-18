@@ -157,14 +157,14 @@ class PluginManager:
             return CommandResult(
                 success=False,
                 error=self.i18n.get_message("errors.plugin_not_found", plugin=plugin_name),
-                exit_code=self.constants.EXIT_COMMAND_NOT_FOUND
+                exit_code=self.constants.exit_command_not_found
             )
         if not self.is_plugin_enabled(plugin_name):
             logger.warning(f"cid={cid} exec plugin_disabled plugin={plugin_name} func={function_name}")
             return CommandResult(
                 success=False,
                 error=self.i18n.get_message("errors.plugin_disabled", name=plugin_name),
-                exit_code=self.constants.EXIT_GENERAL_ERROR
+                exit_code=self.constants.exit_general_error
             )
 
         # Lazy initialization of PluginExecutor using new architecture

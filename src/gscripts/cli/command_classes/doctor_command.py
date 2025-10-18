@@ -66,5 +66,5 @@ class DoctorCommand(SimpleCommand):
             return CommandResult(
                 success=False,
                 error=self.i18n.get_message('errors.execution_failed'),
-                exit_code=self.constants.EXIT_EXECUTION_ERROR
+                exit_code=self.constants.exit_execution_error
             )

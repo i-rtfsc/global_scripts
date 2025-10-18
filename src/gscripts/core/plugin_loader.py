@@ -80,7 +80,7 @@ class SimplePlugin:
     
     def _load_plugin_config(self):
         """从plugin.json加载插件配置"""
-        plugin_json = self.plugin_dir / self.constants.PLUGIN_JSON_FILE
+        plugin_json = self.plugin_dir / self.constants.plugin_json_file
         if plugin_json.exists():
             try:
                 # 使用缓存加载plugin.json
@@ -192,8 +192,8 @@ class SimplePlugin:
         """获取插件实现类型的多语言文本（Python插件 vs Shell插件 etc）"""
         self.i18n.set_language(language)
         # 判断实现类型
-        has_python = (self.plugin_dir / self.constants.PLUGIN_PY_FILE).exists()
-        has_json = (self.plugin_dir / self.constants.PLUGIN_JSON_FILE).exists()
+        has_python = (self.plugin_dir / self.constants.plugin_py_file).exists()
+        has_json = (self.plugin_dir / self.constants.plugin_json_file).exists()
         has_shell = len(list(self.plugin_dir.glob("*.sh"))) > 0
         
         # 确定实现类型

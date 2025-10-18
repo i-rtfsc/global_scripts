@@ -162,7 +162,7 @@ class GlobalScriptsCLI:
                     error_text = result.error or getattr(result, 'stderr', '') or self.i18n.get_message('commands.command_failed')
                     prefix = '错误' if self.chinese else 'Error'
                     print(f"{prefix}: {error_text}", file=sys.stderr)
-                sys.exit(result.exit_code or self.constants.EXIT_GENERAL_ERROR)
+                sys.exit(result.exit_code or self.constants.exit_general_error)
                 
         except KeyboardInterrupt:
             elapsed_ms = duration(start_time)
@@ -170,7 +170,7 @@ class GlobalScriptsCLI:
             
             msg = self.i18n.get_message('commands.command_failed')
             print(f"\n{msg}", file=sys.stderr)
-            sys.exit(self.constants.EXIT_INTERRUPTED)
+            sys.exit(self.constants.exit_interrupted)
             
         except Exception as e:
             elapsed_ms = duration(start_time)
@@ -181,7 +181,7 @@ class GlobalScriptsCLI:
             
             # 使用通用执行失败消息
             print(self.i18n.get_message('errors.execution_failed', error=str(e)), file=sys.stderr)
-            sys.exit(self.constants.EXIT_GENERAL_ERROR)
+            sys.exit(self.constants.exit_general_error)
     
     def handle_shell_function(self, function_name: str, args: List[str] = None):
         """处理Shell函数调用"""
@@ -231,7 +231,7 @@ class GlobalScriptsCLI:
         logger.error(f"Unknown shell function format: {function_name}")
         msg = self.i18n.get_message('errors.command_not_found', command=function_name)
         print(msg, file=sys.stderr)
-        sys.exit(self.constants.EXIT_COMMAND_NOT_FOUND)
+        sys.exit(self.constants.exit_command_not_found)
 
 
 def main():

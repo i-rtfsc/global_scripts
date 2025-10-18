@@ -1,0 +1,91 @@
+#!/bin/bash
+# Global Scripts Bash Completion - Auto-generated from router index
+# Generated at: {{ timestamp }}
+
+_gs_complete() {
+    local cur prev opts
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+
+    # Get all words except 'gs'
+    local words=("${COMP_WORDS[@]:1}")
+    local word_count=${% raw %}{#words[@]}{% endraw %}
+
+    # Handle option flags
+    if [[ ${cur} == -* ]]; then
+        COMPREPLY=( $(compgen -W "--help --version --verbose" -- ${cur}) )
+        return 0
+    fi
+
+    case $word_count in
+        1)
+            # First level: gs [command]
+            local base_commands="{{ system_commands|join(' ') }} {{ plugin_names|join(' ') }}"
+            COMPREPLY=( $(compgen -W "${base_commands}" -- ${cur}) )
+            ;;
+        2)
+            # Second level: gs <plugin> [subcommand]
+            case ${words[0]} in
+                plugin)
+                    opts="{{ plugin_subcommands|join(' ') }}"
+                    COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+                    ;;
+{%- for plugin_name, commands in plugins.items() %}
+{%- if commands.level2 %}
+                {{ plugin_name }})
+                    opts="{{ commands.level2|join(' ') }}"
+                    COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+                    ;;
+{%- endif %}
+{%- endfor %}
+            esac
+            ;;
+        3)
+            # Third level: gs <plugin> <subcommand> [args] or gs plugin <action> [plugin_name]
+            case "${words[0]}" in
+                plugin)
+                    case "${words[1]}" in
+                        enable|disable|info)
+                            opts="{{ plugin_names|join(' ') }}"
+                            COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+                            ;;
+                    esac
+                    ;;
+{%- for plugin_name, commands in plugins.items() %}
+{%- if commands.level3 %}
+                {{ plugin_name }})
+                    case "${words[1]}" in
+{%- for prefix, suffixes in commands.level3.items() %}
+                        {{ prefix }})
+                            opts="{{ suffixes|join(' ') }}"
+                            COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+                            ;;
+{%- endfor %}
+                    esac
+                    ;;
+{%- endif %}
+{%- endfor %}
+            esac
+            ;;
+        4)
+            # Fourth level: gs <plugin> <subcommand> <action> [args]
+            case "${words[0]}" in
+                system)
+                    case "${words[1]}" in
+                        config)
+                            case "${words[2]}" in
+                                install|init)
+                                    opts="zsh fish vim nvim tmux git ssh"
+                                    COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+                                    ;;
+                            esac
+                            ;;
+                    esac
+                    ;;
+            esac
+            ;;
+    esac
+}
+
+complete -F _gs_complete gs

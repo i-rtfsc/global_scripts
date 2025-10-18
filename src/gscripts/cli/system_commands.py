@@ -51,8 +51,8 @@ class SystemCommands:
 
     def show_version(self) -> CommandResult:
         """显示版本信息"""
-        version = self.constants.PROJECT_VERSION
-        version_text = f"{self.constants.PROJECT_NAME} v{version}"
+        version = self.constants.project_version
+        version_text = f"{self.constants.project_name} v{version}"
         return CommandResult(
             success=True,
             message=self.i18n.get_message("commands.version"),
@@ -114,7 +114,7 @@ class SystemCommands:
                 disabled_label: health_result.get('plugins_disabled', 0),
                 total_cmds_label: health_result.get('functions_total', 0),
                 config_dir_label: str(self.config_manager.get_plugins_dir()),
-                version_label: self.constants.PROJECT_VERSION,
+                version_label: self.constants.project_version,
             }
 
             # 如果有问题，添加问题信息
@@ -145,7 +145,7 @@ class SystemCommands:
             return CommandResult(
                 success=False,
                 error=self.i18n.get_message('errors.execution_failed', error=str(e)),
-                exit_code=self.constants.EXIT_EXECUTION_ERROR
+                exit_code=self.constants.exit_execution_error
             )
 
     async def system_doctor(self) -> CommandResult:
@@ -269,7 +269,7 @@ class SystemCommands:
             return CommandResult(
                 success=False,
                 error=self.i18n.get_message('errors.execution_failed', error=str(e)),
-                exit_code=self.constants.EXIT_EXECUTION_ERROR
+                exit_code=self.constants.exit_execution_error
             )
 
     async def system_refresh(self) -> CommandResult:
@@ -296,7 +296,7 @@ class SystemCommands:
             if shell == 'fish':
                 env_file_name = 'env.fish'
             else:
-                env_file_name = self.constants.ENV_SH_FILE_NAME
+                env_file_name = self.constants.env_sh_file_name
 
             env_path = self.project_root / env_file_name
 
@@ -338,7 +338,7 @@ class SystemCommands:
                 return CommandResult(
                     success=False,
                     error=self.i18n.get_message('errors.file_not_found', file=str(env_path)),
-                    exit_code=self.constants.EXIT_GENERAL_ERROR
+                    exit_code=self.constants.exit_general_error
                 )
 
         except Exception as e:
@@ -347,7 +347,7 @@ class SystemCommands:
             return CommandResult(
                 success=False,
                 error=self.i18n.get_message('errors.execution_failed', error=str(e)),
-                exit_code=self.constants.EXIT_EXECUTION_ERROR
+                exit_code=self.constants.exit_execution_error
             )
 
     # ========== 辅助方法 ==========
@@ -355,7 +355,7 @@ class SystemCommands:
     def _load_router_index(self) -> Dict[str, Any]:
         """从router index加载插件信息"""
         try:
-            gs_home = GlobalConstants.GS_HOME
+            gs_home = GlobalConstants.gs_home
             router_index_path = gs_home / 'cache' / 'router.json'
 
             if not router_index_path.exists():
@@ -398,7 +398,7 @@ class SystemCommands:
             msg = "Could not detect shell" if not self.chinese else "无法检测Shell环境"
             return {'ok': False, 'status': 'warning', 'message': msg}
 
-        env_file = 'env.fish' if shell == 'fish' else self.constants.ENV_SH_FILE_NAME
+        env_file = 'env.fish' if shell == 'fish' else self.constants.env_sh_file_name
         env_path = self.project_root / env_file
 
         if not env_path.exists():
@@ -433,7 +433,7 @@ class SystemCommands:
 
     def _check_router_index(self) -> Dict[str, Any]:
         """检查Router Index"""
-        gs_home = GlobalConstants.GS_HOME
+        gs_home = GlobalConstants.gs_home
         router_path = gs_home / 'cache' / 'router.json'
 
         if not router_path.exists():
@@ -454,7 +454,7 @@ class SystemCommands:
         """检查补全脚本"""
         issues = []
         # Completions are in GS_HOME (user config), not project config
-        comp_dir = GlobalConstants.GS_HOME / 'completions'
+        comp_dir = GlobalConstants.gs_home / 'completions'
 
         if not comp_dir.exists():
             issues.append("Completion directory missing" if not self.chinese else "补全目录不存在")
@@ -513,7 +513,7 @@ class SystemCommands:
 
         # 检查关键目录的读写权限
         critical_dirs = [
-            GlobalConstants.GS_HOME,
+            GlobalConstants.gs_home,
             GlobalConstants.get_config_dir(),
             self.project_root / 'plugins'
         ]
@@ -564,7 +564,7 @@ class SystemCommands:
             return CommandResult(
                 success=False,
                 error=self.i18n.get_message('errors.execution_failed', error=str(e)),
-                exit_code=self.constants.EXIT_EXECUTION_ERROR
+                exit_code=self.constants.exit_execution_error
             )
 
     async def _generate_router_index(self) -> CommandResult:
@@ -593,7 +593,7 @@ class SystemCommands:
             return CommandResult(
                 success=False,
                 error=self.i18n.get_message('errors.execution_failed', error=str(e)),
-                exit_code=self.constants.EXIT_EXECUTION_ERROR
+                exit_code=self.constants.exit_execution_error
             )
 
     async def _regenerate_env_sh(self) -> CommandResult:
@@ -613,7 +613,7 @@ class SystemCommands:
                 env_file_name = 'env.fish'
                 shell_arg = 'fish'
             else:
-                env_file_name = self.constants.ENV_SH_FILE_NAME
+                env_file_name = self.constants.env_sh_file_name
                 shell_arg = 'bash'
 
             env_path = self.project_root / env_file_name
@@ -663,5 +663,5 @@ class SystemCommands:
             return CommandResult(
                 success=False,
                 error=self.i18n.get_message('errors.execution_failed', error=str(e)),
-                exit_code=self.constants.EXIT_EXECUTION_ERROR
+                exit_code=self.constants.exit_execution_error
             )

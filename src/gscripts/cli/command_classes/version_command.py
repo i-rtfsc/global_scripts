@@ -25,8 +25,8 @@ class VersionCommand(SimpleCommand):
 
     def _execute(self, args: List[str]) -> CommandResult:
         """显示版本信息"""
-        version = self.constants.PROJECT_VERSION
-        version_text = f"{self.constants.PROJECT_NAME} v{version}"
+        version = self.constants.project_version
+        version_text = f"{self.constants.project_name} v{version}"
         return CommandResult(
             success=True,
             message=self.i18n.get_message("commands.version"),

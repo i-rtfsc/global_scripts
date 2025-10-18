@@ -55,5 +55,5 @@ class StatusCommand(Command):
             return CommandResult(
                 success=False,
                 error=str(e),
-                exit_code=self.constants.EXIT_EXECUTION_ERROR
+                exit_code=self.constants.exit_execution_error
             )

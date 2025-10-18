@@ -2,7 +2,7 @@
 """
 Centralized logging for Global Scripts (gs_system).
 
-- Writes all logs to GlobalConstants.GS_LOG_FILE
+- Writes all logs to GlobalConstants.gs_log_file
 - Format: "%(asctime)s | %(levelname)s | %(tag)s | %(message)s"
 - Date format: "%Y-%m-%d %H:%M:%S"
 - Injects a 'tag' field into all records (default to logger name if not provided)
@@ -54,7 +54,7 @@ def setup_logging(level: Optional[int] = None, console: bool = False) -> None:
     root_logger = logging.getLogger()
 
     # Ensure logs directory exists
-    log_file_path = Path(GlobalConstants.GS_LOG_FILE)
+    log_file_path = Path(GlobalConstants.gs_log_file)
     log_file_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Pre-truncate log file if it exceeds maximum size to avoid unbounded growth

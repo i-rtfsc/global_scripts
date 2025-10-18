@@ -76,7 +76,7 @@ class PluginListCommand(Command):
 
                 # Try to use router.json cache from GS_HOME
                 from ...core.constants import GlobalConstants
-                router_cache_path = GlobalConstants.GS_HOME / 'cache' / 'router.json'
+                router_cache_path = GlobalConstants.gs_home / 'cache' / 'router.json'
 
                 configure_services(
                     container,
@@ -104,7 +104,7 @@ class PluginListCommand(Command):
     def _load_router_index(self) -> Dict[str, Any]:
         """从router index加载插件信息 (保持兼容性)"""
         try:
-            gs_home = GlobalConstants.GS_HOME
+            gs_home = GlobalConstants.gs_home
             router_index_path = gs_home / 'cache' / 'router.json'
 
             if not router_index_path.exists():
@@ -234,7 +234,7 @@ class PluginListCommand(Command):
             return CommandResult(
                 success=False,
                 error=f"Failed to list plugins: {str(e)}",
-                exit_code=self.constants.EXIT_GENERAL_ERROR
+                exit_code=self.constants.exit_general_error
             )
 
 
