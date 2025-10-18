@@ -155,6 +155,75 @@ def disable_plugin()  # 禁用插件
 }
 ```
 
+#### system_config_loader.py
+- **职责**: 系统配置加载与验证
+- **关键功能**:
+  - 从 `resources/config/system_config.yaml` 加载系统配置
+  - 使用dataclass进行配置验证
+  - 动态加载版本号(从 `VERSION` 文件)
+  - 提供全局单例访问接口
+
+**配置段**:
+```python
+@dataclass
+class SystemConfig:
+    project: ProjectConfig       # 项目信息
+    paths: PathsConfig           # 目录路径
+    files: FilesConfig           # 文件名
+    plugins: PluginsConfig       # 插件配置
+    execution: ExecutionConfig   # 命令执行
+    language: LanguageConfig     # 语言设置
+    commands: CommandsConfig     # 系统命令列表
+    cache: CacheConfig          # 缓存配置
+    logging: LoggingConfig      # 日志配置
+    exit_codes: ExitCodesConfig # 退出码
+    status: StatusConfig        # 状态常量
+    ui: UIConfig               # UI配置
+    network: NetworkConfig     # 网络配置
+    shell: ShellConfig         # Shell配置
+```
+
+#### constants.py
+- **职责**: 全局常量定义(PEP 8兼容)
+- **关键功能**:
+  - 提供统一的常量访问接口
+  - 从 `system_config.yaml` 动态加载配置
+  - 支持类级别和实例级别访问
+  - 使用 `@property` 装饰器提供 PEP 8 命名风格
+
+**使用示例**:
+```python
+# 实例访问
+constants = GlobalConstants()
+exit_code = constants.exit_command_not_found  # 127
+timeout = constants.default_timeout  # 30
+
+# 类级别访问
+config_dir = GlobalConstants.get_config_dir()
+plugins_dir = GlobalConstants.get_plugins_dir()
+```
+
+#### utils/template_engine.py
+- **职责**: Jinja2模板渲染引擎
+- **关键功能**:
+  - 渲染Shell环境脚本 (env.sh, env.fish)
+  - 渲染补全脚本 (completion.bash, completion.zsh, completion.fish)
+  - 模板变量注入(版本号、路径、语言等)
+  - 模板文件管理
+
+**渲染流程**:
+```python
+template_engine = TemplateEngine()
+content = template_engine.render(
+    template_name='env.sh.j2',
+    context={
+        'version': '5.0.0',
+        'gs_home': '/path/to/home',
+        'router_index_path': '/path/to/router.json'
+    }
+)
+```
+
 ### 3. Models 层 (`src/gscripts/models/`)
 
 统一的数据结构定义,提升类型安全性。
@@ -357,12 +426,13 @@ class FunctionInfo:
 
 ## 技术栈
 
-- **语言**: Python 3.7+
+- **语言**: Python 3.8+
 - **异步**: asyncio
 - **类型**: typing, dataclasses
-- **配置**: JSON
+- **配置**: JSON, YAML
+- **模板引擎**: Jinja2
 - **日志**: logging (自定义格式)
-- **Shell**: Bash/Zsh 补全
+- **Shell**: Bash/Zsh/Fish 补全
 
 ## 下一步阅读
 

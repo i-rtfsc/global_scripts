@@ -342,6 +342,11 @@ global_scripts/
 │   ├── core/              # 核心模块
 │   ├── cli/               # 命令行接口
 │   ├── plugins/           # 插件系统
+│   ├── router/            # 命令路由索引
+│   ├── shell_completion/  # Shell补全生成
+│   ├── resources/         # 资源文件
+│   │   ├── config/        # 系统配置
+│   │   └── templates/     # Jinja2模板
 │   └── utils/             # 工具模块
 ├── plugins/               # 内置插件
 │   ├── android/           # Android开发工具

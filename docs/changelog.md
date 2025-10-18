@@ -5,7 +5,7 @@ All notable changes to Global Scripts will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [5.0.0] - 2024-10-13
+## [5.0.0]
 
 ### Added
 
@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Four Plugin Types**: Python, Shell, Config, and Hybrid plugin support
 - **Dynamic Completion**: jq-based real-time command completion system
 - **Async First**: asyncio-based execution engine for high performance
+- **Template Engine**: Jinja2-based template rendering for env scripts and completion files
+- **System Config Loader**: YAML-based system configuration with dataclass validation
 
 #### Plugin System
 - Python plugin support with `@plugin_function` decorator
@@ -69,20 +71,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Improved
 
 - **Performance**: Plugin loading 34% faster (100 plugins < 3 seconds)
-- **Code Quality**: Reduced duplicate code by 300+ lines (83% reduction)
+- **Code Quality**: Reduced duplicate code by 2,638+ lines (40% reduction) through template engine refactoring
 - **Type Safety**: Increased type annotation coverage to 80%+
 - **Caching**: Automatic caching reduces I/O overhead by 30%
 - **Security**: Enhanced command validation and timeout controls
 - **Documentation**: Complete documentation system from basics to advanced
+- **PEP 8 Compliance**: Full PEP 8 naming convention compliance (64 @property methods refactored)
+- **Template System**: Eliminated hardcoded string generation in setup.py (2317 → ~200 lines, 90% reduction)
+- **Configuration**: Simplified system_config.yaml by removing 40% unused configuration items
+- **Shell Completion**: Improved Fish shell completion with position-specific helper functions
 
 ### Fixed
 
 - Plugin loading race conditions
 - Configuration merge issues
-- Shell completion edge cases
+- Shell completion edge cases (Fish plugin info completion bug)
 - Import path resolution
 - Async execution error handling
 - Process timeout and cleanup
+- Class-level constant access in GlobalConstants
+- Missing exit codes (invalid_arguments, plugin_not_found) in system config
 
 ### Security
 

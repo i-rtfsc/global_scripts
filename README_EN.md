@@ -264,6 +264,11 @@ global_scripts/
 │   ├── core/              # Core modules
 │   ├── cli/               # Command-line interface
 │   ├── plugins/           # Plugin system
+│   ├── router/            # Command routing index
+│   ├── shell_completion/  # Shell completion generation
+│   ├── resources/         # Resource files
+│   │   ├── config/        # System configuration
+│   │   └── templates/     # Jinja2 templates
 │   └── utils/             # Utility modules
 ├── plugins/               # Built-in plugins
 │   ├── android/           # Android development tools
