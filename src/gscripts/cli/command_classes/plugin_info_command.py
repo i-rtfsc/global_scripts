@@ -76,7 +76,7 @@ class PluginInfoCommand(Command):
 
                 # Try to use router.json cache from GS_HOME
                 from ...core.constants import GlobalConstants
-                router_cache_path = GlobalConstants.GS_HOME / 'cache' / 'router.json'
+                router_cache_path = GlobalConstants.gs_home / 'cache' / 'router.json'
 
                 configure_services(
                     container,
@@ -104,7 +104,7 @@ class PluginInfoCommand(Command):
     def _load_router_index(self) -> Dict[str, Any]:
         """从router index加载插件信息 (保持兼容性)"""
         try:
-            gs_home = GlobalConstants.GS_HOME
+            gs_home = GlobalConstants.gs_home
             router_index_path = gs_home / 'cache' / 'router.json'
 
             if not router_index_path.exists():
@@ -250,7 +250,7 @@ class PluginInfoCommand(Command):
                 return CommandResult(
                     success=False,
                     error=self.i18n.get_message("errors.missing_plugin_name"),
-                    exit_code=self.constants.EXIT_MISUSE
+                    exit_code=self.constants.exit_misuse
                 )
 
             plugin_name = args[0]
@@ -262,7 +262,7 @@ class PluginInfoCommand(Command):
                 return CommandResult(
                     success=False,
                     error=self.i18n.get_message('errors.plugin_not_found'),
-                    exit_code=self.constants.EXIT_PLUGIN_NOT_FOUND
+                    exit_code=self.constants.exit_plugin_not_found
                 )
 
             # Load router index for additional info
@@ -290,7 +290,7 @@ class PluginInfoCommand(Command):
             return CommandResult(
                 success=False,
                 error=f"Failed to get plugin info: {str(e)}",
-                exit_code=self.constants.EXIT_GENERAL_ERROR
+                exit_code=self.constants.exit_general_error
             )
 
 

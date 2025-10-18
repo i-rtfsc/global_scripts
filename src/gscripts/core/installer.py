@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Environment Installer for Global Scripts V6
+Environment Installer for Global Scripts
 Handles shell configuration generation and environment setup
-Similar to V5 design but adapted for V6 structure
 """
 
 import os
@@ -129,14 +128,14 @@ class EnvironmentInstaller:
 
         # Header with version branding
         shell_content = f"""#!/bin/bash
-# Global Scripts V6 Environment Configuration
+# Global Scripts Environment Configuration
 # Generated automatically - do not edit manually
 # Configuration source: {gs_root}
 
 # Global Scripts root directory
 export GS_ROOT="{gs_root}"
 
-# V6 Configuration Variables
+# Configuration Variables
 # Unified logging level (E/W/I/D/V/NANO). Default INFO unless user config overrides.
 export GS_LOGGING_LEVEL="INFO"
 export GS_PROMPT_THEME="minimalist"
@@ -288,8 +287,8 @@ elif [[ -n "$BASH_VERSION" ]]; then
     fi
 fi
 
-# Global Scripts V6 initialization complete
-echo "🚀 Global Scripts V6 loaded successfully!"
+# Global Scripts initialization complete
+echo "🚀 Global Scripts {version} loaded successfully!"
 echo "📍 Source: $GS_ROOT"
 echo "📦 {enabled_count} plugins enabled ({function_count} functions)"
 echo "💡 Use 'gs help' or 'gs plugin list' to get started"
@@ -333,7 +332,7 @@ echo "💡 Use 'gs help' or 'gs plugin list' to get started"
             plugin_commands[plugin_name] = list(plugin.get('functions', {}).keys())
         
         completion_script = f"""
-# Bash completion for Global Scripts V6
+# Bash completion for Global Scripts
 
 _gs_completion() {{
     local cur prev opts
@@ -377,7 +376,7 @@ complete -F _gs_completion gs
     def _build_zsh_completion(self, plugins: List[Dict]) -> str:
         """Build zsh completion script"""
         completion_script = """
-# Zsh completion for Global Scripts V6
+# Zsh completion for Global Scripts
 
 _gs() {
     local context state state_descr line

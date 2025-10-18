@@ -22,11 +22,6 @@ from ..utils.logging_utils import (
 
 # Module-level logger
 logger = get_logger(tag="CORE.CONFIG_MANAGER", name=__name__)
-
-# 向后兼容:保留旧的logger
-_compat_logger = logging.getLogger(__name__)
-    
-
     
 class ConfigChangeHandler:
     """配置文件变化监控处理器"""

@@ -1,0 +1,257 @@
+# Global Scripts Fish Completion - Dynamic router index support
+# Auto-generated - All data dynamically loaded from router index
+# Generated at: {{ timestamp }}
+
+# Router index path for dynamic lookup
+set -g _GS_ROUTER_INDEX "{{ router_index_path }}"
+set -g _GS_LANGUAGE "{{ language }}"
+
+# System commands (static)
+set -g _GS_SYSTEM_COMMANDS "help version plugin refresh status doctor parser"
+
+# Helper function to get the plugin name (second argument)
+function __fish_gs_plugin
+    set -l cmd (commandline -opc)
+    if test (count $cmd) -ge 2
+        echo $cmd[2]
+    end
+end
+
+# Helper function to get the subplugin name (third argument)
+function __fish_gs_subplugin
+    set -l cmd (commandline -opc)
+    if test (count $cmd) -ge 3
+        echo $cmd[3]
+    end
+end
+
+# Helper function to check if we're at a specific position
+function __fish_gs_needs_subplugin
+    set -l cmd (commandline -opc)
+    test (count $cmd) -eq 2
+end
+
+function __fish_gs_needs_function
+    set -l cmd (commandline -opc)
+    test (count $cmd) -eq 3
+end
+
+# Dynamic plugin completion - read from router index (Level 1)
+function __fish_gs_plugins
+    # Check if jq is available
+    if not command -q jq
+        return
+    end
+
+    # Get all plugin names
+    set -l plugins (jq -r ".plugins | keys[]" "$_GS_ROUTER_INDEX" 2>/dev/null)
+
+    for plugin in $plugins
+        # Get description
+        set -l desc (jq -r ".plugins[\"$plugin\"].description.$_GS_LANGUAGE // .plugins[\"$plugin\"].description.zh // .plugins[\"$plugin\"].description.en // \"\"" "$_GS_ROUTER_INDEX" 2>/dev/null)
+
+        if test -n "$desc"; and test "$desc" != "null"
+            echo -e "$plugin\t$desc"
+        else
+            echo "$plugin"
+        end
+    end
+end
+
+# Dynamic subplugin completion - read from router index (Level 2)
+function __fish_gs_subplugins
+    set -l plugin (__fish_gs_plugin)
+    if test -z "$plugin"
+        return
+    end
+
+    # Check if jq is available
+    if not command -q jq
+        return
+    end
+
+    # Get subplugins count
+    set -l count (jq -r ".plugins[\"$plugin\"].subplugins | length" "$_GS_ROUTER_INDEX" 2>/dev/null)
+
+    if test -n "$count"; and test "$count" != "null"; and test "$count" != "0"
+        # Plugin has subplugins, iterate and extract name and description
+        for i in (seq 0 (math $count - 1))
+            set -l name (jq -r ".plugins[\"$plugin\"].subplugins[$i].name" "$_GS_ROUTER_INDEX" 2>/dev/null)
+            set -l desc (jq -r ".plugins[\"$plugin\"].subplugins[$i].description.$_GS_LANGUAGE // .plugins[\"$plugin\"].subplugins[$i].description.zh // .plugins[\"$plugin\"].subplugins[$i].description.en // \"\"" "$_GS_ROUTER_INDEX" 2>/dev/null)
+
+            if test -n "$name"; and test "$name" != "null"
+                if test -n "$desc"; and test "$desc" != "null"
+                    echo -e "$name\t$desc"
+                else
+                    echo "$name"
+                end
+            end
+        end
+    else
+        # No subplugins, fallback to extracting first words from commands (like zsh version)
+        set -l commands (jq -r ".plugins[\"$plugin\"].commands | keys[]" "$_GS_ROUTER_INDEX" 2>/dev/null)
+
+        # Use associative array to track seen first words
+        set -l seen_words
+        for cmd in $commands
+            # Extract first word
+            set -l first_word (echo "$cmd" | awk '{print $1}')
+
+            # Skip if already seen
+            if contains -- "$first_word" $seen_words
+                continue
+            end
+            set -a seen_words "$first_word"
+
+            # Get description for this command
+            set -l desc (jq -r ".plugins[\"$plugin\"].commands[\"$cmd\"].description.$_GS_LANGUAGE // .plugins[\"$plugin\"].commands[\"$cmd\"].description.zh // .plugins[\"$plugin\"].commands[\"$cmd\"].description.en // \"\"" "$_GS_ROUTER_INDEX" 2>/dev/null)
+
+            if test -n "$desc"; and test "$desc" != "null"
+                echo -e "$first_word\t$desc"
+            else
+                echo "$first_word"
+            end
+        end
+    end
+end
+
+# Dynamic function completion - read from router index (Level 3+)
+function __fish_gs_functions
+    set -l plugin (__fish_gs_plugin)
+    set -l subplugin (__fish_gs_subplugin)
+
+    if test -z "$plugin"
+        return
+    end
+
+    # Check if jq is available
+    if not command -q jq
+        return
+    end
+
+    # Build command prefix
+    set -l cmd_prefix ""
+    if test -n "$subplugin"
+        set cmd_prefix "$subplugin "
+    end
+
+    # Get all commands that start with the prefix
+    set -l commands (jq -r ".plugins[\"$plugin\"].commands | keys[]" "$_GS_ROUTER_INDEX" 2>/dev/null | grep "^$cmd_prefix")
+
+    for cmd in $commands
+        # Extract the next word after prefix
+        set -l remaining (echo "$cmd" | sed "s/^$cmd_prefix//")
+        set -l next_word (echo "$remaining" | awk '{print $1}')
+
+        if test -n "$next_word"
+            # Get description
+            set -l desc (jq -r ".plugins[\"$plugin\"].commands[\"$cmd\"].description.$_GS_LANGUAGE // .plugins[\"$plugin\"].commands[\"$cmd\"].description.zh // .plugins[\"$plugin\"].commands[\"$cmd\"].description.en // \"\"" "$_GS_ROUTER_INDEX" 2>/dev/null)
+
+            if test -n "$desc"; and test "$desc" != "null"
+                echo -e "$next_word\t$desc"
+            else
+                echo "$next_word"
+            end
+        end
+    end | sort -u
+end
+
+# Helper to check if we need plugin name completion (for plugin info/enable/disable)
+function __fish_gs_needs_plugin_name
+    set -l cmd (commandline -opc)
+    test (count $cmd) -eq 3; and contains -- $cmd[2] plugin
+end
+
+# Helper to check if we need parameter completion (Level 4+)
+function __fish_gs_needs_parameter
+    set -l cmd (commandline -opc)
+    set -l count (count $cmd)
+    # Check if we're at level 4 or higher
+    test $count -ge 4
+end
+
+# Dynamic parameter completion - read completions from router index (Level 4+)
+function __fish_gs_parameter_completions
+    set -l cmd (commandline -opc)
+    set -l plugin $cmd[2]
+    set -l count (count $cmd)
+
+    # Build command path from arguments
+    set -l cmd_path ""
+    if test $count -eq 4
+        # gs plugin subplugin function [param]
+        set cmd_path "$cmd[3] $cmd[4]"
+    else if test $count -ge 5
+        # More complex path
+        set cmd_path (string join ' ' $cmd[3..-2])
+    end
+
+    # Get completions for this command from router index
+    set -l completions (jq -r ".plugins[\"$plugin\"].commands[\"$cmd_path\"].completions[]?" "$_GS_ROUTER_INDEX" 2>/dev/null)
+
+    if test -n "$completions"
+        for item in $completions
+            echo $item
+        end
+    end
+end
+
+# Helper function to get parser names
+function __fish_gs_parsers
+    # Run gs parser list and extract parser names from the table
+    gs parser list 2>/dev/null | grep -E '│.*│.*│.*│.*│' | grep -v '^┌' | grep -v '^├' | grep -v '^└' | grep -v 'Name' | awk -F'│' '{gsub(/^[ \t]+|[ \t]+$/, "", $2); print $2}'
+end
+
+# Helper to check if we need parser name completion (for parser info/enable/disable)
+function __fish_gs_needs_parser_name
+    set -l cmd (commandline -opc)
+    # Check if we're at position 4: gs parser <subcommand> [parser_name]
+    # and the subcommand is one that needs a parser name
+    if test (count $cmd) -eq 3
+        if test "$cmd[2]" = "parser"
+            if contains -- "$cmd[3]" info enable disable
+                return 0
+            end
+        end
+    end
+    return 1
+end
+
+# Main gs command completion
+complete -c gs -f -n "__fish_use_subcommand" -a "help" -d "{{ help_desc }}"
+complete -c gs -f -n "__fish_use_subcommand" -a "version" -d "{{ version_desc }}"
+complete -c gs -f -n "__fish_use_subcommand" -a "plugin" -d "{{ plugin_desc }}"
+complete -c gs -f -n "__fish_use_subcommand" -a "refresh" -d "{{ refresh_desc }}"
+complete -c gs -f -n "__fish_use_subcommand" -a "status" -d "{{ status_desc }}"
+complete -c gs -f -n "__fish_use_subcommand" -a "doctor" -d "{{ doctor_desc }}"
+complete -c gs -f -n "__fish_use_subcommand" -a "parser" -d "{{ parser_desc }}"
+complete -c gs -f -n "__fish_use_subcommand" -a "(__fish_gs_plugins)"
+
+# Plugin name completion for info/enable/disable commands
+complete -c gs -f -n "__fish_gs_needs_plugin_name" -a "(__fish_gs_plugins)"
+
+# Parser name completion for info/enable/disable commands
+complete -c gs -f -n "__fish_gs_needs_parser_name" -a "(__fish_gs_parsers)"
+
+# Dynamic subplugin completions (Level 2)
+complete -c gs -f -n "__fish_gs_needs_subplugin" -a "(__fish_gs_subplugins)"
+
+# Dynamic parameter completions (Level 4+) - Check this BEFORE Level 3!
+complete -c gs -f -n "__fish_gs_needs_parameter" -a "(__fish_gs_parameter_completions)"
+
+# Dynamic function completions (Level 3)
+complete -c gs -f -n "__fish_gs_needs_function" -a "(__fish_gs_functions)"
+
+# Plugin subcommands
+complete -c gs -f -n "__fish_seen_subcommand_from plugin" -a "list" -d "List all plugins"
+complete -c gs -f -n "__fish_seen_subcommand_from plugin" -a "info" -d "Show plugin information"
+complete -c gs -f -n "__fish_seen_subcommand_from plugin" -a "enable" -d "Enable a plugin"
+complete -c gs -f -n "__fish_seen_subcommand_from plugin" -a "disable" -d "Disable a plugin"
+complete -c gs -f -n "__fish_seen_subcommand_from plugin" -a "create" -d "Create new plugin"
+
+# Parser subcommands
+complete -c gs -f -n "__fish_seen_subcommand_from parser; and not __fish_seen_subcommand_from list info enable disable test" -a "list" -d "List all parsers"
+complete -c gs -f -n "__fish_seen_subcommand_from parser; and not __fish_seen_subcommand_from list info enable disable test" -a "info" -d "Show parser information"
+complete -c gs -f -n "__fish_seen_subcommand_from parser; and not __fish_seen_subcommand_from list info enable disable test" -a "enable" -d "Enable a parser"
+complete -c gs -f -n "__fish_seen_subcommand_from parser; and not __fish_seen_subcommand_from list info enable disable test" -a "disable" -d "Disable a parser"
+complete -c gs -f -n "__fish_seen_subcommand_from parser; and not __fish_seen_subcommand_from list info enable disable test" -a "test" -d "Test file parsing"

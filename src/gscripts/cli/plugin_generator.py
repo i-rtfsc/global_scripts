@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Global Scripts Plugin Template Generator
-Creates plugin templates that match the current v6 data structure
+Creates plugin templates that match the current data structure
 """
 
 import sys
@@ -36,7 +36,7 @@ class PluginGenerator:
 
     def run(self):
         """Run the generator"""
-        print(f"\n{Color.BOLD}{Color.CYAN}🚀 Global Scripts v6 - Plugin Template Generator{Color.END}\n")
+        print(f"\n{Color.BOLD}{Color.CYAN}🚀 Global Scripts - Plugin Template Generator{Color.END}\n")
 
         # Get plugin name
         self.plugin_name = self._get_input("Plugin name (lowercase, e.g., 'myapp'): ")
@@ -134,7 +134,7 @@ class PluginGenerator:
             "name": self.plugin_name,
             "version": "1.0.0",
             "author": "Your Name",
-            "homepage": "https://github.com/yourname/global_scripts-v6",
+            "homepage": "https://github.com/yourname/global_scripts",
             "description": {
                 "zh": f"{self.plugin_name} 插件",
                 "en": f"{self.plugin_name} plugin"
@@ -333,7 +333,7 @@ class {subplugin.capitalize()}Subplugin(BasePlugin):
 
 ## Description
 
-{self.plugin_name} plugin for Global Scripts v6.
+{self.plugin_name} plugin for Global Scripts.
 
 ## Type
 

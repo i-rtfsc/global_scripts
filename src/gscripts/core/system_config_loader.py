@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 class ProjectConfig:
     """项目基本信息"""
     name: str = "Global Scripts"
-    version: str = "6.0.0"
+    version: str = "unknown"
     default_author: str = "Unknown"
 
 
@@ -126,41 +126,10 @@ class LanguageConfig:
 
 
 @dataclass
-class CommandAliasConfig:
-    """命令别名配置"""
-    aliases: List[str] = field(default_factory=list)
-
-
-@dataclass
-class SystemCommandsConfig:
-    """系统命令配置"""
-    help: CommandAliasConfig = field(default_factory=CommandAliasConfig)
-    version: CommandAliasConfig = field(default_factory=CommandAliasConfig)
-    plugin: CommandAliasConfig = field(default_factory=CommandAliasConfig)
-    status: CommandAliasConfig = field(default_factory=CommandAliasConfig)
-    update: CommandAliasConfig = field(default_factory=CommandAliasConfig)
-    refresh: CommandAliasConfig = field(default_factory=CommandAliasConfig)
-    doctor: CommandAliasConfig = field(default_factory=CommandAliasConfig)
-
-
-@dataclass
-class PluginManagementCommandsConfig:
-    """插件管理命令配置"""
-    list: CommandAliasConfig = field(default_factory=CommandAliasConfig)
-    info: CommandAliasConfig = field(default_factory=CommandAliasConfig)
-    enable: CommandAliasConfig = field(default_factory=CommandAliasConfig)
-    disable: CommandAliasConfig = field(default_factory=CommandAliasConfig)
-    reload: CommandAliasConfig = field(default_factory=CommandAliasConfig)
-    install: CommandAliasConfig = field(default_factory=CommandAliasConfig)
-    uninstall: CommandAliasConfig = field(default_factory=CommandAliasConfig)
-    create: CommandAliasConfig = field(default_factory=CommandAliasConfig)
-
-
-@dataclass
 class CommandsConfig:
-    """命令配置"""
-    system: SystemCommandsConfig = field(default_factory=SystemCommandsConfig)
-    plugin_management: PluginManagementCommandsConfig = field(default_factory=PluginManagementCommandsConfig)
+    """命令配置 - 仅列出命令名称"""
+    system: List[str] = field(default_factory=list)
+    plugin_management: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -203,8 +172,10 @@ class ExitCodesConfig:
     success: int = 0
     general_error: int = 1
     misuse: int = 2
+    invalid_arguments: int = 2  # 参数错误（与 misuse 相同）
     execution_error: int = 126
     command_not_found: int = 127
+    plugin_not_found: int = 128  # 插件未找到
     timeout: int = 124
     interrupted: int = 130
     security_violation: int = 125
@@ -262,7 +233,7 @@ class NetworkConfig:
     request_timeout: int = 30
     max_retry_attempts: int = 3
     retry_delay: int = 1
-    user_agent: str = "Global-Scripts/6.0.0"
+    user_agent: str = "Global-Scripts/unknown"  # Will be set dynamically from VERSION
 
 
 @dataclass
@@ -335,15 +306,19 @@ class SystemConfigLoader:
         初始化配置加载器
 
         Args:
-            config_path: 配置文件路径，默认为 config/system_config.yaml
+            config_path: 配置文件路径，默认为 src/gscripts/resources/config/system_config.yaml
         """
         if config_path is None:
-            # 默认配置文件路径
-            current_dir = Path(__file__).parent.parent.parent.parent
-            config_path = current_dir / "config" / "system_config.yaml"
+            # 默认配置文件路径：src/gscripts/resources/config/system_config.yaml
+            # current: src/gscripts/core/system_config_loader.py
+            # parent: src/gscripts/core/
+            # parent.parent: src/gscripts/
+            current_dir = Path(__file__).parent
+            config_path = current_dir.parent / "resources" / "config" / "system_config.yaml"
 
         self.config_path = config_path
         self._config: Optional[SystemConfig] = None
+        self._version: Optional[str] = None
 
     def load(self) -> SystemConfig:
         """
@@ -436,11 +411,14 @@ class SystemConfigLoader:
 
     def _parse_project(self, data: Dict) -> ProjectConfig:
         # 从 VERSION 文件读取版本号（优先于配置文件）
-        version_file = self.config_path.parent.parent / "VERSION"
+        # 查找项目根目录的 VERSION 文件
+        # config_path: src/gscripts/resources/config/system_config.yaml
+        # We need to go up 5 levels to reach project root
+        version_file = self.config_path.parent.parent.parent.parent.parent / "VERSION"
         if version_file.exists():
             try:
-                version = version_file.read_text().strip()
-                data = {**data, 'version': version}  # 覆盖配置文件中的版本
+                self._version = version_file.read_text().strip()
+                data = {**data, 'version': self._version}  # 覆盖配置文件中的版本
             except Exception:
                 pass  # 如果读取失败，使用配置文件中的版本
         return ProjectConfig(**data)
@@ -488,21 +466,10 @@ class SystemConfigLoader:
         return LanguageConfig(**data)
 
     def _parse_commands(self, data: Dict) -> CommandsConfig:
-        config = CommandsConfig()
-
-        if 'system' in data:
-            system_cmds = {}
-            for key, value in data['system'].items():
-                system_cmds[key] = CommandAliasConfig(**value)
-            config.system = SystemCommandsConfig(**system_cmds)
-
-        if 'plugin_management' in data:
-            plugin_cmds = {}
-            for key, value in data['plugin_management'].items():
-                plugin_cmds[key] = CommandAliasConfig(**value)
-            config.plugin_management = PluginManagementCommandsConfig(**plugin_cmds)
-
-        return config
+        return CommandsConfig(
+            system=data.get('system', []),
+            plugin_management=data.get('plugin_management', [])
+        )
 
     def _parse_cache(self, data: Dict) -> CacheConfig:
         return CacheConfig(**data)
@@ -528,6 +495,9 @@ class SystemConfigLoader:
         return config
 
     def _parse_network(self, data: Dict) -> NetworkConfig:
+        # 动态生成 user_agent（覆盖配置文件中的值）
+        if self._version:
+            data = {**data, 'user_agent': f"Global-Scripts/{self._version}"}
         return NetworkConfig(**data)
 
     def _parse_shell(self, data: Dict) -> ShellConfig:

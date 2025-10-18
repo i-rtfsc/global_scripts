@@ -41,8 +41,8 @@ class CommandExecutor:
             default_timeout: 默认超时时间(秒)
         """
         self.constants = GlobalConstants()
-        self.max_concurrent = max_concurrent or self.constants.MAX_CONCURRENT_COMMANDS
-        self.default_timeout = default_timeout or self.constants.DEFAULT_TIMEOUT
+        self.max_concurrent = max_concurrent or self.constants.max_concurrent_commands
+        self.default_timeout = default_timeout or self.constants.default_timeout
         self.semaphore = asyncio.Semaphore(self.max_concurrent)
         self.i18n = get_i18n_manager()
 
@@ -50,11 +50,11 @@ class CommandExecutor:
         self.process_executor = get_process_executor()
 
         # 使用常量中的安全命令列表
-        self.allowed_commands = set(self.constants.SAFE_COMMANDS)
+        self.allowed_commands = set(self.constants.safe_commands)
 
         # 使用常量中的危险命令和模式
-        self.dangerous_commands = set(self.constants.DANGEROUS_COMMANDS)
-        self.dangerous_patterns = self.constants.FORBIDDEN_PATTERNS
+        self.dangerous_commands = set(self.constants.dangerous_commands)
+        self.dangerous_patterns = self.constants.forbidden_patterns
 
     async def execute(
         self,
@@ -106,7 +106,7 @@ class CommandExecutor:
                 return CommandResult(
                     success=False,
                     error=self.i18n.get_message('errors.command_not_safe', reason=security_msg),
-                    exit_code=self.constants.EXIT_SECURITY_VIOLATION
+                    exit_code=self.constants.exit_security_violation
                 )
 
         # 并发控制
@@ -146,7 +146,7 @@ class CommandExecutor:
                 return CommandResult(
                     success=False,
                     error=f"执行失败: {format_exception(e)}",
-                    exit_code=self.constants.EXIT_EXECUTION_ERROR
+                    exit_code=self.constants.exit_execution_error
                 )
 
     def _build_command(
@@ -189,8 +189,8 @@ class CommandExecutor:
 
         # 检查命令长度
         cmd_str = ' '.join(command)
-        if len(cmd_str) > self.constants.MAX_COMMAND_LENGTH:
-            return False, f"命令过长 (>{self.constants.MAX_COMMAND_LENGTH}字符)"
+        if len(cmd_str) > self.constants.max_command_length:
+            return False, f"命令过长 (>{self.constants.max_command_length}字符)"
 
         # 获取基础命令
         base_command = command[0].split('/')[-1]  # 去掉路径
@@ -240,7 +240,7 @@ class CommandExecutor:
                     'errors.command_not_allowed',
                     command=base_cmd
                 ),
-                exit_code=self.constants.EXIT_SECURITY_VIOLATION
+                exit_code=self.constants.exit_security_violation
             )
 
         return await self.execute(command, args, **kwargs)

@@ -120,10 +120,10 @@ end
 # ============================================
 # Ripgrep Integration (Better grep)
 # ============================================
-if command -v rg >/dev/null
-    set -gx RIPGREP_CONFIG_PATH $HOME/.ripgreprc
-    abbr -a -g grep 'rg'
-end
+# if command -v rg >/dev/null
+#     set -gx RIPGREP_CONFIG_PATH $HOME/.ripgreprc
+#     abbr -a -g grep 'rg'
+# end
 
 # ============================================
 # Delta Integration (Better git diff)

@@ -38,15 +38,15 @@ def configure_services(
     # Set default paths if not provided
     if plugins_dir is None:
         from ..core.constants import GlobalConstants
-        plugins_dir = GlobalConstants.PLUGINS_DIR
+        plugins_dir = GlobalConstants.get_plugins_dir()
 
     if config_path is None:
         from ..core.constants import GlobalConstants
-        config_path = GlobalConstants.CONFIG_FILE
+        config_path = GlobalConstants.get_main_config_path()
 
     if router_cache_path is None:
         from ..core.constants import GlobalConstants
-        router_cache_path = GlobalConstants.GS_HOME / 'cache' / 'router.json'
+        router_cache_path = GlobalConstants.gs_home / 'cache' / 'router.json'
 
     if use_mocks:
         # 测试环境：使用模拟实现

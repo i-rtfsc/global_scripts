@@ -238,7 +238,7 @@ class OutputFormatter:
     def format_help_usage(self) -> str:
         """格式化帮助用法"""
         title = self.formatter.format_title(
-            f"{self.constants.PROJECT_NAME} {self.i18n.get_message('commands.help')}"
+            f"{self.constants.project_name} {self.i18n.get_message('commands.help')}"
         )
         
         # 使用i18n获取表格头部（两列：命令、描述）
@@ -332,7 +332,7 @@ class OutputFormatter:
             from pathlib import Path
             version_file = Path(__file__).parent.parent.parent.parent / "VERSION"
             version = version_file.read_text().strip() if version_file.exists() else "unknown"
-        print(f"{self.constants.PROJECT_NAME} v{version}")
+        print(f"{self.constants.project_name} v{version}")
     
     def print_plugin_list(self, enabled_plugins: List[Dict], disabled_plugins: List[Dict] = None):
         """打印插件列表"""

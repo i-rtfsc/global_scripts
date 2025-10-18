@@ -84,7 +84,7 @@ class CommandHandler:
                 return await self._execute_system_command(command, args[1:])
 
             # 2. 尝试作为插件命令 (plugin subcommand)
-            if command in self.constants.SYSTEM_COMMANDS.get('plugin', ['plugin']):
+            if command == 'plugin':
                 logger.debug(f"cid={cid} route=plugin_subcommand args={args[1:]}")
                 return await self._handle_plugin_subcommand(args[1:])
 
@@ -113,7 +113,7 @@ class CommandHandler:
             return CommandResult(
                 success=False,
                 error=f"Unknown command: {command}",
-                exit_code=self.constants.EXIT_COMMAND_NOT_FOUND
+                exit_code=self.constants.exit_command_not_found
             )
 
         return await cmd.execute(args)
@@ -149,7 +149,7 @@ class CommandHandler:
         return CommandResult(
             success=False,
             error=self.i18n.get_message('errors.unknown_plugin_command', command=subcommand),
-            exit_code=self.constants.EXIT_COMMAND_NOT_FOUND
+            exit_code=self.constants.exit_command_not_found
         )
 
     async def _try_execute_plugin_function(self, args: List[str]) -> Optional[CommandResult]:
@@ -235,5 +235,5 @@ class CommandHandler:
         return CommandResult(
             success=False,
             error=self.i18n.get_message('errors.command_not_found', command=command),
-            exit_code=self.constants.EXIT_COMMAND_NOT_FOUND
+            exit_code=self.constants.exit_command_not_found
         )

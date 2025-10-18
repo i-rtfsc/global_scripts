@@ -63,284 +63,266 @@ class GlobalConstants(metaclass=SingletonMeta):
 
     # ============= 项目基础信息 =============
     @property
-    def PROJECT_NAME(self) -> str:
+    def project_name(self) -> str:
         return self._system_config.project.name
 
     @property
-    def PROJECT_VERSION(self) -> str:
+    def project_version(self) -> str:
         return self._system_config.project.version
 
     @property
-    def DEFAULT_AUTHOR(self) -> str:
+    def default_author(self) -> str:
         return self._system_config.project.default_author
 
     # ============= 目录路径常量 =============
     @property
-    def GS_HOME(self) -> Path:
+    def gs_home(self) -> Path:
         return self.HOME_DIR / self._system_config.paths.gs_home
 
     @property
-    def GS_CONFIG_DIR(self) -> Path:
-        return self.GS_HOME / self._system_config.paths.config_dir
+    def gs_config_dir(self) -> Path:
+        return self.gs_home / self._system_config.paths.config_dir
 
     @property
-    def GS_PLUGINS_DIR(self) -> Path:
+    def gs_plugins_dir(self) -> Path:
         return self.CURRENT_DIR  # 当前插件工程的根目录
 
     @property
-    def GS_CACHE_DIR(self) -> Path:
-        return self.GS_HOME / self._system_config.paths.cache_dir
+    def gs_cache_dir(self) -> Path:
+        return self.gs_home / self._system_config.paths.cache_dir
 
     @property
-    def GS_LOGS_DIR(self) -> Path:
-        return self.GS_HOME / self._system_config.paths.logs_dir
+    def gs_logs_dir(self) -> Path:
+        return self.gs_home / self._system_config.paths.logs_dir
 
     @property
-    def GS_TEMP_DIR(self) -> Path:
-        return self.GS_HOME / self._system_config.paths.temp_dir
+    def gs_temp_dir(self) -> Path:
+        return self.gs_home / self._system_config.paths.temp_dir
 
     @property
-    def GS_LOG_FILE(self) -> Path:
-        return self.GS_LOGS_DIR / self._system_config.files.log_file
+    def gs_log_file(self) -> Path:
+        return self.gs_logs_dir / self._system_config.files.log_file
 
     @property
-    def MAX_LOG_FILE_SIZE(self) -> int:
+    def max_log_file_size(self) -> int:
         return self._system_config.logging.max_file_size
 
     @property
-    def PROJECT_CONFIG_DIR(self) -> Path:
+    def project_config_dir(self) -> Path:
         return self.CURRENT_DIR / self._system_config.paths.config_dir
 
     @property
-    def PROJECT_I18N_FILE(self) -> Path:
-        return self.PROJECT_CONFIG_DIR / self._system_config.files.i18n_config
+    def project_i18n_file(self) -> Path:
+        return self.project_config_dir / self._system_config.files.i18n_config
 
     @property
-    def PROJECT_MAIN_CONFIG(self) -> Path:
-        return self.PROJECT_CONFIG_DIR / self._system_config.files.main_config
+    def project_main_config(self) -> Path:
+        return self.project_config_dir / self._system_config.files.main_config
 
     # ============= 文件和目录名称 =============
     @property
-    def DEFAULT_CONFIG_DIR(self) -> str:
+    def default_config_dir(self) -> str:
         return self._system_config.paths.config_dir
 
     @property
-    def DEFAULT_PLUGINS_DIR(self) -> str:
+    def default_plugins_dir(self) -> str:
         return self._system_config.paths.plugins_dir
 
     @property
-    def DEFAULT_TEMPLATES_DIR(self) -> str:
+    def default_templates_dir(self) -> str:
         return self._system_config.paths.templates_dir
 
     @property
-    def DEFAULT_CACHE_DIR(self) -> str:
+    def default_cache_dir(self) -> str:
         return self._system_config.paths.cache_dir
 
     @property
-    def DEFAULT_LOG_DIR(self) -> str:
+    def default_log_dir(self) -> str:
         return self._system_config.paths.logs_dir
 
     # ============= 配置文件名 =============
     @property
-    def MAIN_CONFIG_FILE(self) -> str:
+    def main_config_file(self) -> str:
         return self._system_config.files.main_config
 
     @property
-    def I18N_CONFIG_FILE(self) -> str:
+    def i18n_config_file(self) -> str:
         return self._system_config.files.i18n_config
 
     @property
-    def PLUGIN_SCHEMA_FILE(self) -> str:
+    def plugin_schema_file(self) -> str:
         return self._system_config.files.plugin_schema
 
     @property
-    def PLUGIN_TEMPLATE_FILE(self) -> str:
+    def plugin_template_file(self) -> str:
         return self._system_config.files.plugin_template
 
     @property
-    def PLUGIN_JSON_FILE(self) -> str:
+    def plugin_json_file(self) -> str:
         return self._system_config.files.plugin_json
 
     @property
-    def PLUGIN_PY_FILE(self) -> str:
+    def plugin_py_file(self) -> str:
         return self._system_config.files.plugin_py
 
     @property
-    def PLUGIN_SH_FILE(self) -> str:
+    def plugin_sh_file(self) -> str:
         return self._system_config.files.plugin_sh
 
     # ============= 插件相关 =============
     @property
-    def PLUGIN_TYPES(self) -> Dict[str, str]:
+    def plugin_types(self) -> Dict[str, str]:
         return self._system_config.plugins.supported_types
 
     # ============= 命令执行相关 =============
     @property
-    def DEFAULT_TIMEOUT(self) -> int:
+    def default_timeout(self) -> int:
         return self._system_config.execution.timeouts.default
 
     @property
-    def LONG_TIMEOUT(self) -> int:
+    def long_timeout(self) -> int:
         return self._system_config.execution.timeouts.long
 
     @property
-    def SHORT_TIMEOUT(self) -> int:
+    def short_timeout(self) -> int:
         return self._system_config.execution.timeouts.short
 
     @property
-    def MAX_OUTPUT_SIZE(self) -> int:
+    def max_output_size(self) -> int:
         return self._system_config.execution.limits.max_output_size
 
     @property
-    def MAX_CONCURRENT_COMMANDS(self) -> int:
+    def max_concurrent_commands(self) -> int:
         return self._system_config.execution.limits.max_concurrent
 
     # ============= 安全命令列表 =============
     @property
-    def SAFE_COMMANDS(self) -> List[str]:
+    def safe_commands(self) -> List[str]:
         return self._system_config.execution.safe_commands.get_all()
 
     @property
-    def DANGEROUS_COMMANDS(self) -> List[str]:
+    def dangerous_commands(self) -> List[str]:
         return self._system_config.execution.dangerous_commands
 
     # ============= 语言相关 =============
     @property
-    def DEFAULT_LANGUAGE(self) -> str:
+    def default_language(self) -> str:
         return self._system_config.language.default
 
     @property
-    def SUPPORTED_LANGUAGES(self) -> List[str]:
+    def supported_languages(self) -> List[str]:
         return self._system_config.language.supported
-
-    # ============= 系统命令 =============
-    @property
-    def SYSTEM_COMMANDS(self) -> Dict[str, List[str]]:
-        return {
-            'help': self._system_config.commands.system.help.aliases,
-            'version': self._system_config.commands.system.version.aliases,
-            'plugin': self._system_config.commands.system.plugin.aliases,
-            'status': self._system_config.commands.system.status.aliases,
-            'update': self._system_config.commands.system.update.aliases,
-            'refresh': self._system_config.commands.system.refresh.aliases,
-            'doctor': self._system_config.commands.system.doctor.aliases
-        }
-
-    @property
-    def PLUGIN_COMMANDS(self) -> Dict[str, List[str]]:
-        return {
-            'list': self._system_config.commands.plugin_management.list.aliases,
-            'info': self._system_config.commands.plugin_management.info.aliases,
-            'enable': self._system_config.commands.plugin_management.enable.aliases,
-            'disable': self._system_config.commands.plugin_management.disable.aliases,
-            'reload': self._system_config.commands.plugin_management.reload.aliases,
-            'install': self._system_config.commands.plugin_management.install.aliases,
-            'uninstall': self._system_config.commands.plugin_management.uninstall.aliases,
-            'create': self._system_config.commands.plugin_management.create.aliases
-        }
 
     # ============= 缓存相关 =============
     @property
-    def DEFAULT_CACHE_TTL(self) -> int:
+    def default_cache_ttl(self) -> int:
         return self._system_config.cache.default_ttl
 
     @property
-    def MAX_CACHE_SIZE(self) -> int:
+    def max_cache_size(self) -> int:
         return self._system_config.cache.max_entries
 
     # ============= 安全相关 =============
     @property
-    def MAX_COMMAND_LENGTH(self) -> int:
+    def max_command_length(self) -> int:
         return self._system_config.execution.limits.max_command_length
 
     @property
-    def FORBIDDEN_PATTERNS(self) -> List[str]:
+    def forbidden_patterns(self) -> List[str]:
         return self._system_config.execution.forbidden_patterns
 
     # ============= 状态常量 =============
     @property
-    def STATUS_ENABLED(self) -> str:
+    def status_enabled(self) -> str:
         return self._system_config.status.enabled
 
     @property
-    def STATUS_DISABLED(self) -> str:
+    def status_disabled(self) -> str:
         return self._system_config.status.disabled
 
     @property
-    def STATUS_ERROR(self) -> str:
+    def status_error(self) -> str:
         return self._system_config.status.error
 
     @property
-    def STATUS_LOADING(self) -> str:
+    def status_loading(self) -> str:
         return self._system_config.status.loading
 
     # ============= 退出码 =============
     @property
-    def EXIT_SUCCESS(self) -> int:
+    def exit_success(self) -> int:
         return self._system_config.exit_codes.success
 
     @property
-    def EXIT_GENERAL_ERROR(self) -> int:
+    def exit_general_error(self) -> int:
         return self._system_config.exit_codes.general_error
 
     @property
-    def EXIT_MISUSE(self) -> int:
+    def exit_misuse(self) -> int:
         return self._system_config.exit_codes.misuse
 
     @property
-    def EXIT_EXECUTION_ERROR(self) -> int:
+    def exit_invalid_arguments(self) -> int:
+        return self._system_config.exit_codes.invalid_arguments
+
+    @property
+    def exit_execution_error(self) -> int:
         return self._system_config.exit_codes.execution_error
 
     @property
-    def EXIT_COMMAND_NOT_FOUND(self) -> int:
+    def exit_command_not_found(self) -> int:
         return self._system_config.exit_codes.command_not_found
 
     @property
-    def EXIT_TIMEOUT(self) -> int:
+    def exit_plugin_not_found(self) -> int:
+        return self._system_config.exit_codes.plugin_not_found
+
+    @property
+    def exit_timeout(self) -> int:
         return self._system_config.exit_codes.timeout
 
     @property
-    def EXIT_INTERRUPTED(self) -> int:
+    def exit_interrupted(self) -> int:
         return self._system_config.exit_codes.interrupted
 
     @property
-    def EXIT_SECURITY_VIOLATION(self) -> int:
+    def exit_security_violation(self) -> int:
         return self._system_config.exit_codes.security_violation
 
     # ============= 日志级别 =============
     @property
-    def LOG_LEVELS(self) -> Dict[str, int]:
+    def log_levels(self) -> Dict[str, int]:
         return self._system_config.logging.levels
 
     @property
-    def LOG_LEVEL_ALIAS(self) -> Dict[str, str]:
+    def log_level_alias(self) -> Dict[str, str]:
         return self._system_config.logging.level_aliases
 
     # ============= 插件优先级 =============
     @property
-    def DEFAULT_PLUGIN_PRIORITY(self) -> int:
+    def default_plugin_priority(self) -> int:
         return self._system_config.plugins.priority['default']
 
     @property
-    def MIN_PLUGIN_PRIORITY(self) -> int:
+    def min_plugin_priority(self) -> int:
         return self._system_config.plugins.priority['min']
 
     @property
-    def MAX_PLUGIN_PRIORITY(self) -> int:
+    def max_plugin_priority(self) -> int:
         return self._system_config.plugins.priority['max']
 
     # ============= 网络相关 =============
     @property
-    def DEFAULT_REQUEST_TIMEOUT(self) -> int:
+    def default_request_timeout(self) -> int:
         return self._system_config.network.request_timeout
 
     @property
-    def MAX_RETRY_ATTEMPTS(self) -> int:
+    def max_retry_attempts(self) -> int:
         return self._system_config.network.max_retry_attempts
 
     # ============= 颜色输出相关 =============
     @property
-    def COLORS(self) -> Dict[str, str]:
+    def colors(self) -> Dict[str, str]:
         colors = self._system_config.ui.colors
         return {
             'RED': colors.red,
@@ -357,11 +339,11 @@ class GlobalConstants(metaclass=SingletonMeta):
 
     # ============= Shell相关 =============
     @property
-    def ENV_SH_FILE_NAME(self) -> str:
+    def env_sh_file_name(self) -> str:
         return self._system_config.files.env_sh
 
     @property
-    def SHELL_RELOAD_ALIAS(self) -> str:
+    def shell_reload_alias(self) -> str:
         return self._system_config.shell.reload_alias
 
     # ============= 类方法（保持向后兼容） =============
@@ -389,7 +371,7 @@ class GlobalConstants(metaclass=SingletonMeta):
             raw = cfg.get('logging_level')
         if raw:
             raw_upper = str(raw).upper().strip()
-            mapped = self.LOG_LEVEL_ALIAS.get(raw_upper, raw_upper)
+            mapped = self.log_level_alias.get(raw_upper, raw_upper)
             if mapped == 'NONE':
                 return 1000
             if mapped == 'VERBOSE':
@@ -414,11 +396,11 @@ class GlobalConstants(metaclass=SingletonMeta):
     def get_config_dir(cls) -> Path:
         """获取配置目录路径 - 优先级：~/.config/global-scripts/config > 当前工程/config"""
         instance = cls() if not hasattr(cls, '_instance') else cls._instance
-        user_config_dir = instance.GS_HOME / instance._system_config.paths.config_dir
-        project_config_dir = instance.PROJECT_CONFIG_DIR
+        user_config_dir = instance.gs_home / instance._system_config.paths.config_dir
+        project_config_dir = instance.project_config_dir
 
         # 检查用户配置目录下是否有配置文件
-        user_config_file = user_config_dir / instance.MAIN_CONFIG_FILE
+        user_config_file = user_config_dir / instance.main_config_file
         if user_config_file.exists():
             return user_config_dir
 
@@ -429,19 +411,19 @@ class GlobalConstants(metaclass=SingletonMeta):
     def get_plugins_dir(cls) -> Path:
         """获取插件目录路径 - 当前插件工程的根目录"""
         instance = cls() if not hasattr(cls, '_instance') else cls._instance
-        return instance.GS_PLUGINS_DIR
+        return instance.gs_plugins_dir
 
     @classmethod
     def get_cache_dir(cls) -> Path:
         """获取缓存目录路径 - ~/.config/global-scripts/cache"""
         instance = cls() if not hasattr(cls, '_instance') else cls._instance
-        return instance.GS_CACHE_DIR
+        return instance.gs_cache_dir
 
     @classmethod
     def get_language(cls) -> str:
         """获取当前语言设置 - 从配置读取，默认为en"""
         instance = cls() if not hasattr(cls, '_instance') else cls._instance
-        return os.environ.get('GS_LANGUAGE', instance.DEFAULT_LANGUAGE)
+        return os.environ.get('GS_LANGUAGE', instance.default_language)
 
     @classmethod
     def is_debug_mode(cls) -> bool:
@@ -452,14 +434,14 @@ class GlobalConstants(metaclass=SingletonMeta):
     def get_main_config_path(cls) -> Path:
         """获取主配置文件路径"""
         instance = cls() if not hasattr(cls, '_instance') else cls._instance
-        return cls.get_config_dir() / instance.MAIN_CONFIG_FILE
+        return cls.get_config_dir() / instance.main_config_file
 
     @classmethod
     def get_i18n_config_path(cls) -> Path:
         """获取国际化配置文件路径 - 优先级：~/.config/global-scripts/config > 当前工程/config"""
         instance = cls() if not hasattr(cls, '_instance') else cls._instance
-        user_i18n_file = instance.GS_HOME / instance._system_config.paths.config_dir / instance.I18N_CONFIG_FILE
-        project_i18n_file = instance.PROJECT_CONFIG_DIR / instance.I18N_CONFIG_FILE
+        user_i18n_file = instance.gs_home / instance._system_config.paths.config_dir / instance.i18n_config_file
+        project_i18n_file = instance.project_config_dir / instance.i18n_config_file
 
         # 检查用户配置目录下是否有i18n配置文件
         if user_i18n_file.exists():
@@ -472,17 +454,17 @@ class GlobalConstants(metaclass=SingletonMeta):
     def get_plugin_schema_path(cls) -> Path:
         """获取插件Schema文件路径"""
         instance = cls() if not hasattr(cls, '_instance') else cls._instance
-        return instance.CURRENT_DIR / instance._system_config.paths.schemas_dir / instance.PLUGIN_SCHEMA_FILE
+        return instance.CURRENT_DIR / instance._system_config.paths.schemas_dir / instance.plugin_schema_file
 
     @classmethod
     def validate_command_safety(cls, command: str) -> bool:
         """验证命令是否安全"""
         instance = cls() if not hasattr(cls, '_instance') else cls._instance
-        if len(command) > instance.MAX_COMMAND_LENGTH:
+        if len(command) > instance.max_command_length:
             return False
 
         command_lower = command.lower()
-        for pattern in instance.FORBIDDEN_PATTERNS:
+        for pattern in instance.forbidden_patterns:
             if pattern in command_lower:
                 return False
 

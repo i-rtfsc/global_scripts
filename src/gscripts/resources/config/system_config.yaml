@@ -1,30 +1,30 @@
 # Global Scripts System Configuration
-# This file contains system-level configurations that were previously hardcoded
-# Version: 6.0.0
+# 系统级配置文件 - 只包含实际使用的配置项
+# 版本号从 VERSION 文件动态加载
 
-# ============= Project Information =============
+# ============= 项目信息 =============
 project:
   name: "Global Scripts"
-  version: "6.0.0"
   default_author: "Unknown"
+  # version: 动态从 VERSION 文件加载
 
-# ============= Directory Paths =============
+# ============= 目录路径 =============
 paths:
-  # User-level directories (relative to ~/.config/global-scripts)
+  # 用户级目录 (相对于 ~/.config/global-scripts)
   gs_home: ".config/global-scripts"
   config_dir: "config"
   cache_dir: "cache"
   logs_dir: "logs"
   temp_dir: "tmp"
 
-  # Project-level directories (relative to project root)
+  # 项目级目录 (相对于项目根目录)
   plugins_dir: "plugins"
   custom_dir: "custom"
   templates_dir: "templates"
   schemas_dir: "schemas"
   themes_dir: "themes"
 
-# ============= File Names =============
+# ============= 文件名配置 =============
 files:
   main_config: "gs.json"
   i18n_config: "i18n.json"
@@ -38,7 +38,7 @@ files:
   log_file: "gs.log"
   router_index: "router.json"
 
-# ============= Plugin Configuration =============
+# ============= 插件配置 =============
 plugins:
   supported_types:
     python: "Python"
@@ -52,21 +52,23 @@ plugins:
     min: 1
     max: 100
 
-# ============= Command Execution =============
+# ============= 命令执行配置 =============
 execution:
+  # 超时配置 (秒)
   timeouts:
-    default: 30      # seconds
+    default: 30
     short: 10
     long: 300
 
+  # 执行限制
   limits:
-    max_output_size: 1048576  # 1MB in bytes
+    max_output_size: 1048576  # 1MB
     max_concurrent: 10
     max_command_length: 1000
 
-  # Safe commands whitelist
+  # 安全命令白名单
   safe_commands:
-    # File system operations
+    # 文件系统操作
     filesystem:
       - ls
       - dir
@@ -92,7 +94,7 @@ execution:
       - basename
       - dirname
 
-    # System information
+    # 系统信息
     system:
       - ps
       - top
@@ -112,7 +114,7 @@ execution:
       - hostname
       - echo
 
-    # Network tools
+    # 网络工具
     network:
       - ping
       - curl
@@ -122,13 +124,13 @@ execution:
       - dig
       - host
 
-    # Version control
+    # 版本控制
     vcs:
       - git
       - svn
       - hg
 
-    # Development tools
+    # 开发工具
     development:
       - python
       - python3
@@ -143,7 +145,7 @@ execution:
       - make
       - cmake
 
-    # Container tools
+    # 容器工具
     containers:
       - docker
       - docker-compose
@@ -151,12 +153,12 @@ execution:
       - kubectl
       - helm
 
-    # Mobile tools
+    # 移动开发工具
     mobile:
       - adb
       - fastboot
 
-    # Compression tools
+    # 压缩工具
     compression:
       - tar
       - gzip
@@ -165,7 +167,7 @@ execution:
       - unzip
       - 7z
 
-  # Dangerous commands blacklist
+  # 危险命令黑名单
   dangerous_commands:
     - rm
     - rmdir
@@ -185,7 +187,7 @@ execution:
     - sudo
     - su
 
-  # Forbidden command patterns
+  # 禁止的命令模式
   forbidden_patterns:
     - "rm -rf /"
     - "format"
@@ -195,97 +197,51 @@ execution:
     - "chmod 777"
     - "chown root"
 
-# ============= Language Configuration =============
+# ============= 语言配置 =============
 language:
   default: "en"
   supported:
     - en
     - zh
 
-# ============= System Commands =============
+# ============= 系统命令配置 =============
 commands:
+  # 系统级命令 (无别名)
   system:
-    help:
-      aliases:
-        - help
-        - --help
-        - -h
-    version:
-      aliases:
-        - version
-        - --version
-        - -v
-    plugin:
-      aliases:
-        - plugin
-    status:
-      aliases:
-        - status
-        - st
-    update:
-      aliases:
-        - update
-        - up
-    refresh:
-      aliases:
-        - refresh
-    doctor:
-      aliases:
-        - doctor
+    - help
+    - version
+    - status
+    - refresh
+    - doctor
+    - parser
+    - plugin
 
+  # 插件管理命令
   plugin_management:
-    list:
-      aliases:
-        - list
-        - ls
-    info:
-      aliases:
-        - info
-        - show
-        - details
-    enable:
-      aliases:
-        - enable
-        - "on"
-    disable:
-      aliases:
-        - disable
-        - "off"
-    reload:
-      aliases:
-        - reload
-        - refresh
-    install:
-      aliases:
-        - install
-        - add
-    uninstall:
-      aliases:
-        - uninstall
-        - remove
-        - rm
-    create:
-      aliases:
-        - create
-        - new
+    - create
+    - disable
+    - enable
+    - info
+    - list
 
-# ============= Cache Configuration =============
+# ============= 缓存配置 =============
 cache:
-  default_ttl: 300        # 5 minutes in seconds
+  default_ttl: 300        # 5分钟 (秒)
   max_entries: 100
-  max_file_age: 3600      # 1 hour
 
-# ============= Logging Configuration =============
+# ============= 日志配置 =============
 logging:
+  # 日志级别
   levels:
     DEBUG: 10
     INFO: 20
     WARNING: 30
     ERROR: 40
     CRITICAL: 50
-    VERBOSE: 15          # Custom level between DEBUG and INFO
-    NONE: 1000           # Disable logging
+    VERBOSE: 15          # 自定义级别，介于 DEBUG 和 INFO 之间
+    NONE: 1000           # 禁用日志
 
+  # 日志级别别名 (简写)
   level_aliases:
     E: "ERROR"
     W: "WARNING"
@@ -294,23 +250,26 @@ logging:
     V: "VERBOSE"
     NANO: "NONE"
 
-  max_file_size: 10485760  # 10MB in bytes
+  # 日志文件配置
+  max_file_size: 10485760  # 10MB
   backup_count: 3
   format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
   date_format: "%Y-%m-%d %H:%M:%S"
 
-# ============= Exit Codes =============
+# ============= 退出码配置 =============
 exit_codes:
   success: 0
   general_error: 1
   misuse: 2
+  invalid_arguments: 2     # 参数错误 (与 misuse 相同)
   execution_error: 126
   command_not_found: 127
+  plugin_not_found: 128    # 插件未找到
   timeout: 124
   interrupted: 130
   security_violation: 125
 
-# ============= Status Constants =============
+# ============= 状态常量 =============
 status:
   enabled: "enabled"
   disabled: "disabled"
@@ -318,7 +277,8 @@ status:
   loading: "loading"
   unknown: "unknown"
 
-# ============= UI Configuration =============
+# ============= UI 颜色配置 =============
+# 注: ui.icons 已删除（未使用）
 ui:
   colors:
     red: "\x1b[91m"
@@ -332,66 +292,22 @@ ui:
     bold: "\x1b[1m"
     underline: "\x1b[4m"
 
-  icons:
-    success: "✅"
-    error: "❌"
-    warning: "⚠️"
-    info: "ℹ️"
-    folder: "📁"
-    file: "📄"
-    plugin: "🔌"
-    command: "⚡"
-    loading: "⏳"
-
-# ============= Network Configuration =============
+# ============= 网络配置 =============
+# 注: user_agent 在代码中动态生成为 "Global-Scripts/{version}"
+# 其他未使用的字段已删除 (request_timeout, max_retry_attempts, retry_delay)
 network:
-  request_timeout: 30
-  max_retry_attempts: 3
-  retry_delay: 1          # seconds
-  user_agent: "Global-Scripts/6.0.0"
+  user_agent: "Global-Scripts/unknown"  # 动态生成
 
-# ============= Shell Configuration =============
+# ============= Shell 配置 =============
+# 保留以支持 constants.SHELL_RELOAD_ALIAS 和 ENV_SH_FILE_NAME
 shell:
   reload_alias: "gsreload"
   supported_shells:
     - bash
     - zsh
     - fish
-
   prompt_themes:
     - minimalist
     - bitstream
     - powerline
     - simple
-
-# ============= Security Configuration =============
-security:
-  enable_sandbox: true
-  allow_network_access: true
-  max_subprocess_depth: 3
-  require_confirmation_for_destructive: true
-
-  # Commands requiring user confirmation
-  confirmation_required:
-    - sudo
-    - rm
-    - format
-    - dd
-
-# ============= Feature Flags =============
-features:
-  enable_auto_update: false
-  enable_telemetry: false
-  enable_plugin_marketplace: false
-  enable_command_history: true
-  enable_completion_cache: true
-  show_examples: true
-  show_tips: true
-
-# ============= Performance Configuration =============
-performance:
-  lazy_load_plugins: true
-  cache_plugin_metadata: true
-  parallel_plugin_load: true
-  max_parallel_loaders: 4
-  startup_timeout: 10

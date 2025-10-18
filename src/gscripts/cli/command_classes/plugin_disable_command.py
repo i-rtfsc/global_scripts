@@ -29,7 +29,7 @@ class PluginDisableCommand(SimpleCommand):
             return CommandResult(
                 success=False,
                 error=self.i18n.get_message('errors.plugin_name_required'),
-                exit_code=self.constants.EXIT_INVALID_ARGUMENTS
+                exit_code=self.constants.exit_invalid_arguments
             )
 
         plugin_name = args[0]

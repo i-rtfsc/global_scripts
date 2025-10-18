@@ -24,12 +24,13 @@ class TemplateEngine:
     支持自定义模板目录和上下文变量
     """
 
-    def __init__(self, templates_dir: Optional[Path] = None):
+    def __init__(self, templates_dir: Optional[Path] = None, config_manager=None):
         """
         初始化模板引擎
 
         Args:
             templates_dir: 模板目录路径，默认为项目根目录的 templates/
+            config_manager: ConfigManager instance for configuration access
 
         Raises:
             ImportError: 如果 Jinja2 未安装
@@ -42,15 +43,27 @@ class TemplateEngine:
             )
 
         if templates_dir is None:
-            # 默认模板目录：项目根目录/templates
+            # 默认模板目录：src/gscripts/resources/templates
+            # current_file: src/gscripts/core/template_engine.py
+            # parent: src/gscripts/core/
+            # parent.parent: src/gscripts/
             current_file = Path(__file__)
-            project_root = current_file.parent.parent.parent.parent
-            templates_dir = project_root / "templates"
+            templates_dir = current_file.parent.parent / "resources" / "templates"
+            self.project_root = current_file.parent.parent.parent.parent
+        else:
+            self.project_root = templates_dir.parent.parent.parent
 
         self.templates_dir = templates_dir
 
         if not self.templates_dir.exists():
             raise FileNotFoundError(f"Templates directory not found: {self.templates_dir}")
+
+        # Store config manager
+        if config_manager is None:
+            from .config_manager import ConfigManager
+            self.config_manager = ConfigManager()
+        else:
+            self.config_manager = config_manager
 
         # 创建 Jinja2 环境
         self.env = Environment(
@@ -176,15 +189,37 @@ class TemplateEngine:
         Returns:
             str: 渲染后的 env.fish 内容
         """
-        # Fish 模板待实现，目前先返回空字符串
-        # TODO: 创建 env.fish.j2 模板
-        return ""
+        # 构建基础上下文
+        context = {
+            'timestamp': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'source_dir': str(source_dir),
+            'gs_root': str(source_dir.resolve()),
+            'cache_dir': str(cache_dir.resolve()) + '/cache',  # Fish needs /cache suffix
+            'language': language,
+            'show_examples': show_examples,
+            'version': self._get_version(),
+            'platform': platform.system().lower(),
+            'prompt_theme': 'bitstream',  # 默认主题
+            'config_exports': {},
+            'aliases': []
+        }
+
+        # 处理配置导出
+        context['config_exports'] = self._extract_config_exports(source_dir)
+
+        # 处理 Fish-specific alias 插件
+        context['aliases'] = self._extract_fish_aliases(plugins)
+
+        # 合并额外上下文
+        context.update(extra_context)
+
+        return self.render_template('env.fish.j2', context)
 
     def _get_version(self) -> str:
         """获取项目版本"""
         # 从 VERSION 文件读取
         try:
-            version_file = self.source_dir / "VERSION"
+            version_file = self.project_root / "VERSION"
             if version_file.exists():
                 return version_file.read_text().strip()
         except Exception:
@@ -199,23 +234,17 @@ class TemplateEngine:
 
     def _extract_config_exports(self, source_dir: Path) -> Dict[str, Any]:
         """
-        从 gs.json 提取需要导出的配置
+        从 ConfigManager 提取需要导出的配置
 
         Args:
-            source_dir: 源码目录
+            source_dir: 源码目录 (unused, kept for compatibility)
 
         Returns:
             Dict: 配置键值对
         """
-        import json
-
-        config_file = source_dir / "config" / "gs.json"
-        if not config_file.exists():
-            return {}
-
         try:
-            with open(config_file, 'r', encoding='utf-8') as f:
-                config = json.load(f)
+            # Use ConfigManager to get merged config
+            config = self.config_manager.get_config()
 
             # 过滤掉复杂类型（dict/list）和特殊键
             exports = {}
@@ -280,6 +309,63 @@ class TemplateEngine:
                         'full_path': f'$GS_ROOT/plugins/{plugin_name}/{source}'
                     }
                     for source in sources
+                ]
+            }
+
+            aliases.append(alias_data)
+
+        # 按优先级排序
+        aliases.sort(key=lambda x: (x['priority'], x['name']))
+
+        return aliases
+
+    def _extract_fish_aliases(self, plugins: Dict[str, Dict]) -> List[Dict[str, Any]]:
+        """
+        从插件信息中提取 Fish-specific alias 配置
+
+        Args:
+            plugins: 插件信息字典
+
+        Returns:
+            List: Fish alias 配置列表
+        """
+        aliases = []
+
+        for plugin_name, plugin_info in plugins.items():
+            alias_info = plugin_info.get('alias')
+            if not alias_info or not isinstance(alias_info, dict):
+                continue
+
+            # Check if fish is supported
+            shells = alias_info.get('shells', [])
+            if 'fish' not in shells:
+                continue
+
+            # 提取 Fish sources
+            sources = alias_info.get('sources')
+            if isinstance(sources, dict):
+                fish_sources = sources.get('fish', [])
+            elif isinstance(sources, list):
+                # 尝试转换 .sh 到 .fish
+                fish_sources = [s.replace('.sh', '.fish') for s in sources if '.sh' in s]
+            else:
+                fish_sources = []
+
+            if not fish_sources:
+                continue
+
+            # 构建 Fish alias 信息
+            alias_data = {
+                'name': plugin_name,
+                'interactive_only': alias_info.get('interactive_only', True),
+                'priority': alias_info.get('priority', 100),
+                'sources': [
+                    {
+                        'path': source,
+                        'fish_path': f'"$GS_ROOT/plugins/{plugin_name}/{source}"',
+                        'sh_path': f'"$GS_ROOT/plugins/{plugin_name}/{source.replace(".fish", ".sh")}"'
+                    }
+                    for source in fish_sources
                 ]
             }
 

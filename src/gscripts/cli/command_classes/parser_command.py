@@ -119,7 +119,7 @@ Examples:
             return CommandResult(
                 success=False,
                 error=f"Failed to list parsers: {e}",
-                exit_code=self.constants.EXIT_EXECUTION_ERROR
+                exit_code=self.constants.exit_execution_error
             )
 
     async def _parser_info(self, args: List[str]) -> CommandResult:
@@ -128,7 +128,7 @@ Examples:
             return CommandResult(
                 success=False,
                 error="Usage: gs parser info <parser_name>",
-                exit_code=self.constants.EXIT_INVALID_ARGUMENTS
+                exit_code=self.constants.exit_invalid_arguments
             )
 
         parser_name = args[0]
@@ -146,7 +146,7 @@ Examples:
                 return CommandResult(
                     success=False,
                     error=f"Parser '{parser_name}' not found.",
-                    exit_code=self.constants.EXIT_EXECUTION_ERROR
+                    exit_code=self.constants.exit_execution_error
                 )
 
             # 使用 formatter 格式化信息表格
@@ -183,7 +183,7 @@ Examples:
             return CommandResult(
                 success=False,
                 error=f"Failed to get parser info: {e}",
-                exit_code=self.constants.EXIT_EXECUTION_ERROR
+                exit_code=self.constants.exit_execution_error
             )
 
     async def _enable_parser(self, args: List[str]) -> CommandResult:
@@ -192,7 +192,7 @@ Examples:
             return CommandResult(
                 success=False,
                 error="Usage: gs parser enable <parser_name>",
-                exit_code=self.constants.EXIT_INVALID_ARGUMENTS
+                exit_code=self.constants.exit_invalid_arguments
             )
 
         parser_name = args[0]
@@ -230,7 +230,7 @@ Examples:
             return CommandResult(
                 success=False,
                 error=f"Failed to enable parser: {e}",
-                exit_code=self.constants.EXIT_EXECUTION_ERROR
+                exit_code=self.constants.exit_execution_error
             )
 
     async def _disable_parser(self, args: List[str]) -> CommandResult:
@@ -239,7 +239,7 @@ Examples:
             return CommandResult(
                 success=False,
                 error="Usage: gs parser disable <parser_name>",
-                exit_code=self.constants.EXIT_INVALID_ARGUMENTS
+                exit_code=self.constants.exit_invalid_arguments
             )
 
         parser_name = args[0]
@@ -277,7 +277,7 @@ Examples:
             return CommandResult(
                 success=False,
                 error=f"Failed to disable parser: {e}",
-                exit_code=self.constants.EXIT_EXECUTION_ERROR
+                exit_code=self.constants.exit_execution_error
             )
 
     async def _test_parser(self, args: List[str]) -> CommandResult:
@@ -286,7 +286,7 @@ Examples:
             return CommandResult(
                 success=False,
                 error="Usage: gs parser test <file_path>",
-                exit_code=self.constants.EXIT_INVALID_ARGUMENTS
+                exit_code=self.constants.exit_invalid_arguments
             )
 
         file_path = Path(args[0])
@@ -295,7 +295,7 @@ Examples:
             return CommandResult(
                 success=False,
                 error=f"File not found: {file_path}",
-                exit_code=self.constants.EXIT_EXECUTION_ERROR
+                exit_code=self.constants.exit_execution_error
             )
 
         try:
@@ -330,7 +330,7 @@ Examples:
                 return CommandResult(
                     success=False,
                     error=f"No parser found for file: {file_path}\n{e}",
-                    exit_code=self.constants.EXIT_EXECUTION_ERROR
+                    exit_code=self.constants.exit_execution_error
                 )
 
         except Exception as e:
@@ -338,7 +338,7 @@ Examples:
             return CommandResult(
                 success=False,
                 error=f"Failed to test parser: {e}",
-                exit_code=self.constants.EXIT_EXECUTION_ERROR
+                exit_code=self.constants.exit_execution_error
             )
 
     def _get_config_path(self) -> Path:

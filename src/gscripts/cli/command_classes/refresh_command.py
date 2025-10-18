@@ -57,7 +57,7 @@ class RefreshCommand(Command):
             return CommandResult(
                 success=False,
                 error=self.i18n.get_message('errors.execution_failed'),
-                exit_code=self.constants.EXIT_EXECUTION_ERROR
+                exit_code=self.constants.exit_execution_error
             )
 
     async def _regenerate_completions(self):
@@ -122,7 +122,7 @@ class RefreshCommand(Command):
             if shell == 'fish':
                 env_file_name = 'env.fish'
             else:
-                env_file_name = self.constants.ENV_SH_FILE_NAME
+                env_file_name = self.constants.env_sh_file_name
 
             env_path = project_root / env_file_name
 
@@ -148,7 +148,7 @@ class RefreshCommand(Command):
             if shell == 'fish':
                 env_file_name = 'env.fish'
             else:
-                env_file_name = self.constants.ENV_SH_FILE_NAME
+                env_file_name = self.constants.env_sh_file_name
 
             env_path = project_root / env_file_name
 
