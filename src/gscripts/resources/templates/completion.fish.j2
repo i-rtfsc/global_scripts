@@ -156,10 +156,17 @@ function __fish_gs_functions
     end | sort -u
 end
 
+# Helper to check if we need plugin subcommand (list/info/enable/disable/create)
+function __fish_gs_needs_plugin_subcommand
+    set -l cmd (commandline -opc)
+    # Only complete plugin subcommands when at position 2: gs plugin <subcommand>
+    test (count $cmd) -eq 2; and test "$cmd[2]" = "plugin"
+end
+
 # Helper to check if we need plugin name completion (for plugin info/enable/disable)
 function __fish_gs_needs_plugin_name
     set -l cmd (commandline -opc)
-    test (count $cmd) -eq 3; and contains -- $cmd[2] plugin
+    test (count $cmd) -eq 3; and test "$cmd[2]" = "plugin"; and contains -- "$cmd[3]" info enable disable
 end
 
 # Helper to check if we need parameter completion (Level 4+)
@@ -202,19 +209,18 @@ function __fish_gs_parsers
     gs parser list 2>/dev/null | grep -E '│.*│.*│.*│.*│' | grep -v '^┌' | grep -v '^├' | grep -v '^└' | grep -v 'Name' | awk -F'│' '{gsub(/^[ \t]+|[ \t]+$/, "", $2); print $2}'
 end
 
+# Helper to check if we need parser subcommand
+function __fish_gs_needs_parser_subcommand
+    set -l cmd (commandline -opc)
+    # Only complete parser subcommands when at position 2: gs parser <subcommand>
+    test (count $cmd) -eq 2; and test "$cmd[2]" = "parser"
+end
+
 # Helper to check if we need parser name completion (for parser info/enable/disable)
 function __fish_gs_needs_parser_name
     set -l cmd (commandline -opc)
-    # Check if we're at position 4: gs parser <subcommand> [parser_name]
-    # and the subcommand is one that needs a parser name
-    if test (count $cmd) -eq 3
-        if test "$cmd[2]" = "parser"
-            if contains -- "$cmd[3]" info enable disable
-                return 0
-            end
-        end
-    end
-    return 1
+    # Check if we're at position 3: gs parser <subcommand> [parser_name]
+    test (count $cmd) -eq 3; and test "$cmd[2]" = "parser"; and contains -- "$cmd[3]" info enable disable
 end
 
 # Main gs command completion
@@ -242,16 +248,16 @@ complete -c gs -f -n "__fish_gs_needs_parameter" -a "(__fish_gs_parameter_comple
 # Dynamic function completions (Level 3)
 complete -c gs -f -n "__fish_gs_needs_function" -a "(__fish_gs_functions)"
 
-# Plugin subcommands
-complete -c gs -f -n "__fish_seen_subcommand_from plugin" -a "list" -d "List all plugins"
-complete -c gs -f -n "__fish_seen_subcommand_from plugin" -a "info" -d "Show plugin information"
-complete -c gs -f -n "__fish_seen_subcommand_from plugin" -a "enable" -d "Enable a plugin"
-complete -c gs -f -n "__fish_seen_subcommand_from plugin" -a "disable" -d "Disable a plugin"
-complete -c gs -f -n "__fish_seen_subcommand_from plugin" -a "create" -d "Create new plugin"
+# Plugin subcommands - only when at: gs plugin <tab>
+complete -c gs -f -n "__fish_gs_needs_plugin_subcommand" -a "list" -d "List all plugins"
+complete -c gs -f -n "__fish_gs_needs_plugin_subcommand" -a "info" -d "Show plugin information"
+complete -c gs -f -n "__fish_gs_needs_plugin_subcommand" -a "enable" -d "Enable a plugin"
+complete -c gs -f -n "__fish_gs_needs_plugin_subcommand" -a "disable" -d "Disable a plugin"
+complete -c gs -f -n "__fish_gs_needs_plugin_subcommand" -a "create" -d "Create new plugin"
 
-# Parser subcommands
-complete -c gs -f -n "__fish_seen_subcommand_from parser; and not __fish_seen_subcommand_from list info enable disable test" -a "list" -d "List all parsers"
-complete -c gs -f -n "__fish_seen_subcommand_from parser; and not __fish_seen_subcommand_from list info enable disable test" -a "info" -d "Show parser information"
-complete -c gs -f -n "__fish_seen_subcommand_from parser; and not __fish_seen_subcommand_from list info enable disable test" -a "enable" -d "Enable a parser"
-complete -c gs -f -n "__fish_seen_subcommand_from parser; and not __fish_seen_subcommand_from list info enable disable test" -a "disable" -d "Disable a parser"
-complete -c gs -f -n "__fish_seen_subcommand_from parser; and not __fish_seen_subcommand_from list info enable disable test" -a "test" -d "Test file parsing"
+# Parser subcommands - only when at: gs parser <tab>
+complete -c gs -f -n "__fish_gs_needs_parser_subcommand" -a "list" -d "List all parsers"
+complete -c gs -f -n "__fish_gs_needs_parser_subcommand" -a "info" -d "Show parser information"
+complete -c gs -f -n "__fish_gs_needs_parser_subcommand" -a "enable" -d "Enable a parser"
+complete -c gs -f -n "__fish_gs_needs_parser_subcommand" -a "disable" -d "Disable a parser"
+complete -c gs -f -n "__fish_gs_needs_parser_subcommand" -a "test" -d "Test file parsing"
