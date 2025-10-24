@@ -1,0 +1,245 @@
+{
+  "presets": {
+    "essential": {
+      "name": "核心必选工具",
+      "description": {
+        "zh": "开发环境最基础的必选工具",
+        "en": "Essential development tools"
+      },
+      "required": true,
+      "tools": [
+        "git",
+        "git-lfs",
+        "jq",
+        "ripgrep",
+        "fd",
+        "bat",
+        "fzf",
+        "tmux",
+        "htop",
+        "curl",
+        "wget"
+      ]
+    },
+    "android-dev": {
+      "name": "Android开发环境",
+      "description": {
+        "zh": "Android系统和应用开发完整环境",
+        "en": "Complete Android development environment"
+      },
+      "required": true,
+      "tools": [
+        "jdk",
+        "adb",
+        "gradle",
+        "python3"
+      ]
+    },
+    "rust-dev": {
+      "name": "Rust开发环境",
+      "description": {
+        "zh": "Rust开发完整工具链",
+        "en": "Complete Rust development toolchain"
+      },
+      "required": true,
+      "tools": [
+        "cargo"
+      ]
+    },
+    "cpp-dev": {
+      "name": "C/C++开发环境",
+      "description": {
+        "zh": "C/C++开发工具链",
+        "en": "C/C++ development toolchain"
+      },
+      "required": true,
+      "tools": [
+        "cmake",
+        "make",
+        "ninja"
+      ]
+    },
+    "agent-dev": {
+      "name": "Agent开发环境",
+      "description": {
+        "zh": "AI Agent开发工具集",
+        "en": "AI Agent development toolkit"
+      },
+      "required": true,
+      "tools": [
+        "python3",
+        "node",
+        "git",
+        "jq",
+        "httpie"
+      ]
+    },
+    "full-required": {
+      "name": "完整必选环境",
+      "description": {
+        "zh": "你的完整必选开发环境 (Android + Rust + C++ + Agent)",
+        "en": "Your complete required development environment"
+      },
+      "required": true,
+      "tools": [
+        "git",
+        "git-lfs",
+        "gh",
+        "jq",
+        "yq",
+        "ripgrep",
+        "fd",
+        "bat",
+        "fzf",
+        "ack",
+        "jdk",
+        "python3",
+        "node",
+        "go",
+        "cargo",
+        "adb",
+        "gradle",
+        "cmake",
+        "make",
+        "ninja",
+        "curl",
+        "wget",
+        "httpie",
+        "nmap",
+        "tmux",
+        "fish",
+        "htop",
+        "btop",
+        "ncdu",
+        "duf",
+        "neovim",
+        "vscode",
+        "shellcheck"
+      ]
+    },
+    "optional-container": {
+      "name": "容器工具套件",
+      "description": {
+        "zh": "Docker和Kubernetes工具 (可选)",
+        "en": "Container and Kubernetes tools (optional)"
+      },
+      "required": false,
+      "tools": [
+        "docker",
+        "docker-compose",
+        "kubectl",
+        "k9s"
+      ]
+    },
+    "optional-database": {
+      "name": "数据库工具套件",
+      "description": {
+        "zh": "常用数据库客户端 (可选)",
+        "en": "Common database clients (optional)"
+      },
+      "required": false,
+      "tools": [
+        "postgresql",
+        "mysql",
+        "redis",
+        "sqlite"
+      ]
+    },
+    "optional-cloud": {
+      "name": "云平台CLI",
+      "description": {
+        "zh": "AWS和GCP命令行工具 (可选)",
+        "en": "Cloud platform CLIs (optional)"
+      },
+      "required": false,
+      "tools": [
+        "awscli",
+        "gcloud"
+      ]
+    },
+    "optional-shell": {
+      "name": "Shell美化套件",
+      "description": {
+        "zh": "Zsh和Starship美化工具 (可选)",
+        "en": "Shell enhancement tools (optional)"
+      },
+      "required": false,
+      "tools": [
+        "zsh",
+        "oh-my-zsh",
+        "starship",
+        "zoxide"
+      ]
+    },
+    "optional-ai": {
+      "name": "AI工具套件",
+      "description": {
+        "zh": "本地LLM运行工具 (可选)",
+        "en": "Local LLM tools (optional)"
+      },
+      "required": false,
+      "tools": [
+        "ollama"
+      ]
+    },
+    "optional-devops": {
+      "name": "DevOps工具套件",
+      "description": {
+        "zh": "基础设施即代码工具 (可选)",
+        "en": "Infrastructure as Code tools (optional)"
+      },
+      "required": false,
+      "tools": [
+        "terraform",
+        "ansible"
+      ]
+    },
+    "optional-ai-cli": {
+      "name": "AI CLI工具套件",
+      "description": {
+        "zh": "AI编程助手CLI工具",
+        "en": "AI programming assistant CLI tools"
+      },
+      "required": false,
+      "tools": [
+        "claude-code",
+        "codex",
+        "gemini-cli",
+        "github-copilot"
+      ]
+    },
+    "optional-ide": {
+      "name": "IDE开发环境",
+      "description": {
+        "zh": "JetBrains全家桶、Android Studio和AI编辑器 (可选)",
+        "en": "JetBrains IDEs, Android Studio and AI editors (optional)"
+      },
+      "required": false,
+      "tools": [
+        "android-studio",
+        "clion",
+        "intellij-idea",
+        "pycharm"
+      ]
+    },
+    "full-dev": {
+      "name": "完整开发环境",
+      "description": {
+        "zh": "包含必选和所有可选工具的完整环境",
+        "en": "Complete environment with all tools"
+      },
+      "required": false,
+      "includes": [
+        "full-required",
+        "optional-container",
+        "optional-database",
+        "optional-cloud",
+        "optional-shell",
+        "optional-ai",
+        "optional-devops",
+        "optional-ai-cli",
+        "optional-ide"
+      ]
+    }
+  }
+}

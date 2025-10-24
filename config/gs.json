@@ -3,6 +3,7 @@
         "grep": true,
         "system": true,
         "dotfiles": true,
+        "devenv": true,
         "android": true,
         "gerrit": true,
         "navigator": true,

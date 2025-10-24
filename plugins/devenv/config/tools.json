@@ -1,0 +1,1998 @@
+{
+  "tools_required": {
+    "jdk": {
+      "name": "OpenJDK 21",
+      "description": {
+        "zh": "Java开发工具包",
+        "en": "Java Development Kit"
+      },
+      "category": "language",
+      "required": true,
+      "macos": {
+        "method": "brew",
+        "package": "openjdk@21",
+        "check": "java -version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "openjdk-21-jdk",
+        "check": "java -version"
+      }
+    },
+    "python3": {
+      "name": "Python 3",
+      "description": {
+        "zh": "Python解释器",
+        "en": "Python interpreter"
+      },
+      "category": "language",
+      "required": true,
+      "macos": {
+        "method": "brew",
+        "package": "python@3.11",
+        "check": "python3 --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "python3 python3-pip python3-venv",
+        "check": "python3 --version"
+      }
+    },
+    "node": {
+      "name": "Node.js",
+      "description": {
+        "zh": "JavaScript运行时",
+        "en": "JavaScript runtime"
+      },
+      "category": "language",
+      "required": true,
+      "macos": {
+        "method": "brew",
+        "package": "node",
+        "check": "node --version"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - && sudo apt-get install -y nodejs",
+        "check": "node --version"
+      }
+    },
+    "go": {
+      "name": "Go",
+      "description": {
+        "zh": "Go语言工具链",
+        "en": "Go programming language"
+      },
+      "category": "language",
+      "required": true,
+      "macos": {
+        "method": "brew",
+        "package": "go",
+        "check": "go version"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "wget -qO- https://go.dev/dl/go1.21.5.linux-amd64.tar.gz | sudo tar -C /usr/local -xzf -",
+        "post_install": [
+          "echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc"
+        ],
+        "check": "go version"
+      }
+    },
+    "cargo": {
+      "name": "Rust Toolchain",
+      "description": {
+        "zh": "Rust工具链",
+        "en": "Rust toolchain"
+      },
+      "category": "language",
+      "required": true,
+      "macos": {
+        "method": "script",
+        "install_script": "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y",
+        "post_install": [
+          "source $HOME/.cargo/env"
+        ],
+        "check": "cargo --version"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y",
+        "post_install": [
+          "source $HOME/.cargo/env"
+        ],
+        "check": "cargo --version"
+      }
+    },
+    "git": {
+      "name": "Git",
+      "description": {
+        "zh": "版本控制系统",
+        "en": "Version control system"
+      },
+      "category": "vcs",
+      "required": true,
+      "macos": {
+        "method": "brew",
+        "package": "git",
+        "check": "git --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "git",
+        "check": "git --version"
+      }
+    },
+    "git-lfs": {
+      "name": "Git LFS",
+      "description": {
+        "zh": "Git大文件存储",
+        "en": "Git Large File Storage"
+      },
+      "category": "vcs",
+      "required": true,
+      "macos": {
+        "method": "brew",
+        "package": "git-lfs",
+        "post_install": [
+          "git lfs install"
+        ],
+        "check": "git lfs version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "git-lfs",
+        "post_install": [
+          "git lfs install"
+        ],
+        "check": "git lfs version"
+      }
+    },
+    "gh": {
+      "name": "GitHub CLI",
+      "description": {
+        "zh": "GitHub命令行工具",
+        "en": "GitHub command-line tool"
+      },
+      "category": "vcs",
+      "required": true,
+      "macos": {
+        "method": "brew",
+        "package": "gh",
+        "check": "gh --version"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && echo \"deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main\" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null && sudo apt update && sudo apt install gh -y",
+        "check": "gh --version"
+      }
+    },
+    "adb": {
+      "name": "Android Platform Tools",
+      "description": {
+        "zh": "Android调试工具",
+        "en": "Android Debug Bridge"
+      },
+      "category": "android",
+      "required": true,
+      "macos": {
+        "method": "brew",
+        "package": "android-platform-tools",
+        "check": "adb version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "android-tools-adb android-tools-fastboot",
+        "check": "adb version"
+      }
+    },
+    "gradle": {
+      "name": "Gradle",
+      "description": {
+        "zh": "构建自动化工具",
+        "en": "Build automation tool"
+      },
+      "category": "android",
+      "required": true,
+      "macos": {
+        "method": "brew",
+        "package": "gradle",
+        "check": "gradle --version"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "wget -qO gradle-8.5-bin.zip https://services.gradle.org/distributions/gradle-8.5-bin.zip && unzip -d /opt/gradle gradle-8.5-bin.zip && rm gradle-8.5-bin.zip",
+        "post_install": [
+          "echo 'export PATH=$PATH:/opt/gradle/gradle-8.5/bin' >> ~/.bashrc"
+        ],
+        "check": "gradle --version"
+      }
+    },
+    "cmake": {
+      "name": "CMake",
+      "description": {
+        "zh": "C/C++构建工具",
+        "en": "Cross-platform build system"
+      },
+      "category": "build",
+      "required": true,
+      "macos": {
+        "method": "brew",
+        "package": "cmake",
+        "check": "cmake --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "cmake build-essential",
+        "check": "cmake --version"
+      }
+    },
+    "make": {
+      "name": "GNU Make",
+      "description": {
+        "zh": "构建自动化工具",
+        "en": "Build automation tool"
+      },
+      "category": "build",
+      "required": true,
+      "macos": {
+        "method": "brew",
+        "package": "make",
+        "check": "make --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "make",
+        "check": "make --version"
+      }
+    },
+    "ninja": {
+      "name": "Ninja",
+      "description": {
+        "zh": "快速构建系统",
+        "en": "Fast build system"
+      },
+      "category": "build",
+      "required": true,
+      "macos": {
+        "method": "brew",
+        "package": "ninja",
+        "check": "ninja --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "ninja-build",
+        "check": "ninja --version"
+      }
+    },
+    "curl": {
+      "name": "cURL",
+      "description": {
+        "zh": "URL传输工具",
+        "en": "URL transfer tool"
+      },
+      "category": "network",
+      "required": true,
+      "macos": {
+        "method": "brew",
+        "package": "curl",
+        "check": "curl --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "curl",
+        "check": "curl --version"
+      }
+    },
+    "wget": {
+      "name": "Wget",
+      "description": {
+        "zh": "文件下载工具",
+        "en": "File download tool"
+      },
+      "category": "network",
+      "required": true,
+      "macos": {
+        "method": "brew",
+        "package": "wget",
+        "check": "wget --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "wget",
+        "check": "wget --version"
+      }
+    },
+    "httpie": {
+      "name": "HTTPie",
+      "description": {
+        "zh": "现代HTTP客户端",
+        "en": "Modern HTTP client"
+      },
+      "category": "network",
+      "required": true,
+      "macos": {
+        "method": "brew",
+        "package": "httpie",
+        "check": "http --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "httpie",
+        "check": "http --version"
+      }
+    },
+    "nmap": {
+      "name": "Nmap",
+      "description": {
+        "zh": "网络扫描工具",
+        "en": "Network scanner"
+      },
+      "category": "network",
+      "required": true,
+      "macos": {
+        "method": "brew",
+        "package": "nmap",
+        "check": "nmap --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "nmap",
+        "check": "nmap --version"
+      }
+    },
+    "jq": {
+      "name": "jq",
+      "description": {
+        "zh": "JSON处理工具",
+        "en": "JSON processor"
+      },
+      "category": "text",
+      "required": true,
+      "macos": {
+        "method": "brew",
+        "package": "jq",
+        "check": "jq --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "jq",
+        "check": "jq --version"
+      }
+    },
+    "yq": {
+      "name": "yq",
+      "description": {
+        "zh": "YAML处理工具",
+        "en": "YAML processor"
+      },
+      "category": "text",
+      "required": true,
+      "macos": {
+        "method": "brew",
+        "package": "yq",
+        "check": "yq --version"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 && sudo chmod +x /usr/local/bin/yq",
+        "check": "yq --version"
+      }
+    },
+    "ripgrep": {
+      "name": "ripgrep",
+      "description": {
+        "zh": "快速搜索工具",
+        "en": "Fast search tool"
+      },
+      "category": "text",
+      "required": true,
+      "macos": {
+        "method": "brew",
+        "package": "ripgrep",
+        "check": "rg --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "ripgrep",
+        "check": "rg --version"
+      }
+    },
+    "fd": {
+      "name": "fd",
+      "description": {
+        "zh": "快速文件查找",
+        "en": "Fast file finder"
+      },
+      "category": "text",
+      "required": true,
+      "macos": {
+        "method": "brew",
+        "package": "fd",
+        "check": "fd --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "fd-find",
+        "check": "fdfind --version"
+      }
+    },
+    "bat": {
+      "name": "bat",
+      "description": {
+        "zh": "代码高亮查看",
+        "en": "Syntax highlighting cat"
+      },
+      "category": "text",
+      "required": true,
+      "macos": {
+        "method": "brew",
+        "package": "bat",
+        "check": "bat --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "bat",
+        "check": "bat --version"
+      }
+    },
+    "fzf": {
+      "name": "fzf",
+      "description": {
+        "zh": "模糊搜索工具",
+        "en": "Fuzzy finder"
+      },
+      "category": "text",
+      "required": true,
+      "macos": {
+        "method": "brew",
+        "package": "fzf",
+        "post_install": [
+          "$(brew --prefix)/opt/fzf/install --all"
+        ],
+        "check": "fzf --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "fzf",
+        "check": "fzf --version"
+      }
+    },
+    "ack": {
+      "name": "ack",
+      "description": {
+        "zh": "代码搜索工具",
+        "en": "Code search tool"
+      },
+      "category": "text",
+      "required": true,
+      "macos": {
+        "method": "brew",
+        "package": "ack",
+        "check": "ack --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "ack",
+        "check": "ack --version"
+      }
+    },
+    "tmux": {
+      "name": "Tmux",
+      "description": {
+        "zh": "终端复用器",
+        "en": "Terminal multiplexer"
+      },
+      "category": "terminal",
+      "required": true,
+      "macos": {
+        "method": "brew",
+        "package": "tmux",
+        "check": "tmux -V"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "tmux",
+        "check": "tmux -V"
+      }
+    },
+    "fish": {
+      "name": "Fish Shell",
+      "description": {
+        "zh": "友好的交互式Shell",
+        "en": "Friendly interactive shell"
+      },
+      "category": "shell",
+      "required": true,
+      "macos": {
+        "method": "brew",
+        "package": "fish",
+        "check": "fish --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "fish",
+        "check": "fish --version"
+      }
+    },
+    "htop": {
+      "name": "htop",
+      "description": {
+        "zh": "交互式进程查看器",
+        "en": "Interactive process viewer"
+      },
+      "category": "monitoring",
+      "required": true,
+      "macos": {
+        "method": "brew",
+        "package": "htop",
+        "check": "htop --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "htop",
+        "check": "htop --version"
+      }
+    },
+    "btop": {
+      "name": "btop",
+      "description": {
+        "zh": "现代资源监控器",
+        "en": "Modern resource monitor"
+      },
+      "category": "monitoring",
+      "required": true,
+      "macos": {
+        "method": "brew",
+        "package": "btop",
+        "check": "btop --version"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "sudo snap install btop || echo 'snap not available, skipping btop'",
+        "check": "btop --version"
+      }
+    },
+    "ncdu": {
+      "name": "ncdu",
+      "description": {
+        "zh": "磁盘使用分析",
+        "en": "Disk usage analyzer"
+      },
+      "category": "monitoring",
+      "required": true,
+      "macos": {
+        "method": "brew",
+        "package": "ncdu",
+        "check": "ncdu --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "ncdu",
+        "check": "ncdu --version"
+      }
+    },
+    "duf": {
+      "name": "duf",
+      "description": {
+        "zh": "磁盘使用可视化",
+        "en": "Disk usage visualizer"
+      },
+      "category": "monitoring",
+      "required": true,
+      "macos": {
+        "method": "brew",
+        "package": "duf",
+        "check": "duf --version"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "wget -qO- https://github.com/muesli/duf/releases/download/v0.8.1/duf_0.8.1_linux_amd64.tar.gz | sudo tar -C /usr/local/bin -xzf - duf",
+        "check": "duf --version"
+      }
+    },
+    "neovim": {
+      "name": "Neovim",
+      "description": {
+        "zh": "现代化Vim",
+        "en": "Modern Vim"
+      },
+      "category": "editor",
+      "required": true,
+      "macos": {
+        "method": "brew",
+        "package": "neovim",
+        "check": "nvim --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "neovim",
+        "check": "nvim --version"
+      }
+    },
+    "vscode": {
+      "name": "Visual Studio Code",
+      "description": {
+        "zh": "微软代码编辑器",
+        "en": "Microsoft code editor"
+      },
+      "category": "editor",
+      "required": true,
+      "macos": {
+        "method": "brew",
+        "package": "visual-studio-code",
+        "cask": true,
+        "check": "code --version"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "sudo snap install code --classic || echo 'snap not available, skipping vscode'",
+        "check": "code --version"
+      }
+    },
+    "shellcheck": {
+      "name": "ShellCheck",
+      "description": {
+        "zh": "Shell脚本检查",
+        "en": "Shell script linter"
+      },
+      "category": "quality",
+      "required": true,
+      "macos": {
+        "method": "brew",
+        "package": "shellcheck",
+        "check": "shellcheck --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "shellcheck",
+        "check": "shellcheck --version"
+      }
+    },
+    "claude-code": {
+      "name": "Claude Code",
+      "description": {
+        "zh": "Anthropic Claude AI编程助手CLI",
+        "en": "Anthropic Claude AI programming assistant CLI"
+      },
+      "category": "ai-cli",
+      "required": true,
+      "macos": {
+        "method": "brew",
+        "package": "claude-code",
+        "cask": true,
+        "check": "command -v claude-code",
+        "fallback": {
+          "method": "script",
+          "install_script": "npm install -g @anthropic-ai/claude-code",
+          "check": "command -v claude-code"
+        }
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "npm install -g @anthropic-ai/claude-code",
+        "check": "command -v claude-code"
+      }
+    },
+    "codex": {
+      "name": "OpenAI Codex",
+      "description": {
+        "zh": "OpenAI Codex AI编程CLI",
+        "en": "OpenAI Codex AI programming CLI"
+      },
+      "category": "ai-cli",
+      "required": true,
+      "macos": {
+        "method": "script",
+        "install_script": "npm install -g @openai/codex",
+        "check": "command -v codex"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "npm install -g @openai/codex",
+        "check": "command -v codex"
+      }
+    },
+    "gemini-cli": {
+      "name": "Google Gemini CLI",
+      "description": {
+        "zh": "Google Gemini AI编程CLI",
+        "en": "Google Gemini AI programming CLI"
+      },
+      "category": "ai-cli",
+      "required": true,
+      "macos": {
+        "method": "script",
+        "install_script": "npm install -g @google/gemini-cli",
+        "check": "command -v gemini"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "npm install -g @google/gemini-cli",
+        "check": "command -v gemini"
+      }
+    },
+    "github-copilot": {
+      "name": "GitHub Copilot CLI",
+      "description": {
+        "zh": "GitHub Copilot AI编程CLI",
+        "en": "GitHub Copilot AI programming CLI"
+      },
+      "category": "ai-cli",
+      "required": true,
+      "macos": {
+        "method": "script",
+        "install_script": "npm install -g @github/copilot",
+        "check": "command -v github-copilot"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "npm install -g @github/copilot",
+        "check": "command -v github-copilot"
+      }
+    }
+  },
+  "tools_optional": {
+    "cursor": {
+      "name": "Cursor Editor",
+      "description": {
+        "zh": "AI代码编辑器",
+        "en": "AI-powered code editor"
+      },
+      "category": "ide",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "cursor",
+        "cask": true,
+        "check": "test -d /Applications/Cursor.app && echo 'installed'"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "echo 'Please download from https://cursor.sh'",
+        "check": "command -v cursor"
+      }
+    },
+    "android-studio": {
+      "name": "Android Studio",
+      "description": {
+        "zh": "官方Android IDE",
+        "en": "Official Android IDE"
+      },
+      "category": "ide",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "android-studio",
+        "cask": true,
+        "check": "test -d '/Applications/Android Studio.app' && echo 'installed'"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "sudo snap install android-studio --classic || echo 'snap not available'",
+        "check": "test -d /snap/android-studio && echo 'installed'"
+      }
+    },
+    "clion": {
+      "name": "CLion",
+      "description": {
+        "zh": "C/C++ IDE",
+        "en": "C/C++ IDE by JetBrains"
+      },
+      "category": "ide",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "clion",
+        "cask": true,
+        "check": "test -d '/Applications/CLion.app' && echo 'installed'"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "sudo snap install clion --classic || echo 'snap not available'",
+        "check": "test -d /snap/clion && echo 'installed'"
+      }
+    },
+    "intellij-idea": {
+      "name": "IntelliJ IDEA",
+      "description": {
+        "zh": "Java/Kotlin IDE",
+        "en": "Java/Kotlin IDE by JetBrains"
+      },
+      "category": "ide",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "intellij-idea",
+        "cask": true,
+        "check": "test -d '/Applications/IntelliJ IDEA.app' && echo 'installed'"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "sudo snap install intellij-idea-community --classic || echo 'snap not available'",
+        "check": "test -d /snap/intellij-idea-community && echo 'installed'"
+      }
+    },
+    "pycharm": {
+      "name": "PyCharm",
+      "description": {
+        "zh": "Python IDE",
+        "en": "Python IDE by JetBrains"
+      },
+      "category": "ide",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "pycharm",
+        "cask": true,
+        "check": "test -d '/Applications/PyCharm.app' && echo 'installed'"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "sudo snap install pycharm-community --classic || echo 'snap not available'",
+        "check": "test -d /snap/pycharm-community && echo 'installed'"
+      }
+    },
+    "webstorm": {
+      "name": "WebStorm",
+      "description": {
+        "zh": "JavaScript IDE",
+        "en": "JavaScript IDE by JetBrains"
+      },
+      "category": "ide",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "webstorm",
+        "cask": true,
+        "check": "test -d '/Applications/WebStorm.app' && echo 'installed'"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "sudo snap install webstorm --classic || echo 'snap not available'",
+        "check": "test -d /snap/webstorm && echo 'installed'"
+      }
+    },
+    "goland": {
+      "name": "GoLand",
+      "description": {
+        "zh": "Go IDE",
+        "en": "Go IDE by JetBrains"
+      },
+      "category": "ide",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "goland",
+        "cask": true,
+        "check": "test -d '/Applications/GoLand.app' && echo 'installed'"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "sudo snap install goland --classic || echo 'snap not available'",
+        "check": "test -d /snap/goland && echo 'installed'"
+      }
+    },
+    "ruby": {
+      "name": "Ruby",
+      "description": {
+        "zh": "Ruby解释器",
+        "en": "Ruby interpreter"
+      },
+      "category": "language",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "ruby",
+        "check": "ruby --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "ruby-full",
+        "check": "ruby --version"
+      }
+    },
+    "flutter": {
+      "name": "Flutter",
+      "description": {
+        "zh": "跨平台UI框架",
+        "en": "Cross-platform UI framework"
+      },
+      "category": "mobile",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "flutter",
+        "check": "flutter --version"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "git clone https://github.com/flutter/flutter.git -b stable ~/flutter",
+        "post_install": [
+          "echo 'export PATH=$PATH:$HOME/flutter/bin' >> ~/.bashrc"
+        ],
+        "check": "flutter --version"
+      }
+    },
+    "fastlane": {
+      "name": "Fastlane",
+      "description": {
+        "zh": "移动应用自动化工具",
+        "en": "Mobile app automation"
+      },
+      "category": "mobile",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "fastlane",
+        "check": "fastlane --version"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "sudo gem install fastlane -NV",
+        "check": "fastlane --version"
+      }
+    },
+    "bazel": {
+      "name": "Bazel",
+      "description": {
+        "zh": "Google构建工具",
+        "en": "Google's build tool"
+      },
+      "category": "build",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "bazel",
+        "check": "bazel --version"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "sudo apt install apt-transport-https curl gnupg && curl -fsSL https://bazel.build/bazel-release.pub.gpg | gpg --dearmor >bazel-archive-keyring.gpg && sudo mv bazel-archive-keyring.gpg /usr/share/keyrings && echo \"deb [signed-by=/usr/share/keyrings/bazel-archive-keyring.gpg] https://storage.googleapis.com/bazel-apt stable jdk1.8\" | sudo tee /etc/apt/sources.list.d/bazel.list && sudo apt update && sudo apt install bazel",
+        "check": "bazel --version"
+      }
+    },
+    "docker": {
+      "name": "Docker",
+      "description": {
+        "zh": "容器平台",
+        "en": "Container platform"
+      },
+      "category": "container",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "docker",
+        "cask": true,
+        "check": "docker --version"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "curl -fsSL https://get.docker.com | sh && sudo usermod -aG docker $USER",
+        "check": "docker --version"
+      }
+    },
+    "docker-compose": {
+      "name": "Docker Compose",
+      "description": {
+        "zh": "多容器编排工具",
+        "en": "Multi-container orchestration"
+      },
+      "category": "container",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "docker-compose",
+        "check": "docker-compose --version"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "sudo curl -L \"https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)\" -o /usr/local/bin/docker-compose && sudo chmod +x /usr/local/bin/docker-compose",
+        "check": "docker-compose --version"
+      }
+    },
+    "kubectl": {
+      "name": "Kubernetes CLI",
+      "description": {
+        "zh": "K8s命令行工具",
+        "en": "Kubernetes command-line tool"
+      },
+      "category": "container",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "kubectl",
+        "check": "kubectl version --client"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "curl -LO \"https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl\" && sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl && rm kubectl",
+        "check": "kubectl version --client"
+      }
+    },
+    "k9s": {
+      "name": "K9s",
+      "description": {
+        "zh": "K8s终端UI",
+        "en": "Kubernetes terminal UI"
+      },
+      "category": "container",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "k9s",
+        "check": "k9s version"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "wget -qO- https://github.com/derailed/k9s/releases/latest/download/k9s_Linux_amd64.tar.gz | sudo tar -C /usr/local/bin -xzf - k9s",
+        "check": "k9s version"
+      }
+    },
+    "postgresql": {
+      "name": "PostgreSQL Client",
+      "description": {
+        "zh": "PostgreSQL客户端",
+        "en": "PostgreSQL client"
+      },
+      "category": "database",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "postgresql",
+        "check": "psql --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "postgresql-client",
+        "check": "psql --version"
+      }
+    },
+    "mysql": {
+      "name": "MySQL Client",
+      "description": {
+        "zh": "MySQL客户端",
+        "en": "MySQL client"
+      },
+      "category": "database",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "mysql-client",
+        "check": "mysql --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "mysql-client",
+        "check": "mysql --version"
+      }
+    },
+    "redis": {
+      "name": "Redis CLI",
+      "description": {
+        "zh": "Redis命令行工具",
+        "en": "Redis command-line tool"
+      },
+      "category": "database",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "redis",
+        "check": "redis-cli --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "redis-tools",
+        "check": "redis-cli --version"
+      }
+    },
+    "sqlite": {
+      "name": "SQLite",
+      "description": {
+        "zh": "嵌入式数据库",
+        "en": "Embedded database"
+      },
+      "category": "database",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "sqlite",
+        "check": "sqlite3 --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "sqlite3",
+        "check": "sqlite3 --version"
+      }
+    },
+    "awscli": {
+      "name": "AWS CLI",
+      "description": {
+        "zh": "AWS命令行工具",
+        "en": "AWS command-line tool"
+      },
+      "category": "cloud",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "awscli",
+        "check": "aws --version"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "curl \"https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip\" -o \"awscliv2.zip\" && unzip awscliv2.zip && sudo ./aws/install && rm -rf aws awscliv2.zip",
+        "check": "aws --version"
+      }
+    },
+    "gcloud": {
+      "name": "Google Cloud SDK",
+      "description": {
+        "zh": "GCP命令行工具",
+        "en": "GCP command-line tool"
+      },
+      "category": "cloud",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "google-cloud-sdk",
+        "cask": true,
+        "check": "gcloud version"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "curl https://sdk.cloud.google.com | bash && exec -l $SHELL",
+        "check": "gcloud version"
+      }
+    },
+    "screen": {
+      "name": "GNU Screen",
+      "description": {
+        "zh": "终端会话管理",
+        "en": "Terminal session manager"
+      },
+      "category": "terminal",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "screen",
+        "check": "screen --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "screen",
+        "check": "screen --version"
+      }
+    },
+    "zellij": {
+      "name": "Zellij",
+      "description": {
+        "zh": "现代终端复用器",
+        "en": "Modern terminal multiplexer"
+      },
+      "category": "terminal",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "zellij",
+        "check": "zellij --version"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "cargo install zellij",
+        "check": "zellij --version"
+      }
+    },
+    "zsh": {
+      "name": "Zsh",
+      "description": {
+        "zh": "强大的Shell",
+        "en": "Powerful shell"
+      },
+      "category": "shell",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "zsh",
+        "check": "zsh --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "zsh",
+        "check": "zsh --version"
+      }
+    },
+    "oh-my-zsh": {
+      "name": "Oh My Zsh",
+      "description": {
+        "zh": "Zsh配置框架",
+        "en": "Zsh configuration framework"
+      },
+      "category": "shell",
+      "required": false,
+      "macos": {
+        "method": "script",
+        "install_script": "sh -c \"$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)\" \"\" --unattended",
+        "check": "test -d ~/.oh-my-zsh && echo 'installed'"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "sh -c \"$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)\" \"\" --unattended",
+        "check": "test -d ~/.oh-my-zsh && echo 'installed'"
+      }
+    },
+    "starship": {
+      "name": "Starship",
+      "description": {
+        "zh": "跨Shell提示符",
+        "en": "Cross-shell prompt"
+      },
+      "category": "shell",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "starship",
+        "check": "starship --version"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "curl -sS https://starship.rs/install.sh | sh -s -- -y",
+        "check": "starship --version"
+      }
+    },
+    "zoxide": {
+      "name": "zoxide",
+      "description": {
+        "zh": "智能目录跳转",
+        "en": "Smart directory jumper"
+      },
+      "category": "shell",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "zoxide",
+        "check": "zoxide --version"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "curl -sS https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | bash",
+        "check": "zoxide --version"
+      }
+    },
+    "ollama": {
+      "name": "Ollama",
+      "description": {
+        "zh": "本地大语言模型",
+        "en": "Local LLM runner"
+      },
+      "category": "ai",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "ollama",
+        "check": "ollama --version"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "curl -fsSL https://ollama.com/install.sh | sh",
+        "check": "ollama --version"
+      }
+    },
+    "hadolint": {
+      "name": "Hadolint",
+      "description": {
+        "zh": "Dockerfile检查",
+        "en": "Dockerfile linter"
+      },
+      "category": "quality",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "hadolint",
+        "check": "hadolint --version"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "sudo wget -O /usr/local/bin/hadolint https://github.com/hadolint/hadolint/releases/latest/download/hadolint-Linux-x86_64 && sudo chmod +x /usr/local/bin/hadolint",
+        "check": "hadolint --version"
+      }
+    },
+    "terraform": {
+      "name": "Terraform",
+      "description": {
+        "zh": "基础设施即代码",
+        "en": "Infrastructure as Code"
+      },
+      "category": "devops",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "terraform",
+        "check": "terraform --version"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "wget -qO- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg && echo \"deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main\" | sudo tee /etc/apt/sources.list.d/hashicorp.list && sudo apt update && sudo apt install terraform",
+        "check": "terraform --version"
+      }
+    },
+    "ansible": {
+      "name": "Ansible",
+      "description": {
+        "zh": "自动化运维工具",
+        "en": "Automation tool"
+      },
+      "category": "devops",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "ansible",
+        "check": "ansible --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "ansible",
+        "check": "ansible --version"
+      }
+    },
+    "vim": {
+      "name": "Vim",
+      "description": {
+        "zh": "经典文本编辑器",
+        "en": "Classic text editor"
+      },
+      "category": "editor",
+      "required": false,
+      "preinstalled": true,
+      "macos": {
+        "method": "preinstalled",
+        "check": "vim --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "vim",
+        "check": "vim --version"
+      }
+    },
+    "sublime-text": {
+      "name": "Sublime Text",
+      "description": {
+        "zh": "高性能文本编辑器",
+        "en": "High-performance text editor"
+      },
+      "category": "editor",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "sublime-text",
+        "cask": true,
+        "check": "subl --version"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "wget -qO - https://download.sublimetext.com/sublimehq-pub.gpg | sudo apt-key add - && echo \"deb https://download.sublimetext.com/ apt/stable/\" | sudo tee /etc/apt/sources.list.d/sublime-text.list && sudo apt update && sudo apt install sublime-text",
+        "check": "subl --version"
+      }
+    },
+    "uv": {
+      "name": "uv",
+      "description": {
+        "zh": "超快Python包管理器",
+        "en": "Ultra-fast Python package manager"
+      },
+      "category": "python",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "uv",
+        "check": "uv --version"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "curl -LsSf https://astral.sh/uv/install.sh | sh",
+        "check": "uv --version"
+      }
+    },
+    "poetry": {
+      "name": "Poetry",
+      "description": {
+        "zh": "Python依赖管理工具",
+        "en": "Python dependency manager"
+      },
+      "category": "python",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "poetry",
+        "check": "poetry --version"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "curl -sSL https://install.python-poetry.org | python3 -",
+        "check": "poetry --version"
+      }
+    },
+    "pyenv": {
+      "name": "pyenv",
+      "description": {
+        "zh": "Python版本管理器",
+        "en": "Python version manager"
+      },
+      "category": "python",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "pyenv",
+        "check": "pyenv --version"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "curl https://pyenv.run | bash",
+        "post_install": [
+          "echo 'export PYENV_ROOT=\"$HOME/.pyenv\"' >> ~/.bashrc",
+          "echo 'export PATH=\"$PYENV_ROOT/bin:$PATH\"' >> ~/.bashrc",
+          "echo 'eval \"$(pyenv init -)\"' >> ~/.bashrc"
+        ],
+        "check": "pyenv --version"
+      }
+    },
+    "pipx": {
+      "name": "pipx",
+      "description": {
+        "zh": "Python应用安装器",
+        "en": "Python application installer"
+      },
+      "category": "python",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "pipx",
+        "check": "pipx --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "pipx",
+        "check": "pipx --version"
+      }
+    },
+    "yarn": {
+      "name": "Yarn",
+      "description": {
+        "zh": "Node.js包管理器",
+        "en": "Node.js package manager"
+      },
+      "category": "nodejs",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "yarn",
+        "check": "yarn --version"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "npm install -g yarn",
+        "check": "yarn --version"
+      }
+    },
+    "pnpm": {
+      "name": "pnpm",
+      "description": {
+        "zh": "高效Node.js包管理器",
+        "en": "Efficient Node.js package manager"
+      },
+      "category": "nodejs",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "pnpm",
+        "check": "pnpm --version"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "npm install -g pnpm",
+        "check": "pnpm --version"
+      }
+    },
+    "nvm": {
+      "name": "nvm",
+      "description": {
+        "zh": "Node.js版本管理器",
+        "en": "Node.js version manager"
+      },
+      "category": "nodejs",
+      "required": false,
+      "macos": {
+        "method": "script",
+        "install_script": "curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash",
+        "post_install": [
+          "echo 'export NVM_DIR=\"$HOME/.nvm\"' >> ~/.bashrc",
+          "echo '[ -s \"$NVM_DIR/nvm.sh\" ] && \\. \"$NVM_DIR/nvm.sh\"' >> ~/.bashrc"
+        ],
+        "check": "command -v nvm"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash",
+        "post_install": [
+          "echo 'export NVM_DIR=\"$HOME/.nvm\"' >> ~/.bashrc",
+          "echo '[ -s \"$NVM_DIR/nvm.sh\" ] && \\. \"$NVM_DIR/nvm.sh\"' >> ~/.bashrc"
+        ],
+        "check": "command -v nvm"
+      }
+    },
+    "lazygit": {
+      "name": "LazyGit",
+      "description": {
+        "zh": "终端Git界面",
+        "en": "Terminal Git UI"
+      },
+      "category": "vcs",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "lazygit",
+        "check": "lazygit --version"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "LAZYGIT_VERSION=$(curl -s \"https://api.github.com/repos/jesseduffield/lazygit/releases/latest\" | grep -Po '\"tag_name\": \"v\\K[^\"]*') && curl -Lo lazygit.tar.gz \"https://github.com/jesseduffield/lazygit/releases/latest/download/lazygit_${LAZYGIT_VERSION}_Linux_x86_64.tar.gz\" && tar xf lazygit.tar.gz lazygit && sudo install lazygit /usr/local/bin && rm lazygit lazygit.tar.gz",
+        "check": "lazygit --version"
+      }
+    },
+    "lazydocker": {
+      "name": "LazyDocker",
+      "description": {
+        "zh": "终端Docker界面",
+        "en": "Terminal Docker UI"
+      },
+      "category": "container",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "lazydocker",
+        "check": "lazydocker --version"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "curl https://raw.githubusercontent.com/jesseduffield/lazydocker/master/scripts/install_update_linux.sh | bash",
+        "check": "lazydocker --version"
+      }
+    },
+    "tig": {
+      "name": "Tig",
+      "description": {
+        "zh": "终端Git日志查看器",
+        "en": "Terminal Git log viewer"
+      },
+      "category": "vcs",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "tig",
+        "check": "tig --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "tig",
+        "check": "tig --version"
+      }
+    },
+    "exa": {
+      "name": "eza (exa replacement)",
+      "description": {
+        "zh": "现代化ls替代品 (exa的维护版本)",
+        "en": "Modern ls replacement (maintained fork of exa)"
+      },
+      "category": "system",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "eza",
+        "check": "eza --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "eza",
+        "check": "eza --version"
+      }
+    },
+    "lsd": {
+      "name": "LSD",
+      "description": {
+        "zh": "现代化ls工具",
+        "en": "Modern ls tool"
+      },
+      "category": "system",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "lsd",
+        "check": "lsd --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "lsd",
+        "check": "lsd --version"
+      }
+    },
+    "dust": {
+      "name": "Dust",
+      "description": {
+        "zh": "磁盘使用分析工具",
+        "en": "Disk usage analyzer"
+      },
+      "category": "system",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "dust",
+        "check": "dust --version"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "cargo install du-dust",
+        "check": "dust --version"
+      }
+    },
+    "delta": {
+      "name": "Delta",
+      "description": {
+        "zh": "Git diff美化工具",
+        "en": "Git diff beautifier"
+      },
+      "category": "vcs",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "git-delta",
+        "check": "delta --version"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "cargo install git-delta",
+        "check": "delta --version"
+      }
+    },
+    "tldr": {
+      "name": "tldr",
+      "description": {
+        "zh": "简化版man手册",
+        "en": "Simplified man pages"
+      },
+      "category": "doc",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "tldr",
+        "check": "tldr --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "tldr",
+        "check": "tldr --version"
+      }
+    },
+    "protoc": {
+      "name": "Protocol Buffers",
+      "description": {
+        "zh": "Protocol Buffers编译器",
+        "en": "Protocol Buffers compiler"
+      },
+      "category": "dev",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "protobuf",
+        "check": "protoc --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "protobuf-compiler",
+        "check": "protoc --version"
+      }
+    },
+    "grpcurl": {
+      "name": "gRPCurl",
+      "description": {
+        "zh": "gRPC命令行工具",
+        "en": "gRPC command-line tool"
+      },
+      "category": "dev",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "grpcurl",
+        "check": "grpcurl --version"
+      },
+      "linux": {
+        "method": "script",
+        "install_script": "go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest",
+        "check": "grpcurl --version"
+      }
+    },
+    "maven": {
+      "name": "Maven",
+      "description": {
+        "zh": "Java项目管理工具",
+        "en": "Java project management tool"
+      },
+      "category": "build",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "maven",
+        "check": "mvn --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "maven",
+        "check": "mvn --version"
+      }
+    },
+    "ffmpeg": {
+      "name": "FFmpeg",
+      "description": {
+        "zh": "音视频处理工具",
+        "en": "Audio/video processing tool"
+      },
+      "category": "media",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "ffmpeg",
+        "check": "ffmpeg -version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "ffmpeg",
+        "check": "ffmpeg -version"
+      }
+    },
+    "pandoc": {
+      "name": "Pandoc",
+      "description": {
+        "zh": "文档格式转换工具",
+        "en": "Document converter"
+      },
+      "category": "doc",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "pandoc",
+        "check": "pandoc --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "pandoc",
+        "check": "pandoc --version"
+      }
+    },
+    "tree": {
+      "name": "Tree",
+      "description": {
+        "zh": "目录树显示工具",
+        "en": "Directory tree viewer"
+      },
+      "category": "system",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "tree",
+        "check": "tree --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "tree",
+        "check": "tree --version"
+      }
+    },
+    "scrcpy": {
+      "name": "scrcpy",
+      "description": {
+        "zh": "Android屏幕投影工具",
+        "en": "Android screen mirroring"
+      },
+      "category": "android",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "scrcpy",
+        "check": "scrcpy --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "scrcpy",
+        "check": "scrcpy --version"
+      }
+    },
+    "zstd": {
+      "name": "Zstandard",
+      "description": {
+        "zh": "高性能压缩工具",
+        "en": "Fast compression tool"
+      },
+      "category": "compression",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "zstd",
+        "check": "zstd --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "zstd",
+        "check": "zstd --version"
+      }
+    },
+    "xz": {
+      "name": "XZ Utils",
+      "description": {
+        "zh": "LZMA压缩工具",
+        "en": "LZMA compression tool"
+      },
+      "category": "compression",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "xz",
+        "check": "xz --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "xz-utils",
+        "check": "xz --version"
+      }
+    },
+    "tesseract": {
+      "name": "Tesseract OCR",
+      "description": {
+        "zh": "OCR文字识别工具",
+        "en": "OCR text recognition"
+      },
+      "category": "ocr",
+      "required": false,
+      "macos": {
+        "method": "brew",
+        "package": "tesseract",
+        "check": "tesseract --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "tesseract-ocr",
+        "check": "tesseract --version"
+      }
+    },
+    "clang": {
+      "name": "Clang",
+      "description": {
+        "zh": "LLVM C/C++编译器",
+        "en": "LLVM C/C++ compiler"
+      },
+      "category": "compiler",
+      "required": false,
+      "preinstalled": true,
+      "macos": {
+        "method": "preinstalled",
+        "check": "clang --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "clang",
+        "check": "clang --version"
+      }
+    },
+    "gcc": {
+      "name": "GCC",
+      "description": {
+        "zh": "GNU编译器集合",
+        "en": "GNU Compiler Collection"
+      },
+      "category": "compiler",
+      "required": false,
+      "preinstalled": true,
+      "macos": {
+        "method": "preinstalled",
+        "check": "gcc --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "gcc g++",
+        "check": "gcc --version"
+      }
+    },
+    "lldb": {
+      "name": "LLDB",
+      "description": {
+        "zh": "LLVM调试器",
+        "en": "LLVM debugger"
+      },
+      "category": "debug",
+      "required": false,
+      "preinstalled": true,
+      "macos": {
+        "method": "preinstalled",
+        "check": "lldb --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "lldb",
+        "check": "lldb --version"
+      }
+    },
+    "lsof": {
+      "name": "lsof",
+      "description": {
+        "zh": "列出打开的文件",
+        "en": "List open files"
+      },
+      "category": "system",
+      "required": false,
+      "preinstalled": true,
+      "macos": {
+        "method": "preinstalled",
+        "check": "lsof -v"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "lsof",
+        "check": "lsof -v"
+      }
+    },
+    "nc": {
+      "name": "Netcat",
+      "description": {
+        "zh": "网络工具",
+        "en": "Network utility"
+      },
+      "category": "network",
+      "required": false,
+      "preinstalled": true,
+      "macos": {
+        "method": "preinstalled",
+        "check": "nc -h 2>&1 | head -1"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "netcat",
+        "check": "nc -h"
+      }
+    },
+    "ctags": {
+      "name": "Ctags",
+      "description": {
+        "zh": "代码标签生成器",
+        "en": "Code tag generator"
+      },
+      "category": "dev",
+      "required": false,
+      "preinstalled": true,
+      "macos": {
+        "method": "preinstalled",
+        "check": "ctags --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "universal-ctags",
+        "check": "ctags --version"
+      }
+    },
+    "rsync": {
+      "name": "Rsync",
+      "description": {
+        "zh": "文件同步工具",
+        "en": "File synchronization tool"
+      },
+      "category": "system",
+      "required": false,
+      "preinstalled": true,
+      "macos": {
+        "method": "preinstalled",
+        "check": "rsync --version"
+      },
+      "linux": {
+        "method": "apt",
+        "package": "rsync",
+        "check": "rsync --version"
+      }
+    }
+  }
+}
