@@ -1,0 +1,38 @@
+{
+  "name": "devenv",
+  "version": "1.0.0",
+  "author": "Solo",
+  "description": {
+    "zh": "开发环境管理工具 - 快速安装和配置开发工具",
+    "en": "Development Environment Manager - Quick setup for development tools"
+  },
+  "type": "python",
+  "entry": "plugin.py",
+  "enabled": true,
+  "priority": 50,
+  "dependencies": [],
+  "tags": ["environment", "setup", "tools", "bootstrap"],
+  "metadata": {
+    "supported_platforms": ["macos", "linux"],
+    "package_managers": ["brew", "apt", "script"],
+    "categories": [
+      "language",
+      "vcs",
+      "android",
+      "mobile",
+      "build",
+      "container",
+      "database",
+      "cloud",
+      "network",
+      "text",
+      "terminal",
+      "shell",
+      "monitoring",
+      "ai",
+      "editor",
+      "quality",
+      "devops"
+    ]
+  }
+}
