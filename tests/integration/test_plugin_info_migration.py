@@ -80,9 +80,9 @@ class TestPluginInfoCommand:
                 return messages.get(key, key)
 
         class MockConstants:
-            EXIT_GENERAL_ERROR = 1
-            EXIT_MISUSE = 2
-            EXIT_PLUGIN_NOT_FOUND = 3
+            exit_general_error = 1
+            exit_misuse = 2
+            exit_plugin_not_found = 3
 
         formatter = MockFormatter()
         i18n = MockI18n()
@@ -129,7 +129,9 @@ class TestPluginInfoCommand:
                 return "Missing plugin name" if "missing" in key else key
 
         class MockConstants:
-            EXIT_MISUSE = 2
+            exit_general_error = 1
+            exit_misuse = 2
+            exit_plugin_not_found = 3
 
         command = PluginInfoCommand(
             plugin_service=plugin_service,
@@ -157,7 +159,9 @@ class TestPluginInfoCommand:
                 return "Plugin not found" if "not_found" in key else key
 
         class MockConstants:
-            EXIT_PLUGIN_NOT_FOUND = 3
+            exit_general_error = 1
+            exit_misuse = 2
+            exit_plugin_not_found = 3
 
         command = PluginInfoCommand(
             plugin_service=plugin_service,
