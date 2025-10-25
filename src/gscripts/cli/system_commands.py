@@ -121,12 +121,11 @@ class SystemCommands:
             if health_result.get('issues'):
                 status_info[issues_label] = "; ".join(health_result['issues'])
 
-            # 使用统一的格式化器绘制信息表
-            info_table = self.formatter.format_info_table(status_info)
+            # 使用统一的格式化器绘制信息表（title 显示在 Panel 边框上）
+            title_text = f"🔧 {self.i18n.get_message('commands.system_status')}"
+            info_table = self.formatter.format_info_table(status_info, title=title_text)
 
-            title = self.formatter.format_title(self.i18n.get_message('commands.system_status'), "🔧")
-
-            output = f"{title}\n\n{info_table}"
+            output = info_table
 
             took = duration(start_ts)
             logger.info(

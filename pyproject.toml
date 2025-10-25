@@ -14,6 +14,7 @@ dependencies = [
     "PyYAML>=6.0.1",   # 系统配置加载（system_config.yaml）
     "Jinja2>=3.1.2",    # 模板引擎（env.sh/env.fish生成）
     "aiofiles>=0.8.0,<1.0",   # 异步文件I/O（有同步fallback）
+    "rich>=13.0.0",     # 终端美化和表格显示
 ]
 
 [project.urls]

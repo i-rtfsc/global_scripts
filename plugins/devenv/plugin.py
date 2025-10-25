@@ -22,7 +22,7 @@ from gscripts.plugins.decorators import plugin_function
 from gscripts.models.result import CommandResult
 from gscripts.core.logger import get_logger
 from gscripts.cli.formatters import OutputFormatter
-from gscripts.utils.table import TableFormatter
+from gscripts.utils.rich_table import RichTableFormatter
 
 logger = get_logger(tag="PLUGIN.DEVENV", name=__name__)
 
@@ -293,7 +293,7 @@ class DevEnvPlugin(BasePlugin):
             rows.append([type_marker, tool_name, name, category, desc_text])
 
         # 使用表格格式化器
-        table_formatter = TableFormatter()
+        table_formatter = RichTableFormatter()
         table_output = table_formatter.draw_table(headers, rows)
 
         return CommandResult(
@@ -362,7 +362,7 @@ class DevEnvPlugin(BasePlugin):
             rows.append([type_marker, status_marker, tool_name, name, status])
 
         # 使用表格格式化器
-        table_formatter = TableFormatter()
+        table_formatter = RichTableFormatter()
         table_output = table_formatter.draw_table(headers, rows)
 
         return CommandResult(
@@ -424,7 +424,7 @@ class DevEnvPlugin(BasePlugin):
             for tool in sorted(missing_required):
                 rows.append(["❌", tool, "未安装"])
 
-            table_formatter = TableFormatter()
+            table_formatter = RichTableFormatter()
             table_output = table_formatter.draw_table(headers, rows)
             output_parts.append(table_output)
             output_parts.append("")
@@ -445,7 +445,7 @@ class DevEnvPlugin(BasePlugin):
             for tool in sorted(missing_optional):
                 rows.append(["❌", tool, "未安装"])
 
-            table_formatter = TableFormatter()
+            table_formatter = RichTableFormatter()
             table_output = table_formatter.draw_table(headers, rows)
             output_parts.append(table_output)
             output_parts.append("")
@@ -522,7 +522,7 @@ class DevEnvPlugin(BasePlugin):
             rows.append([type_marker, preset_name, name, desc_text, content])
 
         # 使用表格格式化器
-        table_formatter = TableFormatter()
+        table_formatter = RichTableFormatter()
         table_output = table_formatter.draw_table(headers, rows)
 
         return CommandResult(
