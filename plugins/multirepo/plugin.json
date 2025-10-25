@@ -1,0 +1,17 @@
+{
+  "name": "multirepo",
+  "version": "1.0.0",
+  "author": "anqi.huang@outlook.com",
+  "description": {
+    "zh": "多仓库管理工具 - 支持 repo 和 git clone 两种后端",
+    "en": "Multi-repository management tool - supports both repo and git clone backends"
+  },
+  "type": "python",
+  "entry": "plugin.py",
+  "enabled": true,
+  "priority": 50,
+  "category": "development",
+  "homepage": "https://github.com/anqihuangshanhai/global_scripts",
+  "license": "Apache-2.0",
+  "keywords": ["repo", "git", "manifest", "android", "multi-repo"]
+}
