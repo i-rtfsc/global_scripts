@@ -33,9 +33,9 @@ abbr -a -g l 'ls -CF'
 abbr -a -g lt 'ls -lhtr'
 abbr -a -g lsize 'ls -lhS'
 
-abbr -a -g cp 'cp -iv'
-abbr -a -g mv 'mv -iv'
-abbr -a -g rm 'rm -iv'
+# abbr -a -g cp 'cp -iv'
+# abbr -a -g mv 'mv -iv'
+# abbr -a -g rm 'rm -iv'
 abbr -a -g mkdir 'mkdir -pv'
 
 # ============================================
