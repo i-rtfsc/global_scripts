@@ -49,3 +49,5 @@ end
 # 如需添加个人配置，请创建 ~/.config/fish/local.fish
 test -f ~/.config/fish/local.fish; and source ~/.config/fish/local.fish
 
+# Homebrew 环境变量
+eval (/opt/homebrew/bin/brew shellenv)
