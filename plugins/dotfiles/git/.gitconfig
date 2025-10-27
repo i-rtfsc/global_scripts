@@ -1,8 +1,6 @@
 [core]
     editor = nvim
     filemode = true
-    # Global hooks directory (managed by Global Scripts)
-    hooksPath = ~/.config/global-scripts/git/hooks
 
 [color]
     ui = auto
