@@ -68,7 +68,7 @@ gs plugin list
 ├───────────┼────────┼────────────┼──────────┼──────────┼──────────┼───────────────┤
 │ android   │ 正常   │ 混合插件   │ 20       │ 1.0.0    │ 97       │ Android开发   │
 │ system    │ 正常   │ 混合插件   │ 50       │ 1.0.0    │ 23       │ 系统管理工具  │
-│ gerrit    │ 正常   │ Python插件 │ 50       │ 1.0.0    │ 1        │ Gerrit审查    │
+│ multirepo │ 正常   │ Python插件 │ 50       │ 1.0.0    │ 6        │ 多仓库管理    │
 └───────────┴────────┴────────────┴──────────┴──────────┴──────────┴───────────────┘
 ```
 
@@ -98,10 +98,10 @@ gs system config install vim
 
 ```bash
 # 启用插件
-gs plugin enable gerrit
+gs plugin enable android
 
 # 禁用插件
-gs plugin disable gerrit
+gs plugin disable android
 ```
 
 ### 修改语言设置

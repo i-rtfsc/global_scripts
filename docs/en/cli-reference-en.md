@@ -153,7 +153,7 @@ gs plugin enable <plugin-name>
 
 Example:
 ```bash
-gs plugin enable gerrit
+gs plugin enable android
 ```
 
 ### gs plugin disable
@@ -166,7 +166,7 @@ gs plugin disable <plugin-name>
 
 Example:
 ```bash
-gs plugin disable gerrit
+gs plugin disable android
 ```
 
 ## Plugin Command Execution

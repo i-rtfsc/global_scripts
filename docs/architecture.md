@@ -115,7 +115,7 @@ def disable_plugin()  # 禁用插件
 {
   "system_plugins": {
     "android": true,
-    "gerrit": false
+    "multirepo": true
   },
   "custom_plugins": {
     "myplugin": true

@@ -3,11 +3,14 @@ MultiRepo Plugin
 - 多仓库管理工具
 - 支持 repo 和 git clone 两种后端
 - 灵活的 manifest 文件解析
+- 智能 push 支持 Gerrit 和普通 Git
 """
 
 import sys
 import os
 import subprocess
+import argparse
+import shlex
 from pathlib import Path
 from typing import List, Dict, Tuple, Optional
 from enum import Enum
@@ -75,6 +78,90 @@ class MultiRepoPlugin(BasePlugin):
     def _dir_exists(self, dirpath: str) -> bool:
         """检查目录是否存在"""
         return os.path.isdir(dirpath) and os.path.exists(dirpath)
+
+    def _is_gerrit_url(self, url: str) -> bool:
+        """检查 URL 是否为 Gerrit 服务器"""
+        url_lower = url.lower()
+        gerrit_indicators = [
+            'gerrit',
+            '/a/',  # Gerrit 认证路径
+            'review.',  # 常见前缀如 review.lineageos.org
+        ]
+
+        # 排除非 Gerrit 服务
+        non_gerrit = ['github.com', 'gitlab.com', 'bitbucket.org']
+        if any(ng in url_lower for ng in non_gerrit):
+            return False
+
+        return any(indicator in url_lower for indicator in gerrit_indicators)
+
+    def _ensure_git_repo(self, cwd: str = None) -> Tuple[bool, str]:
+        """确保当前目录是 git 仓库"""
+        rc, out = self._run_cmd("git rev-parse --is-inside-work-tree", cwd=cwd)
+        if rc != 0 or out.strip() != "true":
+            return False, "Not a git repository (or any of the parent directories)"
+        return True, ""
+
+    def _check_git_identity(self, cwd: str = None) -> Tuple[bool, str]:
+        """检查 git 用户配置"""
+        rc, name = self._run_cmd("git config --get user.name", cwd=cwd)
+        if rc != 0 or not name.strip():
+            return False, 'No git user.name, set it via: git config --global user.name "Your Name"'
+        rc, email = self._run_cmd("git config --get user.email", cwd=cwd)
+        if rc != 0 or not email.strip():
+            return False, 'No git user.email, set it via: git config --global user.email you@example.com'
+        return True, ""
+
+    def _select_remote(self, preferred: str = None, cwd: str = None) -> Tuple[bool, str, str]:
+        """选择远程仓库 URL"""
+        rc, out = self._run_cmd("git remote -v", cwd=cwd)
+        if rc != 0:
+            return False, "", f"git remote -v failed: {out}"
+        lines = [l for l in out.splitlines() if "(push)" in l]
+        if not lines:
+            return False, "", "No push remote configured. Use: git remote add origin <url>"
+
+        # 解析: <name>\t<url> (push)
+        entries: List[Tuple[str, str]] = []
+        for l in lines:
+            parts = l.split()
+            if len(parts) >= 3:
+                entries.append((parts[0], parts[1]))
+
+        def find_by_name(name: str) -> str:
+            for n, url in entries:
+                if n == name:
+                    return url
+            return None
+
+        # 优先级: preferred -> origin -> first push url
+        if preferred:
+            url = find_by_name(preferred)
+            if url:
+                return True, url, ""
+        url = find_by_name("origin") or (entries[0][1] if entries else None)
+        if not url:
+            return False, "", "No valid remote found"
+        return True, url, ""
+
+    def _get_current_branch(self, cwd: str = None) -> Tuple[bool, str, str]:
+        """获取当前分支名"""
+        rc, out = self._run_cmd("git rev-parse --abbrev-ref HEAD", cwd=cwd)
+        if rc != 0:
+            return False, "", f"Failed to get current branch: {out}"
+        branch = out.strip()
+        if not branch:
+            return False, "", "Unable to determine current branch"
+        return True, branch, ""
+
+    def _build_refspec(self, branch: str, reviewers: List[str], drafts: bool) -> str:
+        """构建 Gerrit refspec"""
+        base = f"refs/drafts/{branch}" if drafts else f"refs/for/{branch}"
+        if reviewers:
+            opts = ",".join([f"r={r.strip()}" for r in reviewers if r.strip()])
+            if opts:
+                return f"{base}%{opts}"
+        return base
 
     def _is_repo_workspace(self, root_dir: str = None) -> bool:
         """
@@ -873,3 +960,119 @@ class MultiRepoPlugin(BasePlugin):
             output_lines.append("💡 提示: 使用 'gs multirepo init <manifest>' 初始化项目")
 
         return CommandResult(success=True, output="\n".join(output_lines))
+
+    @plugin_function(
+        name="push",
+        description={
+            "zh": "智能推送到 Gerrit 或普通 Git（自动检测）",
+            "en": "Smart push to Gerrit or regular Git (auto-detect)"
+        },
+        usage="gs multirepo push [-b BRANCH] [-r EMAILS] [-d] [--remote REMOTE]",
+        examples=[
+            "gs multirepo push",
+            "gs multirepo push -b master",
+            "gs multirepo push -b main -r reviewer@example.com",
+            "gs multirepo push -d --remote gerrit"
+        ],
+    )
+    async def push(self, args: List[str] = None) -> CommandResult:
+        """
+        智能推送功能：
+        - 自动检测 remote 类型（Gerrit 或普通 Git）
+        - Gerrit: 推送到 refs/for/<branch> 支持评审人、草稿
+        - 普通 Git: 正常 git push
+        """
+        args = args or []
+        parser = argparse.ArgumentParser(prog="gs multirepo push", add_help=False)
+        parser.add_argument("-b", "--branch", default=None, help="Target branch")
+        parser.add_argument("-r", "--reviewer", default="", help="Comma-separated reviewer emails (Gerrit only)")
+        parser.add_argument("-d", "--drafts", action="store_true", help="Push as drafts (Gerrit only)")
+        parser.add_argument("--remote", default=None, help="Remote name to use, e.g., origin")
+        parser.add_argument("-h", "--help", action="store_true")
+
+        try:
+            ns, unknown = parser.parse_known_args(args)
+        except SystemExit:
+            return CommandResult(success=False, error="Invalid arguments", exit_code=2)
+
+        if ns.help:
+            help_text = (
+                "Usage: gs multirepo push [-b BRANCH] [-r EMAILS] [-d] [--remote REMOTE]\n\n"
+                "智能推送到 Gerrit 或普通 Git 仓库（自动检测）\n\n"
+                "选项:\n"
+                "  -b/--branch   Target branch (default: current branch)\n"
+                "  -r/--reviewer Comma-separated reviewer emails (Gerrit only)\n"
+                "  -d/--drafts   Push to refs/drafts (draft change, Gerrit only)\n"
+                "  --remote      Remote name (default: prefer origin)\n\n"
+                "示例:\n"
+                "  gs multirepo push                    # 推送当前分支\n"
+                "  gs multirepo push -b develop         # 推送到 develop 分支\n"
+                "  gs multirepo push -r user@domain.com # 添加评审人（Gerrit）\n"
+                "  gs multirepo push -d                 # 推送草稿（Gerrit）\n"
+            )
+            return CommandResult(success=True, output=help_text)
+
+        # 获取当前工作目录
+        cwd = os.environ.get('PWD') or os.getcwd()
+
+        # 检查是否为 git 仓库
+        ok, msg = self._ensure_git_repo(cwd=cwd)
+        if not ok:
+            return CommandResult(success=False, error=msg, exit_code=1)
+
+        # 检查 git 用户配置
+        ok, msg = self._check_git_identity(cwd=cwd)
+        if not ok:
+            return CommandResult(success=False, error=msg, exit_code=1)
+
+        # 获取 remote URL
+        ok, remote_url, err = self._select_remote(ns.remote, cwd=cwd)
+        if not ok:
+            return CommandResult(success=False, error=err, exit_code=1)
+
+        # 获取分支名
+        branch = ns.branch
+        if not branch:
+            ok, branch, err = self._get_current_branch(cwd=cwd)
+            if not ok:
+                return CommandResult(success=False, error=err, exit_code=1)
+
+        # 检测是否为 Gerrit 服务器
+        is_gerrit = self._is_gerrit_url(remote_url)
+
+        if is_gerrit:
+            # Gerrit 模式：使用 refs/for/ 或 refs/drafts/
+            reviewers = [s.strip() for s in ns.reviewer.split(",") if s.strip()] if ns.reviewer else []
+            refspec = self._build_refspec(branch.strip(), reviewers, ns.drafts)
+            cmd_list = ["git", "push", remote_url, f"HEAD:{refspec}"]
+            mode_desc = "Gerrit (code review)"
+        else:
+            # 普通 Git 模式：正常 push
+            if ns.reviewer or ns.drafts:
+                return CommandResult(
+                    success=False,
+                    error="选项 -r/--reviewer 和 -d/--drafts 仅适用于 Gerrit 服务器\n"
+                          f"当前 remote 不是 Gerrit: {remote_url}",
+                    exit_code=1
+                )
+            cmd_list = ["git", "push", remote_url, f"HEAD:{branch}"]
+            mode_desc = "Git (normal push)"
+
+        # 显示执行的命令
+        executed = "$ " + " ".join(shlex.quote(x) for x in cmd_list)
+        print(f"🔍 检测到: {mode_desc}")
+        print(f"📤 推送到: {remote_url}")
+        print(f"🌿 分支: {branch}")
+        print(f"\n{executed}\n")
+
+        # 执行推送
+        rc, out = self._run_cmd(" ".join(shlex.quote(x) for x in cmd_list), cwd=cwd, capture=False)
+
+        if rc == 0:
+            return CommandResult(success=True, output=f"✅ 推送成功", exit_code=0)
+        else:
+            return CommandResult(
+                success=False,
+                error=f"❌ 推送失败 (exit code: {rc})",
+                exit_code=rc
+            )

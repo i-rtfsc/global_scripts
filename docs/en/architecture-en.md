@@ -115,7 +115,7 @@ def disable_plugin()  # Disable plugin
 {
   "system_plugins": {
     "android": true,
-    "gerrit": false
+    "multirepo": true
   },
   "custom_plugins": {
     "myplugin": true
