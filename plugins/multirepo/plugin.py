@@ -76,6 +76,34 @@ class MultiRepoPlugin(BasePlugin):
         """检查目录是否存在"""
         return os.path.isdir(dirpath) and os.path.exists(dirpath)
 
+    def _is_repo_workspace(self, root_dir: str = None) -> bool:
+        """
+        判断是否为 repo 工程
+
+        Args:
+            root_dir: 要检查的根目录，默认为当前目录
+
+        Returns:
+            bool: 如果是 repo 工程返回 True，否则返回 False
+        """
+        if root_dir is None:
+            root_dir = os.getenv('PWD') or os.getcwd()
+
+        repo_dir = os.path.join(root_dir, ".repo")
+        if not self._dir_exists(repo_dir):
+            return False
+
+        # 检查 .repo 目录下是否有 xml 文件
+        repo_path = Path(repo_dir)
+        xml_files = list(repo_path.glob("*.xml"))
+
+        # 也检查 manifests 子目录
+        manifests_dir = repo_path / "manifests"
+        if manifests_dir.exists():
+            xml_files.extend(list(manifests_dir.glob("*.xml")))
+
+        return len(xml_files) > 0
+
     def _is_valid_manifest(self, filepath: str) -> bool:
         """验证是否为有效的 manifest XML 文件"""
         if not self._file_exists(filepath):
@@ -89,6 +117,50 @@ class MultiRepoPlugin(BasePlugin):
         except Exception as e:
             logger.warning(f"Invalid manifest file {filepath}: {e}")
             return False
+
+    def _resolve_sync_manifest(self, manifest_arg: Optional[str] = None) -> Optional[str]:
+        """
+        解析 sync 命令的 manifest 文件路径，按优先级：
+        1. 指定的 manifest 参数（最高优先级）
+        2. 当前目录的 xml 文件
+        3. 插件内置 manifest（如 mini-aosp.xml）
+
+        Returns:
+            str: manifest 文件的绝对路径，如果未找到返回 None
+        """
+        # 优先级 1: 如果指定了 manifest 参数，使用 resolve_manifest 方法解析
+        if manifest_arg:
+            resolved = self.resolve_manifest(manifest_arg)
+            if resolved:
+                logger.info(f"Using specified manifest: {resolved}")
+                return resolved
+
+        # 优先级 2: 当前目录的 xml 文件
+        user_cwd = os.getenv('PWD') or os.getcwd()
+        cwd = Path(user_cwd)
+        xml_files = list(cwd.glob("*.xml"))
+
+        if xml_files:
+            # 优先使用 default.xml
+            default_xml = cwd / "default.xml"
+            if default_xml.exists() and self._is_valid_manifest(str(default_xml)):
+                logger.info(f"Using current directory manifest: default.xml")
+                return str(default_xml)
+
+            # 否则使用第一个有效的 xml 文件
+            for xml_file in xml_files:
+                if self._is_valid_manifest(str(xml_file)):
+                    logger.info(f"Using current directory manifest: {xml_file.name}")
+                    return str(xml_file)
+
+        # 优先级 3: 插件内置 manifest（默认 mini-aosp.xml）
+        builtin_manifest = self.manifests_dir / "mini-aosp.xml"
+        if builtin_manifest.exists() and self._is_valid_manifest(str(builtin_manifest)):
+            logger.info(f"Using builtin manifest: mini-aosp.xml")
+            return str(builtin_manifest)
+
+        logger.warning("No manifest found in any priority level")
+        return None
 
     def resolve_manifest(self, manifest_arg: str) -> Optional[str]:
         """
@@ -459,85 +531,244 @@ class MultiRepoPlugin(BasePlugin):
 
     @plugin_function(
         name="sync",
-        description={"zh": "同步repo项目（支持清理模式）", "en": "Sync repo projects with optional clean mode"},
-        usage="gs multirepo sync [clean]",
-        examples=["gs multirepo sync", "gs multirepo sync clean"],
+        description={"zh": "同步多仓库项目（自动检测 repo/git 模式）", "en": "Sync multi-repo projects (auto-detect repo/git mode)"},
+        usage="gs multirepo sync [manifest] [clean]",
+        examples=[
+            "gs multirepo sync",
+            "gs multirepo sync clean",
+            "gs multirepo sync mini-aosp",
+            "gs multirepo sync /path/to/manifest.xml",
+            "gs multirepo sync mini-aosp clean"
+        ],
     )
     async def sync(self, args: List[str] = None) -> CommandResult:
-        """同步repo项目（仅 repo 模式）"""
+        """
+        同步多仓库项目
+        - 自动检测是否为 repo 工程
+        - repo 工程：执行 repo sync
+        - 非 repo 工程：执行 git pull
+        - 支持指定 manifest（优先级：参数 > 当前目录 > 内置）
+        """
         args = args or []
-        clean_mode = "clean" in args or "c" in args
 
-        root_dir = os.getcwd()
-        project_list_file = os.path.join(root_dir, ".repo/project.list")
+        # 解析参数
+        clean_mode = False
+        manifest_arg = None
 
-        if not self._file_exists(project_list_file):
+        for arg in args:
+            if arg in ["clean", "c"]:
+                clean_mode = True
+            elif not arg.startswith("--"):
+                # 第一个非选项参数作为 manifest
+                if manifest_arg is None:
+                    manifest_arg = arg
+
+        # 获取工作目录
+        root_dir = os.getenv('PWD') or os.getcwd()
+
+        # 判断是否为 repo 工程
+        is_repo = self._is_repo_workspace(root_dir)
+
+        if is_repo:
+            # Repo 工程：使用 repo sync
+            return await self._sync_with_repo(root_dir, manifest_arg, clean_mode)
+        else:
+            # 非 Repo 工程：使用 git pull
+            return await self._sync_with_git(root_dir, manifest_arg, clean_mode)
+
+    async def _sync_with_repo(self, root_dir: str, manifest_arg: Optional[str], clean_mode: bool) -> CommandResult:
+        """
+        使用 repo sync 同步项目
+
+        Args:
+            root_dir: 工作目录
+            manifest_arg: manifest 参数（可选）
+            clean_mode: 是否清理模式
+        """
+        # 检查 repo 是否安装
+        ret, _ = self._run_cmd("which repo")
+        if ret != 0:
             return CommandResult(
                 success=False,
-                error="未找到 .repo/project.list 文件\n"
-                      "请确保在 repo 工作目录中执行，或使用 'gs multirepo init' 初始化项目"
+                error="未找到 repo 命令，请先安装 repo 工具"
             )
 
-        projects = self._parse_project_list(project_list_file)
+        # 按优先级解析 manifest
+        manifest_path = self._resolve_sync_manifest(manifest_arg)
+        if not manifest_path:
+            return CommandResult(
+                success=False,
+                error="未找到 manifest 文件\n"
+                      "请指定 manifest，或在当前目录创建 .xml 文件\n"
+                      "使用 'gs multirepo list' 查看内置 manifest"
+            )
+
+        # 解析 manifest 获取所有 project
+        projects = self._parse_manifest_projects(manifest_path)
         if not projects:
-            return CommandResult(success=False, error="项目列表为空")
+            return CommandResult(
+                success=False,
+                error=f"无法从 manifest 解析项目: {manifest_path}"
+            )
 
-        project_branches = self._parse_manifest_branches(root_dir)
+        print("🔧 检测到 Repo 工程，使用 repo sync")
+        print(f"📄 使用 manifest: {manifest_path}")
+        print(f"📦 解析到 {len(projects)} 个项目")
+        if clean_mode:
+            print("🧹 清理模式：--force-sync")
+        print()
 
-        output_lines = []
         errors = []
+        success_count = 0
 
-        for project in projects:
-            output_lines.append(f"🔄 同步项目: {project}")
-            project_dir = os.path.join(root_dir, project)
-            git_dir = os.path.join(project_dir, ".git")
+        # 逐个同步项目
+        for idx, project in enumerate(projects, 1):
+            project_path = project['path']
+            project_name = project['name']
 
-            if not self._dir_exists(git_dir):
-                output_lines.append(f"  ⏭️  跳过 {project}：不是git仓库")
-                continue
+            print(f"[{idx}/{len(projects)}] 🔄 同步: {project_name} ({project_path})")
 
-            # 获取分支列表
-            ret, branch_output = self._run_cmd("git branch --list | sed 's/*//g'", project_dir)
+            # 构建 repo sync 命令
+            sync_cmd_parts = ["repo sync"]
+            if clean_mode:
+                sync_cmd_parts.append("--force-sync")
+            sync_cmd_parts.append(project_path)
+
+            sync_cmd = " ".join(sync_cmd_parts)
+
+            # 执行 repo sync（实时输出）
+            ret, output = self._run_cmd(sync_cmd, cwd=root_dir, capture=False)
+
             if ret != 0:
-                errors.append(f"❌ {project} 获取分支列表失败: {branch_output}")
+                error_msg = f"❌ {project_name}: repo sync 失败"
+                print(f"           {error_msg}")
+                errors.append(error_msg)
+            else:
+                print(f"           ✅ 完成")
+                success_count += 1
+
+            print()
+
+        # 汇总结果
+        print("=" * 60)
+        print(f"✅ 成功同步: {success_count}/{len(projects)}")
+
+        if errors:
+            print()
+            print("⚠️  错误列表:")
+            for error in errors:
+                print(f"  {error}")
+            return CommandResult(
+                success=success_count > 0,
+                output=f"部分项目同步完成 ({success_count}/{len(projects)})"
+            )
+
+        return CommandResult(
+            success=True,
+            output=f"所有项目同步成功 ({success_count}/{len(projects)})"
+        )
+
+    async def _sync_with_git(self, root_dir: str, manifest_arg: Optional[str], clean_mode: bool) -> CommandResult:
+        """
+        使用 git pull 同步项目
+
+        Args:
+            root_dir: 工作目录
+            manifest_arg: manifest 参数（可选）
+            clean_mode: 是否清理模式
+        """
+        # 解析 manifest 文件
+        manifest_path = self._resolve_sync_manifest(manifest_arg)
+        if not manifest_path:
+            return CommandResult(
+                success=False,
+                error="未找到 manifest 文件\n"
+                      "请指定 manifest，或在当前目录创建 .xml 文件\n"
+                      "使用 'gs multirepo list' 查看内置 manifest"
+            )
+
+        # 解析项目列表
+        projects = self._parse_manifest_projects(manifest_path)
+        if not projects:
+            return CommandResult(
+                success=False,
+                error=f"无法从 manifest 解析项目: {manifest_path}"
+            )
+
+        print(f"🔧 使用 git pull 模式同步 {len(projects)} 个项目")
+        print(f"📄 Manifest: {manifest_path}")
+        print(f"📂 工作目录: {root_dir}")
+        if clean_mode:
+            print("🧹 清理模式：git clean -dfx && git reset --hard")
+        print()
+
+        errors = []
+        success_count = 0
+
+        for idx, project in enumerate(projects, 1):
+            project_name = project['name']
+            project_path = project['path']
+            project_full_path = os.path.join(root_dir, project_path)
+
+            print(f"[{idx}/{len(projects)}] 🔄 同步: {project_name} ({project_path})")
+
+            # 检查项目目录是否存在
+            if not self._dir_exists(project_full_path):
+                error_msg = f"⏭️  跳过 {project_name}: 目录不存在 ({project_path})"
+                print(f"           {error_msg}")
+                errors.append(error_msg)
+                print()
                 continue
 
-            # 同步每个分支
-            for line in branch_output.splitlines():
-                branch = line.strip()
-                if not branch:
-                    continue
+            # 检查是否为 git 仓库
+            git_dir = os.path.join(project_full_path, ".git")
+            if not self._dir_exists(git_dir):
+                error_msg = f"⏭️  跳过 {project_name}: 不是 git 仓库"
+                print(f"           {error_msg}")
+                errors.append(error_msg)
+                print()
+                continue
 
-                output_lines.append(f"  📍 同步分支: {project}/{branch}")
+            # 清理模式
+            if clean_mode:
+                print(f"           🧹 清理工作区...")
+                self._run_cmd("git clean -dfx", project_full_path)
+                self._run_cmd("git reset --hard", project_full_path)
 
-                # 切换到分支
-                ret, _ = self._run_cmd(f"git checkout {branch}", project_dir)
-                if ret != 0:
-                    continue
+            # 拉取更新
+            print(f"           📥 拉取更新...")
+            ret, pull_output = self._run_cmd("git pull --rebase", project_full_path)
 
-                # 清理或重置
-                if clean_mode:
-                    self._run_cmd("git clean -dfx", project_dir)
-                    self._run_cmd("git reset --hard", project_dir)
-                else:
-                    self._run_cmd("git checkout .", project_dir)
+            if ret != 0:
+                error_msg = f"❌ {project_name}: git pull 失败"
+                print(f"           {error_msg}")
+                if pull_output:
+                    print(f"           错误: {pull_output}")
+                errors.append(error_msg)
+            else:
+                print(f"           ✅ 完成")
+                success_count += 1
 
-                # 拉取更新
-                ret, pull_output = self._run_cmd("git pull --rebase", project_dir)
-                if ret != 0:
-                    errors.append(f"❌ {project}/{branch} 拉取失败: {pull_output}")
+            print()
 
-            # 切换回默认分支
-            default_branch = project_branches.get(project)
-            if default_branch:
-                self._run_cmd(f"git checkout {default_branch}", project_dir)
+        # 汇总结果
+        print("=" * 60)
+        print(f"✅ 成功同步: {success_count}/{len(projects)}")
 
-        result_output = "\n".join(output_lines)
         if errors:
-            result_output += "\n\n❌ 错误:\n" + "\n".join(errors)
-            return CommandResult(success=False, error=result_output)
+            print()
+            print("⚠️  警告/错误列表:")
+            for error in errors:
+                print(f"  {error}")
+            return CommandResult(
+                success=success_count > 0,
+                output=f"部分项目同步完成 ({success_count}/{len(projects)})"
+            )
 
-        return CommandResult(success=True, output=result_output + "\n\n✅ 同步完成")
+        return CommandResult(
+            success=True,
+            output=f"所有项目同步成功 ({success_count}/{len(projects)})"
+        )
 
     @plugin_function(
         name="checkout",
