@@ -8,6 +8,7 @@
 - 🔍 智能 manifest 文件检测
 - 📁 灵活的文件路径解析
 - 🛠️ 完整的项目同步和分支管理
+- 🚀 智能 push 支持 Gerrit 和普通 Git
 
 ## 命令列表
 
@@ -52,23 +53,58 @@ gs multirepo init /path/to/manifest.xml
 gs multirepo init /path/to/manifest.xml --backend=repo
 ```
 
-### 3. 同步项目 (repo 模式)
+### 3. 同步项目
 
 ```bash
-# 普通同步
+# 普通同步（自动检测 repo/git 模式）
 gs multirepo sync
+
+# 使用指定 manifest 同步
+gs multirepo sync mini-aosp
 
 # 清理模式（git clean + reset）
 gs multirepo sync clean
 ```
 
-### 4. 创建远程分支 (repo 模式)
+### 4. 智能推送（自动检测 Gerrit/Git）
+
+```bash
+# 推送到当前分支（自动检测 Gerrit 或普通 Git）
+gs multirepo push
+
+# 推送到指定分支
+gs multirepo push -b develop
+
+# Gerrit 模式：添加评审人
+gs multirepo push -r reviewer@example.com,another@example.com
+
+# Gerrit 模式：推送草稿
+gs multirepo push -d
+
+# 指定远程仓库
+gs multirepo push --remote origin
+
+# 查看帮助
+gs multirepo push -h
+```
+
+**智能检测说明**：
+- ✅ **Gerrit 服务器**（URL 包含 `gerrit`、`/a/`、`review.`）
+  - 自动使用 `refs/for/<branch>` 推送
+  - 支持添加评审人 `-r`
+  - 支持草稿模式 `-d`（推送到 `refs/drafts/<branch>`）
+
+- ✅ **普通 Git 服务器**（GitHub/GitLab/Bitbucket）
+  - 使用标准 `git push origin HEAD:<branch>`
+  - 不支持 Gerrit 特有选项
+
+### 5. 创建远程分支 (repo 模式)
 
 ```bash
 gs multirepo checkout
 ```
 
-### 5. 查看状态
+### 6. 查看状态
 
 ```bash
 gs multirepo status

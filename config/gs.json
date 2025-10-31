@@ -6,7 +6,6 @@
         "devenv": true,
         "android": true,
         "multirepo": true,
-        "gerrit": true,
         "navigator": true,
         "alias": true,
         "spider": true

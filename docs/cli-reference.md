@@ -153,7 +153,7 @@ gs plugin enable <插件名>
 
 示例：
 ```bash
-gs plugin enable gerrit
+gs plugin enable android
 ```
 
 ### gs plugin disable
@@ -166,7 +166,7 @@ gs plugin disable <插件名>
 
 示例：
 ```bash
-gs plugin disable gerrit
+gs plugin disable android
 ```
 
 ## 插件命令执行
