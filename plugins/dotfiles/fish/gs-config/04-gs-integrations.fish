@@ -190,9 +190,13 @@ end
 # ============================================
 # Git LFS Integration
 # ============================================
-if command -v git-lfs >/dev/null
-    git lfs install
-end
+# Note: git lfs install is commented out to avoid interfering with
+# repository-specific hooks. Run manually if needed:
+#   - For global LFS: git lfs install --global
+#   - For local LFS: git lfs install --local (in specific repo)
+# if command -v git-lfs >/dev/null
+#     git lfs install
+# end
 
 # ============================================
 # SSH Agent
