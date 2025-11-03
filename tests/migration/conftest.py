@@ -63,20 +63,24 @@ async def plugin_service_new(plugins_root, tmp_path):
     """
     from gscripts.application.services import PluginService
     from gscripts.infrastructure.persistence import PluginRepository, PluginLoader
-    from gscripts.infrastructure import DIContainer, get_container, reset_container
+    from gscripts.infrastructure.filesystem.file_operations import RealFileSystem
 
-    # Reset DI container for test isolation
-    reset_container()
-    container = get_container()
+    # Create filesystem
+    filesystem = RealFileSystem()
 
-    # Get instances from DI container (already configured)
-    from gscripts.domain.interfaces import IPluginRepository, IPluginLoader
+    # Create repository (doesn't need loader initially)
+    repository = PluginRepository(
+        filesystem=filesystem,
+        plugins_dir=plugins_root
+    )
 
-    # For now, create instances manually
-    # TODO: Use DI container properly
-    loader = PluginLoader(plugins_root)
-    repository = PluginRepository(loader)
+    # Create loader with repository
+    loader = PluginLoader(
+        plugin_repository=repository,
+        plugins_root=plugins_root
+    )
 
+    # Create service
     service = PluginService(
         plugin_loader=loader,
         plugin_repository=repository
@@ -87,9 +91,6 @@ async def plugin_service_new(plugins_root, tmp_path):
 
     yield service
 
-    # Cleanup
-    reset_container()
-
 
 @pytest.fixture
 async def plugin_system(system_type, plugin_manager_legacy, plugin_service_new):
@@ -98,11 +99,14 @@ async def plugin_system(system_type, plugin_manager_legacy, plugin_service_new):
 
     This is the main fixture for compatibility tests.
     Tests use this fixture and it will automatically run against both systems.
+
+    Note: Must be async to properly receive async fixtures from pytest-asyncio.
+    Uses return (not yield) to avoid creating another generator layer.
     """
     if system_type == "legacy":
-        yield {"type": "legacy", "system": plugin_manager_legacy}
+        return {"type": "legacy", "system": plugin_manager_legacy}
     else:
-        yield {"type": "new", "system": plugin_service_new}
+        return {"type": "new", "system": plugin_service_new}
 
 
 # Pytest command line options
