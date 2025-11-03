@@ -1,0 +1,341 @@
+# Implementation Tasks
+
+## Phase 1: Preparation and Feature Parity (Days 1-5)
+
+### 1. Setup and Planning
+- [x] 1.1 Create feature branch `feature/migrate-to-clean-architecture` from develop
+- [x] 1.2 Set up migration tracking dashboard (GitHub project or similar)
+- [x] 1.3 Document all PluginManager public methods and their usage
+- [x] 1.4 Document all PluginLoader public methods and their usage
+- [x] 1.5 Create feature parity matrix comparing legacy vs new system
+
+### 2. Behavioral Test Suite (Test-First Strategy)
+- [x] 2.1 Create tests/migration/ directory for compatibility tests
+- [x] 2.2 Write test_plugin_loading_compatibility.py with parameterized tests for both systems
+  - Test Python plugin loading (android, multirepo)
+  - Test Shell plugin loading (grep)
+  - Test Config plugin loading (navigator)
+  - Test Hybrid plugin loading (system)
+- [x] 2.3 Write test_plugin_execution_compatibility.py for execution equivalence
+  - Test Python function execution
+  - Test Shell function execution
+  - Test Config command execution
+  - Test async vs sync function handling
+- [x] 2.4 Write test_plugin_lifecycle_compatibility.py for lifecycle operations
+  - Test enable/disable plugin
+  - Test plugin state persistence
+  - Test health check
+  - Test observer notifications
+- [x] 2.5 Write test_plugin_queries_compatibility.py for query operations
+  - Test list all plugins
+  - Test get plugin by name
+  - Test filter by type
+  - Test get enabled plugins only
+- [ ] 2.6 Run all compatibility tests against legacy system (baseline)
+- [ ] 2.7 Ensure all tests pass with legacy system before proceeding
+
+### 3. Feature Parity Implementation
+- [x] 3.1 Audit PluginService and identify missing methods compared to PluginManager
+- [x] 3.2 Add enable_plugin() method to PluginService
+- [x] 3.3 Add disable_plugin() method to PluginService
+- [x] 3.4 Add health_check() method to PluginService
+- [x] 3.5 Implement IPluginObserver interface in domain/interfaces/
+- [x] 3.6 Add observer pattern to PluginService (register_observer, notify_observers)
+- [x] 3.7 Add get_enabled_plugins() method to PluginService
+- [x] 3.8 Add get_plugins_by_type() method to PluginService
+- [x] 3.9 Add get_plugin_by_name() method to PluginService
+- [ ] 3.10 Write unit tests for each new method
+
+### 4. PluginExecutor Enhancements
+- [ ] 4.1 Add command validation (whitelist/blacklist) to PluginExecutor
+- [ ] 4.2 Add timeout enforcement to PluginExecutor
+- [ ] 4.3 Add argument sanitization using shlex.quote()
+- [ ] 4.4 Add subprocess cleanup on timeout (SIGTERM → SIGKILL)
+- [ ] 4.5 Add performance monitoring (execution duration tracking)
+- [ ] 4.6 Add concurrent execution limiting (semaphore)
+- [ ] 4.7 Write unit tests for validation and timeout logic
+
+### 5. PluginRepository Enhancements
+- [ ] 5.1 Add get_enabled() method to PluginRepository
+- [ ] 5.2 Add get_by_type(plugin_type) method to PluginRepository
+- [ ] 5.3 Add update_enabled_status(name, enabled) method to PluginRepository
+- [ ] 5.4 Write unit tests for new repository methods
+
+### 6. Migration Adapter Creation
+- [ ] 6.1 Create infrastructure/adapters/ directory
+- [ ] 6.2 Create PluginManagerAdapter class wrapping PluginService
+- [ ] 6.3 Implement all legacy PluginManager method signatures in adapter
+- [ ] 6.4 Add method delegation to PluginService with signature translation
+- [ ] 6.5 Add logging to adapter for migration tracking
+- [ ] 6.6 Write unit tests for adapter
+- [ ] 6.7 Run compatibility tests using adapter with PluginService backend
+- [ ] 6.8 Fix any compatibility issues found in tests
+
+**Deliverable**: All compatibility tests pass with both legacy and new (via adapter) systems
+
+**Validation Checkpoint**:
+```bash
+pytest tests/migration/ -v --legacy-system  # Must pass
+pytest tests/migration/ -v --new-system     # Must pass
+```
+
+---
+
+## Phase 2: CLI Migration (Days 6-12)
+
+### 7. Feature Flag Implementation
+- [ ] 7.1 Add GS_USE_CLEAN_ARCH environment variable support
+- [ ] 7.2 Update cli/main.py to check feature flag
+- [ ] 7.3 Add conditional import based on flag (legacy vs new)
+- [ ] 7.4 Test both code paths work (export GS_USE_CLEAN_ARCH=true/false)
+- [ ] 7.5 Set default to 'true' (new system)
+
+### 8. Main CLI Entry Point Migration
+- [ ] 8.1 Update cli/main.py imports to use PluginService
+- [ ] 8.2 Replace PluginManager initialization with PluginService
+- [ ] 8.3 Update dependency injection: inject PluginService into CommandHandler
+- [ ] 8.4 Test gs --help works
+- [ ] 8.5 Test gs version works
+- [ ] 8.6 Test gs doctor works
+- [ ] 8.7 Run smoke tests for all CLI commands
+
+### 9. CommandHandler Migration
+- [ ] 9.1 Update cli/commands.py to use PluginService instead of PluginManager
+- [ ] 9.2 Update execute_plugin_command() method
+- [ ] 9.3 Update handle_system_command() method
+- [ ] 9.4 Test command routing with new system
+- [ ] 9.5 Verify error handling works identically
+
+### 10. System Commands Migration
+- [ ] 10.1 Update cli/system_commands.py imports
+- [ ] 10.2 Update plugin list command
+- [ ] 10.3 Update plugin info command
+- [ ] 10.4 Update plugin enable command
+- [ ] 10.5 Update plugin disable command
+- [ ] 10.6 Update refresh command
+- [ ] 10.7 Test each system command manually
+
+### 11. Base Command Class Migration
+- [ ] 11.1 Update cli/command_classes/base.py to inject PluginService
+- [ ] 11.2 Update BaseCommand constructor signature
+- [ ] 11.3 Update all command classes inheriting from BaseCommand
+- [ ] 11.4 Run unit tests for command classes
+
+### 12. Command Classes Migration (Already Migrated - Verify)
+- [ ] 12.1 Verify plugin_list_command.py uses PluginService correctly
+- [ ] 12.2 Verify plugin_info_command.py uses PluginService correctly
+- [ ] 12.3 Run integration tests for these commands
+
+### 13. Remaining Command Classes Migration
+- [ ] 13.1 Update refresh_command.py to use PluginService
+- [ ] 13.2 Create plugin_enable_command.py using Clean Architecture
+- [ ] 13.3 Create plugin_disable_command.py using Clean Architecture
+- [ ] 13.4 Create plugin_execute_command.py using Clean Architecture
+- [ ] 13.5 Write tests for new command classes
+
+### 14. Router Indexer Migration
+- [ ] 14.1 Update router/indexer.py to use PluginService
+- [ ] 14.2 Update generate_router_index() to use new plugin loading
+- [ ] 14.3 Test router.json generation
+- [ ] 14.4 Verify gs-router script still works with new index
+
+### 15. Integration Testing
+- [ ] 15.1 Run full test suite: `pytest tests/ -v`
+- [ ] 15.2 Fix any failing tests
+- [ ] 15.3 Run manual smoke tests for all CLI commands
+- [ ] 15.4 Test all plugin types (Python, Shell, Config, Hybrid)
+- [ ] 15.5 Test specific plugins: android, multirepo, dotfiles, grep, system
+
+**Deliverable**: All CLI commands work with new system, all tests pass
+
+**Validation Checkpoint**:
+```bash
+pytest tests/ -v --cov=src/gscripts --cov-report=term-missing
+# Must have 80%+ coverage and all tests passing
+
+# Manual tests
+gs help
+gs version
+gs plugin list
+gs plugin info android
+gs plugin enable dotfiles
+gs plugin disable grep
+gs android adb devices
+gs multirepo sync mini-aosp
+```
+
+---
+
+## Phase 3: Cleanup and Documentation (Days 13-18)
+
+### 16. Remove Feature Flag
+- [ ] 16.1 Remove GS_USE_CLEAN_ARCH environment variable check
+- [ ] 16.2 Remove conditional imports in main.py
+- [ ] 16.3 Hard-code use of PluginService
+- [ ] 16.4 Test that system still works
+
+### 17. Delete Legacy Code
+- [ ] 17.1 **DELETE** src/gscripts/core/plugin_manager.py
+- [ ] 17.2 **DELETE** src/gscripts/core/plugin_loader.py
+- [ ] 17.3 Search for any remaining imports of deleted files: `rg "from.*core.plugin_manager|from.*core.plugin_loader"`
+- [ ] 17.4 Fix any remaining imports found
+- [ ] 17.5 Run tests to ensure nothing broke
+
+### 18. Remove Migration Adapter
+- [ ] 18.1 **DELETE** infrastructure/adapters/plugin_manager_adapter.py
+- [ ] 18.2 Remove adapter imports from all files
+- [ ] 18.3 Verify no code references adapter
+
+### 19. Update Tests
+- [ ] 19.1 Remove tests/migration/ compatibility tests (no longer needed)
+- [ ] 19.2 Update integration tests to use only PluginService
+- [ ] 19.3 Update unit tests to use only new architecture
+- [ ] 19.4 Remove test parameterization for dual systems
+- [ ] 19.5 Run full test suite to verify
+
+### 20. Update Documentation
+- [ ] 20.1 Update docs/plugin-development.md
+  - Remove references to core/plugin_manager.py
+  - Document PluginService usage
+  - Update code examples
+- [ ] 20.2 Update docs/architecture.md
+  - Document Clean Architecture implementation
+  - Update diagrams
+  - Explain layer responsibilities
+- [ ] 20.3 Update docs/en/plugin-development-en.md (English version)
+- [ ] 20.4 Update CLAUDE.md
+  - Remove dual implementation warnings
+  - Update architecture section
+  - Add migration completion note
+- [ ] 20.5 Create ADR (Architecture Decision Record) for migration
+  - docs/adr/001-migrate-to-clean-architecture.md
+  - Document why, what, how, alternatives, consequences
+
+### 21. Update Examples
+- [ ] 21.1 Update examples/migration_example.py to use PluginService
+- [ ] 21.2 Remove legacy system examples
+- [ ] 21.3 Add new examples for Clean Architecture usage
+
+### 22. Code Quality and Validation
+- [ ] 22.1 Run Black formatter: `black src/ tests/`
+- [ ] 22.2 Run Ruff linter: `ruff check src/ tests/ --fix`
+- [ ] 22.3 Run MyPy type checker: `mypy src/`
+- [ ] 22.4 Fix any linting or type errors
+- [ ] 22.5 Run openspec validation: `openspec validate migrate-to-clean-architecture --strict`
+
+### 23. Performance Validation
+- [ ] 23.1 Benchmark plugin loading: `time gs plugin list`
+- [ ] 23.2 Benchmark command execution: `time gs android adb devices`
+- [ ] 23.3 Compare performance to pre-migration baseline
+- [ ] 23.4 Ensure no regression > 10%
+- [ ] 23.5 Document performance metrics
+
+### 24. Final Testing
+- [ ] 24.1 Run full test suite: `pytest tests/ -v --cov`
+- [ ] 24.2 Verify 80%+ code coverage maintained
+- [ ] 24.3 Run all manual smoke tests
+- [ ] 24.4 Test on multiple shells (bash, zsh, fish)
+- [ ] 24.5 Test on fresh installation
+- [ ] 24.6 Test plugin refresh after migration
+
+### 25. Git and Release
+- [ ] 25.1 Review all changes in feature branch
+- [ ] 25.2 Squash related commits if needed
+- [ ] 25.3 Write comprehensive commit messages
+- [ ] 25.4 Create pull request to develop branch
+- [ ] 25.5 Request code review
+- [ ] 25.6 Address review feedback
+- [ ] 25.7 Tag pre-migration state: `git tag pre-clean-arch-migration`
+- [ ] 25.8 Merge to develop after approval
+- [ ] 25.9 Update CHANGELOG.md with migration notes
+- [ ] 25.10 Close related GitHub issues
+
+**Final Deliverable**: Clean Architecture fully implemented, legacy code removed, all tests passing, documentation updated
+
+**Final Validation**:
+```bash
+# No legacy code remains
+! find src/gscripts/core -name "plugin_manager.py" -o -name "plugin_loader.py"
+
+# All tests pass
+pytest tests/ -v --cov=src/gscripts --cov-report=term-missing
+
+# Coverage meets threshold
+# Coverage: 80%+
+
+# Linting passes
+ruff check src/ tests/
+black --check src/ tests/
+mypy src/
+
+# OpenSpec validation passes
+openspec validate --all --strict
+
+# Performance acceptable
+time gs plugin list  # < 500ms
+time gs android adb devices  # < 100ms overhead
+```
+
+---
+
+## Parallel Work Opportunities
+
+These tasks can be done concurrently to speed up migration:
+
+**Parallel Track 1**: Feature Parity (Tasks 3, 4, 5)
+- Developer A: PluginService enhancements
+- Developer B: PluginExecutor enhancements
+- Developer C: PluginRepository enhancements
+
+**Parallel Track 2**: Command Migration (Tasks 10, 11, 13)
+- Developer A: System commands
+- Developer B: Base command class + subclasses
+- Developer C: New command classes
+
+**Parallel Track 3**: Cleanup (Tasks 20, 21, 22)
+- Developer A: Documentation
+- Developer B: Examples
+- Developer C: Code quality
+
+---
+
+## Risk Mitigation Tasks
+
+### Rollback Plan
+- [ ] R1. Tag current state before migration: `git tag pre-migration-baseline`
+- [ ] R2. Document rollback procedure in docs/migration-rollback.md
+- [ ] R3. Create rollback script: scripts/rollback_migration.sh
+- [ ] R4. Test rollback procedure in separate branch
+
+### Monitoring
+- [ ] M1. Add migration progress metrics to health check
+- [ ] M2. Add logging for migration adapter usage
+- [ ] M3. Track which commands use legacy vs new system
+- [ ] M4. Monitor error rates during migration
+
+### Communication
+- [ ] C1. Announce migration start in team chat/email
+- [ ] C2. Update project README with migration status
+- [ ] C3. Post migration progress updates (daily or every 2 days)
+- [ ] C4. Announce completion with migration summary
+
+---
+
+## Dependencies
+
+**Blocking Dependencies:**
+- Task 2 (Test Suite) MUST complete before Task 6 (Adapter)
+- Task 6 (Adapter) MUST complete before Task 8 (Main Migration)
+- Task 8 (Main) MUST complete before Tasks 9-13 (Command Migration)
+- All Phase 2 tasks MUST complete before Phase 3
+
+**Sequential Dependencies:**
+- Tasks 3, 4, 5 → Task 6 (Feature parity before adapter)
+- Task 7 → Task 8 (Feature flag before main migration)
+- Tasks 8-15 → Task 16 (All migration before removing flag)
+- Task 16 → Task 17 (Remove flag before deleting legacy code)
+
+**No Dependencies (Can Start Anytime):**
+- Task 1 (Setup)
+- Task 20.5 (ADR writing)
+- Risk mitigation tasks
