@@ -4,11 +4,13 @@ Handles plugin command execution
 """
 
 import asyncio
+import shlex
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 from ...models import CommandResult
 from ...domain.interfaces import IPluginLoader, IProcessExecutor
 from ...core.logger import get_logger
+from ...core.constants import GlobalConstants
 from ...utils.logging_utils import correlation_id, duration
 from ...plugins.interfaces import PluginEvent, PluginEventData
 
@@ -19,7 +21,10 @@ class PluginExecutor:
     """
     Plugin executor service
 
-    Handles execution of plugin commands:
+    Handles execution of plugin commands with security features:
+    - Command validation (forbidden patterns, length limits)
+    - Argument sanitization (shlex.quote)
+    - Concurrent execution limiting (semaphore)
     - Config-based commands
     - Shell script commands
     - Python function commands
@@ -28,7 +33,8 @@ class PluginExecutor:
     def __init__(
         self,
         plugin_loader: IPluginLoader,
-        process_executor: IProcessExecutor
+        process_executor: IProcessExecutor,
+        max_concurrent: int = 10
     ):
         """
         Initialize plugin executor
@@ -36,10 +42,13 @@ class PluginExecutor:
         Args:
             plugin_loader: Plugin loader for accessing loaded plugins
             process_executor: Process executor for running commands
+            max_concurrent: Maximum concurrent executions (default: 10)
         """
         self._loader = plugin_loader
         self._executor = process_executor
         self._observers = []
+        self._semaphore = asyncio.Semaphore(max_concurrent)
+        logger.info(f"PluginExecutor initialized with max_concurrent={max_concurrent}")
 
     def register_observer(self, observer) -> None:
         """Register observer for execution events"""
@@ -64,6 +73,30 @@ class PluginExecutor:
             except Exception as e:
                 logger.error(f"Observer {observer} failed: {e}")
 
+    def _validate_command(self, command: str) -> bool:
+        """
+        Validate command safety
+
+        Args:
+            command: Command string to validate
+
+        Returns:
+            bool: True if command is safe
+        """
+        return GlobalConstants.validate_command_safety(command)
+
+    def _sanitize_args(self, args: List[str]) -> List[str]:
+        """
+        Sanitize command arguments to prevent injection
+
+        Args:
+            args: List of arguments
+
+        Returns:
+            List[str]: Sanitized arguments
+        """
+        return [shlex.quote(arg) for arg in args]
+
     async def execute_plugin_function(
         self,
         plugin_name: str,
@@ -81,12 +114,40 @@ class PluginExecutor:
         Returns:
             CommandResult: Execution result
         """
+        # Acquire semaphore for concurrent execution limiting
+        async with self._semaphore:
+            return await self._execute_plugin_function_internal(
+                plugin_name,
+                function_name,
+                args
+            )
+
+    async def _execute_plugin_function_internal(
+        self,
+        plugin_name: str,
+        function_name: str,
+        args: List[str] = None
+    ) -> CommandResult:
+        """
+        Internal execution method (runs under semaphore)
+
+        Args:
+            plugin_name: Name of the plugin
+            function_name: Name of the function to execute
+            args: Command arguments
+
+        Returns:
+            CommandResult: Execution result
+        """
         cid = correlation_id()
         from time import monotonic
         start_ts = monotonic()
 
         if args is None:
             args = []
+
+        # Sanitize arguments to prevent injection
+        sanitized_args = self._sanitize_args(args)
 
         logger.debug(
             f"cid={cid} exec enter plugin={plugin_name} function={function_name} args_len={len(args)}"
@@ -131,11 +192,11 @@ class PluginExecutor:
 
             # Route to appropriate execution method
             if function_type == 'config':
-                result = await self._execute_config_function(function_info, args)
+                result = await self._execute_config_function(function_info, sanitized_args)
             elif function_type in ('script', 'shell', 'shell_annotated'):
-                result = await self._execute_script_function(function_info, args)
+                result = await self._execute_script_function(function_info, sanitized_args)
             elif function_type in ('python', 'python_decorated'):
-                result = await self._execute_python_function(function_info, args)
+                result = await self._execute_python_function(function_info, args)  # Python functions get unsanitized args
             else:
                 took = duration(start_ts)
                 logger.error(
@@ -199,12 +260,21 @@ class PluginExecutor:
                 exit_code=1
             )
 
-        # Replace {args} placeholder with actual arguments
+        # Replace {args} placeholder with actual arguments (already sanitized)
         if '{args}' in command_template:
             command_str = command_template.replace('{args}', ' '.join(args))
         else:
             # Append args if no placeholder
             command_str = f"{command_template} {' '.join(args)}".strip()
+
+        # Validate command safety
+        if not self._validate_command(command_str):
+            logger.warning(f"Command validation failed: {command_str}")
+            return CommandResult(
+                success=False,
+                error=f"Command rejected by security policy: contains forbidden patterns or exceeds length limit",
+                exit_code=1
+            )
 
         # Execute as shell command
         return await self._executor.execute_shell(command_str)
@@ -231,7 +301,7 @@ class PluginExecutor:
 
         # For shell functions, we need to source the file and call the function
         if shell_file and Path(shell_file).exists():
-            # Build command: source file && call function with args
+            # Build command: source file && call function with args (already sanitized)
             function_call = command_template
             if args:
                 function_call = f"{function_call} {' '.join(args)}"
@@ -243,6 +313,15 @@ class PluginExecutor:
                 command_str = f"{command_template} {' '.join(args)}"
             else:
                 command_str = command_template
+
+        # Validate command safety
+        if not self._validate_command(command_str):
+            logger.warning(f"Command validation failed: {command_str}")
+            return CommandResult(
+                success=False,
+                error=f"Command rejected by security policy: contains forbidden patterns or exceeds length limit",
+                exit_code=1
+            )
 
         return await self._executor.execute_shell(command_str)
 
