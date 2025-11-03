@@ -89,6 +89,12 @@ local plugins = {
         term_colors = true,
         ending_tildes = false,
         cmp_itemkind_reverse = false,
+
+        -- Lualine 集成配置
+        lualine = {
+          transparent = false,       -- lualine 中心栏透明度
+        },
+
         code_style = {
           comments = "italic",
           keywords = "bold",
@@ -226,7 +232,8 @@ local plugins = {
           "rust_analyzer",
           "gopls",
           "clangd",
-          "jdtls",
+          -- 注意：jdtls 不在这里，因为它需要特殊配置（使用 nvim-jdtls）
+          -- jdtls 服务器需要通过 Mason 手动安装，但不要让 mason-lspconfig 自动配置
           "html",
           "cssls",
           "tailwindcss",
@@ -236,6 +243,16 @@ local plugins = {
           "dockerls",
         },
         automatic_installation = true,
+        -- 添加 handlers 来阻止自动配置 jdtls
+        handlers = {
+          -- 默认 handler：自动配置其他所有 LSP（但跳过 jdtls）
+          function(server_name)
+            if server_name == "jdtls" then
+              return  -- ⚠️ 跳过 jdtls，由 lsp/java.lua 通过 nvim-jdtls 管理
+            end
+            require("lspconfig")[server_name].setup({})
+          end,
+        },
       })
     end,
   },
@@ -250,6 +267,8 @@ local plugins = {
       "williamboman/mason-lspconfig.nvim",
       "hrsh7th/cmp-nvim-lsp",
       { "antosha417/nvim-lsp-file-operations", config = true },
+      -- Java LSP 需要 nvim-jdtls 插件
+      { "mfussenegger/nvim-jdtls" },
     },
     config = function()
       -- 完全禁用弃用警告
@@ -320,54 +339,34 @@ local plugins = {
       end
 
       -- 配置所有 LSP 服务器
+      -- 使用模块化配置（每个语言的配置在独立文件中）
+
+      -- Lua
+      require("lsp.lua").setup(on_attach, capabilities)
+
+      -- Python
+      require("lsp.python").setup(on_attach, capabilities)
+
+      -- JavaScript/TypeScript (包括 ESLint)
+      require("lsp.typescript").setup(on_attach, capabilities)
+
+      -- Rust
+      require("lsp.rust").setup(on_attach, capabilities)
+
+      -- Go
+      require("lsp.go").setup(on_attach, capabilities)
+
+      -- C/C++
+      require("lsp.clang").setup(on_attach, capabilities)
+
+      -- Java (jdtls 比较特殊，使用 autocmd + FileType 延迟加载)
+      require("lsp.java").setup(on_attach, capabilities)
+
+      -- 简单 LSP 服务器（使用默认配置）
       local default_config = {
         capabilities = capabilities,
         on_attach = on_attach,
       }
-
-      -- Lua
-      lspconfig.lua_ls.setup(vim.tbl_extend("force", default_config, {
-        settings = {
-          Lua = {
-            diagnostics = {
-              globals = { "vim" },
-            },
-            workspace = {
-              library = {
-                [vim.fn.expand("$VIMRUNTIME/lua")] = true,
-                [vim.fn.stdpath("config") .. "/lua"] = true,
-              },
-            },
-          },
-        },
-      }))
-
-      -- Python
-      lspconfig.pyright.setup(default_config)
-
-      -- JavaScript/TypeScript
-      lspconfig.ts_ls.setup(default_config)
-      lspconfig.eslint.setup(default_config)
-
-      -- Rust
-      lspconfig.rust_analyzer.setup(vim.tbl_extend("force", default_config, {
-        settings = {
-          ["rust-analyzer"] = {
-            checkOnSave = {
-              command = "clippy",
-            },
-          },
-        },
-      }))
-
-      -- Go
-      lspconfig.gopls.setup(default_config)
-
-      -- C/C++
-      lspconfig.clangd.setup(default_config)
-
-      -- Java
-      lspconfig.jdtls.setup(default_config)
 
       -- Web
       lspconfig.html.setup(default_config)
@@ -659,7 +658,7 @@ local plugins = {
     config = function()
       require("lualine").setup({
         options = {
-          theme = "tokyonight",
+          theme = "auto",  -- 自动检测当前 colorscheme
           component_separators = { left = "|", right = "|" },
           section_separators = { left = "", right = "" },
         },
