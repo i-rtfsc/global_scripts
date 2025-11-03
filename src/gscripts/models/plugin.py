@@ -66,6 +66,7 @@ class PluginMetadata:
     requirements: Dict[str, List[str]] = field(default_factory=dict)
     tags: List[str] = field(default_factory=list)
     subplugins: List[str] = field(default_factory=list)
+    type: PluginType = PluginType.UNKNOWN
 
     def get_description(self, language: str = 'zh') -> str:
         """获取指定语言的描述"""
