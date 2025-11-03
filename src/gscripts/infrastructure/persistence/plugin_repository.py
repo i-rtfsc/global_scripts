@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import List, Optional, Dict, Any
 
 from ...domain.interfaces import IPluginRepository, IFileSystem
-from ...models.plugin import PluginMetadata
+from ...models.plugin import PluginMetadata, PluginType
 
 
 class PluginRepository(IPluginRepository):
@@ -163,8 +163,57 @@ class PluginRepository(IPluginRepository):
         await self.save(plugin)
         return True
 
+    async def get_enabled(self) -> List[PluginMetadata]:
+        """
+        Get all enabled plugins
+
+        Returns:
+            List[PluginMetadata]: List of enabled plugins
+        """
+        all_plugins = await self.get_all()
+        return [p for p in all_plugins if p.enabled]
+
+    async def get_by_type(self, plugin_type: PluginType) -> List[PluginMetadata]:
+        """
+        Get plugins by type
+
+        Args:
+            plugin_type: Type of plugins to filter (python, shell, config, hybrid)
+
+        Returns:
+            List[PluginMetadata]: List of plugins of the specified type
+        """
+        all_plugins = await self.get_all()
+        return [p for p in all_plugins if p.type == plugin_type]
+
+    async def update_enabled_status(self, name: str, enabled: bool) -> bool:
+        """
+        Update the enabled status of a plugin
+
+        Args:
+            name: Plugin name
+            enabled: New enabled status
+
+        Returns:
+            bool: True if successful, False if plugin not found
+        """
+        plugin = await self.get_by_name(name)
+        if not plugin:
+            return False
+
+        plugin.enabled = enabled
+        await self.save(plugin)
+        return True
+
     def _parse_plugin_metadata(self, data: Dict[str, Any], name: str) -> PluginMetadata:
         """Parse plugin metadata from JSON data"""
+        # Parse type string to PluginType enum
+        type_str = data.get('type', 'unknown').lower()
+        try:
+            plugin_type = PluginType(type_str)
+        except ValueError:
+            plugin_type = PluginType.UNKNOWN
+
         return PluginMetadata(
             name=data.get('name', name),
             version=data.get('version', '1.0.0'),
@@ -179,6 +228,7 @@ class PluginRepository(IPluginRepository):
             requirements=data.get('requirements', {}),
             tags=data.get('tags', []),
             subplugins=data.get('subplugins', []),
+            type=plugin_type,
         )
 
     def clear_cache(self) -> None:
