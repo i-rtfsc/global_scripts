@@ -9,21 +9,16 @@ Tests for new methods:
 
 import pytest
 from pathlib import Path
-from unittest.mock import Mock
 
-from gscripts.infrastructure.persistence.plugin_repository import PluginRepository
-from gscripts.models.plugin import PluginMetadata, PluginType
+from src.gscripts.infrastructure.persistence.plugin_repository import PluginRepository
+from src.gscripts.infrastructure.filesystem.file_operations import InMemoryFileSystem
+from src.gscripts.models.plugin import PluginMetadata, PluginType
 
 
 @pytest.fixture
 def mock_filesystem():
-    """Create mock filesystem"""
-    fs = Mock()
-    fs.exists = Mock(return_value=False)
-    fs.list_dir = Mock(return_value=[])
-    fs.read_json = Mock(return_value={})
-    fs.write_json = Mock()
-    return fs
+    """Create in-memory filesystem"""
+    return InMemoryFileSystem()
 
 
 @pytest.fixture
@@ -67,17 +62,33 @@ def repository(mock_filesystem):
     )
 
 
+@pytest.fixture
+def populated_repository(repository, mock_filesystem, sample_plugins):
+    """Create repository with sample plugins pre-loaded"""
+    plugins_dir = Path("/test/plugins")
+
+    # Create plugin.json files for each sample plugin
+    for plugin in sample_plugins:
+        plugin_dir = plugins_dir / plugin.name
+        plugin_json = plugin_dir / "plugin.json"
+
+        mock_filesystem.write_json(plugin_json, {
+            "name": plugin.name,
+            "version": plugin.version,
+            "enabled": plugin.enabled,
+            "type": plugin.type.value,
+        })
+
+    return repository
+
+
 class TestPluginRepositoryGetEnabled:
     """Tests for get_enabled() method"""
 
     @pytest.mark.asyncio
-    async def test_get_enabled_returns_only_enabled_plugins(self, repository, sample_plugins):
+    async def test_get_enabled_returns_only_enabled_plugins(self, populated_repository):
         """Test that get_enabled returns only enabled plugins"""
-        # Pre-populate cache
-        for plugin in sample_plugins:
-            repository._cache[plugin.name] = plugin
-
-        enabled = await repository.get_enabled()
+        enabled = await populated_repository.get_enabled()
 
         assert len(enabled) == 3
         assert all(p.enabled for p in enabled)
@@ -91,15 +102,19 @@ class TestPluginRepositoryGetEnabled:
         assert enabled == []
 
     @pytest.mark.asyncio
-    async def test_get_enabled_returns_empty_when_all_disabled(self, repository):
+    async def test_get_enabled_returns_empty_when_all_disabled(self, repository, mock_filesystem):
         """Test that get_enabled returns empty when all plugins disabled"""
-        # Add all disabled plugins to cache
-        disabled_plugins = [
-            PluginMetadata(name=f"plugin{i}", version="1.0.0", enabled=False)
-            for i in range(3)
-        ]
-        for plugin in disabled_plugins:
-            repository._cache[plugin.name] = plugin
+        plugins_dir = Path("/test/plugins")
+
+        # Create all disabled plugins
+        for i in range(3):
+            plugin_dir = plugins_dir / f"plugin{i}"
+            plugin_json = plugin_dir / "plugin.json"
+            mock_filesystem.write_json(plugin_json, {
+                "name": f"plugin{i}",
+                "version": "1.0.0",
+                "enabled": False
+            })
 
         enabled = await repository.get_enabled()
 
@@ -110,48 +125,36 @@ class TestPluginRepositoryGetByType:
     """Tests for get_by_type() method"""
 
     @pytest.mark.asyncio
-    async def test_get_by_type_filters_by_python(self, repository, sample_plugins):
+    async def test_get_by_type_filters_by_python(self, populated_repository):
         """Test that get_by_type filters Python plugins"""
-        for plugin in sample_plugins:
-            repository._cache[plugin.name] = plugin
-
-        python_plugins = await repository.get_by_type(PluginType.PYTHON)
+        python_plugins = await populated_repository.get_by_type(PluginType.PYTHON)
 
         assert len(python_plugins) == 2
         assert all(p.type == PluginType.PYTHON for p in python_plugins)
         assert {p.name for p in python_plugins} == {"plugin1", "plugin3"}
 
     @pytest.mark.asyncio
-    async def test_get_by_type_filters_by_shell(self, repository, sample_plugins):
+    async def test_get_by_type_filters_by_shell(self, populated_repository):
         """Test that get_by_type filters Shell plugins"""
-        for plugin in sample_plugins:
-            repository._cache[plugin.name] = plugin
-
-        shell_plugins = await repository.get_by_type(PluginType.SHELL)
+        shell_plugins = await populated_repository.get_by_type(PluginType.SHELL)
 
         assert len(shell_plugins) == 1
         assert shell_plugins[0].name == "plugin2"
         assert shell_plugins[0].type == PluginType.SHELL
 
     @pytest.mark.asyncio
-    async def test_get_by_type_filters_by_config(self, repository, sample_plugins):
+    async def test_get_by_type_filters_by_config(self, populated_repository):
         """Test that get_by_type filters Config plugins"""
-        for plugin in sample_plugins:
-            repository._cache[plugin.name] = plugin
-
-        config_plugins = await repository.get_by_type(PluginType.CONFIG)
+        config_plugins = await populated_repository.get_by_type(PluginType.CONFIG)
 
         assert len(config_plugins) == 1
         assert config_plugins[0].name == "plugin4"
         assert config_plugins[0].type == PluginType.CONFIG
 
     @pytest.mark.asyncio
-    async def test_get_by_type_returns_empty_when_no_match(self, repository, sample_plugins):
+    async def test_get_by_type_returns_empty_when_no_match(self, populated_repository):
         """Test that get_by_type returns empty when no plugins match"""
-        for plugin in sample_plugins:
-            repository._cache[plugin.name] = plugin
-
-        hybrid_plugins = await repository.get_by_type(PluginType.HYBRID)
+        hybrid_plugins = await populated_repository.get_by_type(PluginType.HYBRID)
 
         assert hybrid_plugins == []
 
@@ -169,26 +172,44 @@ class TestPluginRepositoryUpdateEnabledStatus:
     @pytest.mark.asyncio
     async def test_update_enabled_status_enables_plugin(self, repository, mock_filesystem):
         """Test that update_enabled_status can enable a plugin"""
-        plugin = PluginMetadata(name="test", version="1.0.0", enabled=False)
-        repository._cache["test"] = plugin
+        # Create disabled plugin
+        plugins_dir = Path("/test/plugins")
+        plugin_dir = plugins_dir / "test"
+        plugin_json = plugin_dir / "plugin.json"
+        mock_filesystem.write_json(plugin_json, {
+            "name": "test",
+            "version": "1.0.0",
+            "enabled": False
+        })
 
         result = await repository.update_enabled_status("test", True)
 
         assert result is True
-        assert plugin.enabled is True
-        mock_filesystem.write_json.assert_called_once()
+
+        # Verify it was saved
+        updated_plugin = await repository.get_by_name("test")
+        assert updated_plugin.enabled is True
 
     @pytest.mark.asyncio
     async def test_update_enabled_status_disables_plugin(self, repository, mock_filesystem):
         """Test that update_enabled_status can disable a plugin"""
-        plugin = PluginMetadata(name="test", version="1.0.0", enabled=True)
-        repository._cache["test"] = plugin
+        # Create enabled plugin
+        plugins_dir = Path("/test/plugins")
+        plugin_dir = plugins_dir / "test"
+        plugin_json = plugin_dir / "plugin.json"
+        mock_filesystem.write_json(plugin_json, {
+            "name": "test",
+            "version": "1.0.0",
+            "enabled": True
+        })
 
         result = await repository.update_enabled_status("test", False)
 
         assert result is True
-        assert plugin.enabled is False
-        mock_filesystem.write_json.assert_called_once()
+
+        # Verify it was saved
+        updated_plugin = await repository.get_by_name("test")
+        assert updated_plugin.enabled is False
 
     @pytest.mark.asyncio
     async def test_update_enabled_status_returns_false_for_nonexistent(self, repository):
@@ -200,8 +221,14 @@ class TestPluginRepositoryUpdateEnabledStatus:
     @pytest.mark.asyncio
     async def test_update_enabled_status_updates_cache(self, repository, mock_filesystem):
         """Test that update_enabled_status updates cache"""
-        plugin = PluginMetadata(name="test", version="1.0.0", enabled=False)
-        repository._cache["test"] = plugin
+        plugins_dir = Path("/test/plugins")
+        plugin_dir = plugins_dir / "test"
+        plugin_json = plugin_dir / "plugin.json"
+        mock_filesystem.write_json(plugin_json, {
+            "name": "test",
+            "version": "1.0.0",
+            "enabled": False
+        })
 
         await repository.update_enabled_status("test", True)
 
@@ -211,46 +238,48 @@ class TestPluginRepositoryUpdateEnabledStatus:
     @pytest.mark.asyncio
     async def test_update_enabled_status_idempotent(self, repository, mock_filesystem):
         """Test that update_enabled_status is idempotent"""
-        plugin = PluginMetadata(name="test", version="1.0.0", enabled=True)
-        repository._cache["test"] = plugin
+        plugins_dir = Path("/test/plugins")
+        plugin_dir = plugins_dir / "test"
+        plugin_json = plugin_dir / "plugin.json"
+        mock_filesystem.write_json(plugin_json, {
+            "name": "test",
+            "version": "1.0.0",
+            "enabled": True
+        })
 
         # Enable already enabled plugin
         result = await repository.update_enabled_status("test", True)
 
         assert result is True
-        assert plugin.enabled is True  # Still enabled
-        mock_filesystem.write_json.assert_called_once()
+
+        # Verify still enabled
+        updated_plugin = await repository.get_by_name("test")
+        assert updated_plugin.enabled is True
 
 
 class TestPluginRepositoryIntegration:
     """Integration tests for repository methods working together"""
 
     @pytest.mark.asyncio
-    async def test_get_enabled_after_update(self, repository, sample_plugins):
+    async def test_get_enabled_after_update(self, populated_repository):
         """Test that get_enabled reflects changes after update_enabled_status"""
-        for plugin in sample_plugins:
-            repository._cache[plugin.name] = plugin
-
         # Initially 3 enabled
-        enabled_before = await repository.get_enabled()
+        enabled_before = await populated_repository.get_enabled()
         assert len(enabled_before) == 3
 
         # Disable one
-        await repository.update_enabled_status("plugin1", False)
+        await populated_repository.update_enabled_status("plugin1", False)
 
         # Now 2 enabled
-        enabled_after = await repository.get_enabled()
+        enabled_after = await populated_repository.get_enabled()
         assert len(enabled_after) == 2
         assert "plugin1" not in {p.name for p in enabled_after}
 
     @pytest.mark.asyncio
-    async def test_get_by_type_includes_disabled(self, repository, sample_plugins):
+    async def test_get_by_type_includes_disabled(self, populated_repository):
         """Test that get_by_type returns plugins regardless of enabled status"""
-        for plugin in sample_plugins:
-            repository._cache[plugin.name] = plugin
-
         # Get Python plugins (should include both enabled and disabled)
-        python_plugins = await repository.get_by_type(PluginType.PYTHON)
+        python_plugins = await populated_repository.get_by_type(PluginType.PYTHON)
 
         assert len(python_plugins) == 2
         # Both enabled and disabled Python plugins returned

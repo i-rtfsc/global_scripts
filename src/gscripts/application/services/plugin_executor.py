@@ -34,7 +34,8 @@ class PluginExecutor:
         self,
         plugin_loader: IPluginLoader,
         process_executor: IProcessExecutor,
-        max_concurrent: int = 10
+        max_concurrent: int = 10,
+        default_timeout: int = 30
     ):
         """
         Initialize plugin executor
@@ -43,12 +44,17 @@ class PluginExecutor:
             plugin_loader: Plugin loader for accessing loaded plugins
             process_executor: Process executor for running commands
             max_concurrent: Maximum concurrent executions (default: 10)
+            default_timeout: Default timeout for command execution in seconds (default: 30)
         """
         self._loader = plugin_loader
         self._executor = process_executor
         self._observers = []
         self._semaphore = asyncio.Semaphore(max_concurrent)
-        logger.info(f"PluginExecutor initialized with max_concurrent={max_concurrent}")
+        self._default_timeout = default_timeout
+        logger.info(
+            f"PluginExecutor initialized with max_concurrent={max_concurrent}, "
+            f"default_timeout={default_timeout}s"
+        )
 
     def register_observer(self, observer) -> None:
         """Register observer for execution events"""
@@ -101,7 +107,8 @@ class PluginExecutor:
         self,
         plugin_name: str,
         function_name: str,
-        args: List[str] = None
+        args: List[str] = None,
+        timeout: Optional[int] = None
     ) -> CommandResult:
         """
         Execute a plugin function
@@ -110,6 +117,7 @@ class PluginExecutor:
             plugin_name: Name of the plugin
             function_name: Name of the function to execute
             args: Command arguments
+            timeout: Timeout in seconds (defaults to self._default_timeout)
 
         Returns:
             CommandResult: Execution result
@@ -119,14 +127,16 @@ class PluginExecutor:
             return await self._execute_plugin_function_internal(
                 plugin_name,
                 function_name,
-                args
+                args,
+                timeout
             )
 
     async def _execute_plugin_function_internal(
         self,
         plugin_name: str,
         function_name: str,
-        args: List[str] = None
+        args: List[str] = None,
+        timeout: Optional[int] = None
     ) -> CommandResult:
         """
         Internal execution method (runs under semaphore)
@@ -135,6 +145,7 @@ class PluginExecutor:
             plugin_name: Name of the plugin
             function_name: Name of the function to execute
             args: Command arguments
+            timeout: Timeout in seconds (defaults to self._default_timeout)
 
         Returns:
             CommandResult: Execution result
@@ -146,11 +157,15 @@ class PluginExecutor:
         if args is None:
             args = []
 
+        if timeout is None:
+            timeout = self._default_timeout
+
         # Sanitize arguments to prevent injection
         sanitized_args = self._sanitize_args(args)
 
         logger.debug(
-            f"cid={cid} exec enter plugin={plugin_name} function={function_name} args_len={len(args)}"
+            f"cid={cid} exec enter plugin={plugin_name} function={function_name} "
+            f"args_len={len(args)} timeout={timeout}s"
         )
 
         # Notify EXECUTING event
@@ -192,9 +207,9 @@ class PluginExecutor:
 
             # Route to appropriate execution method
             if function_type == 'config':
-                result = await self._execute_config_function(function_info, sanitized_args)
+                result = await self._execute_config_function(function_info, sanitized_args, timeout)
             elif function_type in ('script', 'shell', 'shell_annotated'):
-                result = await self._execute_script_function(function_info, sanitized_args)
+                result = await self._execute_script_function(function_info, sanitized_args, timeout)
             elif function_type in ('python', 'python_decorated'):
                 result = await self._execute_python_function(function_info, args)  # Python functions get unsanitized args
             else:
@@ -245,12 +260,18 @@ class PluginExecutor:
     async def _execute_config_function(
         self,
         function_info: dict,
-        args: List[str]
+        args: List[str],
+        timeout: int = 30
     ) -> CommandResult:
         """
         Execute config-based command
 
         Config functions are defined in plugin.json with a command string
+
+        Args:
+            function_info: Function metadata
+            args: Sanitized arguments
+            timeout: Timeout in seconds
         """
         command_template = function_info.get('command', '')
         if not command_template:
@@ -276,18 +297,24 @@ class PluginExecutor:
                 exit_code=1
             )
 
-        # Execute as shell command
-        return await self._executor.execute_shell(command_str)
+        # Execute as shell command with timeout
+        return await self._executor.execute_shell(command_str, timeout=timeout)
 
     async def _execute_script_function(
         self,
         function_info: dict,
-        args: List[str]
+        args: List[str],
+        timeout: int = 30
     ) -> CommandResult:
         """
         Execute shell script command
 
         Script functions point to .sh files with shell functions
+
+        Args:
+            function_info: Function metadata
+            args: Sanitized arguments
+            timeout: Timeout in seconds
         """
         command_template = function_info.get('command', '')
         shell_file = function_info.get('shell_file')
@@ -323,7 +350,7 @@ class PluginExecutor:
                 exit_code=1
             )
 
-        return await self._executor.execute_shell(command_str)
+        return await self._executor.execute_shell(command_str, timeout=timeout)
 
     async def _execute_python_function(
         self,

@@ -9,7 +9,7 @@
   },
   "type": "json",
   "entry": "plugin.json",
-  "enabled": true,
+  "enabled": false,
   "license": "MIT",
   "category": "system",
   "keywords": [
@@ -45,5 +45,7 @@
         "linux/aliases.fish"
       ]
     }
-  }
+  },
+  "requirements": {},
+  "tags": []
 }
