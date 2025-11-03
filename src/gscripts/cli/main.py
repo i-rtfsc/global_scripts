@@ -20,7 +20,6 @@ if str(project_root) not in sys.path:
 from gscripts.cli.commands import CommandHandler
 from gscripts.cli.formatters import OutputFormatter
 from gscripts.core.config_manager import ConfigManager, CommandResult
-from gscripts.core.plugin_manager import PluginManager
 from gscripts.core.constants import GlobalConstants
 from gscripts.utils.i18n import get_i18n_manager
 from gscripts.core.logger import setup_logging, get_logger
@@ -28,9 +27,21 @@ from gscripts.utils.logging_utils import (
     redact, ctx, correlation_id, set_correlation_id, duration, trunc, sanitize_path
 )
 
-
-# 模块级别的logger
+# 模块级别的logger - 提前初始化以支持后续日志
 logger = get_logger(tag="CLI.MAIN", name=__name__)
+
+# Feature flag for Clean Architecture migration
+# Set GS_USE_CLEAN_ARCH=false to use legacy system, default is true (new system)
+USE_CLEAN_ARCH = os.getenv('GS_USE_CLEAN_ARCH', 'true').lower() in ('true', '1', 'yes')
+
+if USE_CLEAN_ARCH:
+    # Use new Clean Architecture system via adapter
+    from gscripts.infrastructure.adapters.plugin_manager_adapter import PluginManagerAdapter as PluginManager
+    logger.info("Using Clean Architecture system (PluginManagerAdapter)")
+else:
+    # Use legacy system
+    from gscripts.core.plugin_manager import PluginManager
+    logger.info("Using legacy PluginManager system")
 
 
 class GlobalScriptsCLI:
@@ -68,10 +79,45 @@ class GlobalScriptsCLI:
         
         plugins_dir = self.config_manager.get_plugins_dir()
         logger.debug(f"Initializing PluginManager with plugins_root={sanitize_path(plugins_dir)}")
-        self.plugin_manager = PluginManager(
-            plugins_root=plugins_dir,
-            config_manager=self.config_manager
-        )
+
+        if USE_CLEAN_ARCH:
+            # Use Clean Architecture system via adapter
+            logger.info("Initializing Clean Architecture components")
+            from gscripts.infrastructure.filesystem.file_operations import RealFileSystem
+            from gscripts.infrastructure.persistence.plugin_repository import PluginRepository
+            from gscripts.infrastructure.execution.process_executor import ProcessExecutor
+            from gscripts.core.plugin_loader import PluginLoader
+            from gscripts.application.services import PluginService, PluginExecutor
+
+            # Create infrastructure components
+            filesystem = RealFileSystem()
+            repository = PluginRepository(filesystem=filesystem, plugins_dir=plugins_dir)
+            loader = PluginLoader(plugins_root=plugins_dir)  # Legacy loader only takes plugins_root
+            process_executor = ProcessExecutor()
+
+            # Create application services
+            plugin_service = PluginService(plugin_loader=loader, plugin_repository=repository)
+            plugin_executor = PluginExecutor(
+                plugin_loader=loader,
+                process_executor=process_executor
+            )
+
+            # Create adapter that provides legacy interface
+            self.plugin_manager = PluginManager(
+                plugin_service=plugin_service,
+                plugin_executor=plugin_executor,
+                plugins_root=plugins_dir,
+                config_manager=self.config_manager
+            )
+            logger.info("Clean Architecture system initialized via adapter")
+        else:
+            # Use legacy system
+            logger.info("Initializing legacy PluginManager")
+            self.plugin_manager = PluginManager(
+                plugins_root=plugins_dir,
+                config_manager=self.config_manager
+            )
+            logger.info("Legacy PluginManager initialized")
         
         logger.debug("Initializing CommandHandler")
         self.command_handler = CommandHandler(

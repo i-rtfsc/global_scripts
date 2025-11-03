@@ -234,9 +234,24 @@ class PluginLoader:
                 self.plugins_root = potential
         self.loaded_plugins: Dict[str, SimplePlugin] = {}
         self.failed_plugins: Dict[str, str] = {}
-    
-    async def load_all_plugins(self) -> Dict[str, SimplePlugin]:
-        """加载所有插件"""
+
+    def get_loaded_plugins(self) -> Dict[str, SimplePlugin]:
+        """
+        Get loaded plugins dictionary
+
+        Returns:
+            Dict of loaded plugins (for IPluginLoader interface compatibility)
+        """
+        return self.loaded_plugins
+
+    async def load_all_plugins(self, include_examples: bool = None) -> Dict[str, SimplePlugin]:
+        """
+        加载所有插件
+
+        Args:
+            include_examples: Whether to include example plugins (optional, for compatibility)
+                             If None, defaults to checking env/config as before
+        """
         import os
         
         if not self.plugins_root.exists():
