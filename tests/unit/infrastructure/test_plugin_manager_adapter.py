@@ -7,12 +7,12 @@ to provide legacy PluginManager interface.
 
 import pytest
 from pathlib import Path
-from unittest.mock import AsyncMock, Mock, MagicMock
+from unittest.mock import AsyncMock, Mock
 
 from gscripts.infrastructure.adapters import PluginManagerAdapter
 from gscripts.application.services import PluginService, PluginExecutor
 from gscripts.models import CommandResult
-from gscripts.models.plugin import PluginMetadata, PluginType
+from gscripts.models.plugin import PluginMetadata
 
 
 @pytest.fixture
@@ -27,10 +27,9 @@ def mock_plugin_service():
     service.get_plugin_info = AsyncMock(return_value=None)
     service.search_functions = AsyncMock(return_value=[])
     service.get_all_shortcuts = Mock(return_value={})
-    service.health_check = AsyncMock(return_value={
-        "status": "healthy",
-        "total_plugins": 0
-    })
+    service.health_check = AsyncMock(
+        return_value={"status": "healthy", "total_plugins": 0}
+    )
     service.get_plugin_metadata = AsyncMock(return_value=None)
     service.register_observer = Mock()
     service.unregister_observer = Mock()
@@ -40,7 +39,16 @@ def mock_plugin_service():
     service.notify_observers_error = Mock()
     service.get_loaded_plugins = Mock(return_value={})
     service.get_failed_plugins = Mock(return_value={})
-    service._loader = Mock()
+
+    # Mock _loader and _repository for cache clearing
+    mock_loader = Mock()
+    mock_loader.clear = Mock()
+    service._loader = mock_loader
+
+    mock_repository = Mock()
+    mock_repository.clear_cache = Mock()
+    service._repository = mock_repository
+
     return service
 
 
@@ -61,7 +69,7 @@ def adapter(mock_plugin_service, mock_plugin_executor):
         plugin_service=mock_plugin_service,
         plugin_executor=mock_plugin_executor,
         plugins_root=Path("/tmp/plugins"),
-        config_manager=None
+        config_manager=None,
     )
 
 
@@ -69,7 +77,9 @@ class TestPluginManagerAdapter:
     """Test PluginManagerAdapter functionality"""
 
     @pytest.mark.asyncio
-    async def test_initialize_calls_load_all_plugins(self, adapter, mock_plugin_service):
+    async def test_initialize_calls_load_all_plugins(
+        self, adapter, mock_plugin_service
+    ):
         """Test that initialize loads all plugins"""
         await adapter.initialize()
 
@@ -86,7 +96,9 @@ class TestPluginManagerAdapter:
         mock_plugin_service.load_all_plugins.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_load_all_plugins_delegates_to_service(self, adapter, mock_plugin_service):
+    async def test_load_all_plugins_delegates_to_service(
+        self, adapter, mock_plugin_service
+    ):
         """Test that load_all_plugins delegates to service"""
         result = await adapter.load_all_plugins()
 
@@ -94,7 +106,9 @@ class TestPluginManagerAdapter:
         assert result == {}
 
     @pytest.mark.asyncio
-    async def test_reload_plugin_delegates_to_service(self, adapter, mock_plugin_service):
+    async def test_reload_plugin_delegates_to_service(
+        self, adapter, mock_plugin_service
+    ):
         """Test that reload_plugin delegates to service"""
         result = await adapter.reload_plugin("test_plugin")
 
@@ -107,15 +121,11 @@ class TestPluginManagerAdapter:
     ):
         """Test that execute_plugin_function delegates to executor"""
         result = await adapter.execute_plugin_function(
-            "test_plugin",
-            "test_function",
-            ["arg1", "arg2"]
+            "test_plugin", "test_function", ["arg1", "arg2"]
         )
 
         mock_plugin_executor.execute_plugin_function.assert_called_once_with(
-            "test_plugin",
-            "test_function",
-            ["arg1", "arg2"]
+            "test_plugin", "test_function", ["arg1", "arg2"]
         )
         assert result.success is True
         assert result.output == "Test output"
@@ -129,7 +139,7 @@ class TestPluginManagerAdapter:
             author="Test Author",
             description="Test description",
             enabled=True,
-            priority=50
+            priority=50,
         )
         mock_plugin_service.list_all_plugins.return_value = [test_plugin]
 
@@ -142,7 +152,9 @@ class TestPluginManagerAdapter:
         assert result["test"]["enabled"] is True
 
     @pytest.mark.asyncio
-    async def test_health_check_delegates_to_service(self, adapter, mock_plugin_service):
+    async def test_health_check_delegates_to_service(
+        self, adapter, mock_plugin_service
+    ):
         """Test that health_check delegates to service"""
         result = await adapter.health_check()
 
@@ -156,7 +168,9 @@ class TestPluginManagerAdapter:
 
         mock_plugin_service.register_observer.assert_called_once_with(observer)
 
-    def test_unregister_observer_delegates_to_service(self, adapter, mock_plugin_service):
+    def test_unregister_observer_delegates_to_service(
+        self, adapter, mock_plugin_service
+    ):
         """Test that unregister_observer delegates to service"""
         observer = Mock()
         adapter.unregister_observer(observer)
@@ -172,7 +186,9 @@ class TestPluginManagerAdapter:
         mock_plugin_service.get_all_shortcuts.assert_called_once()
         assert result == {"shortcut1": "command1"}
 
-    def test_plugins_property_returns_loaded_plugins(self, adapter, mock_plugin_service):
+    def test_plugins_property_returns_loaded_plugins(
+        self, adapter, mock_plugin_service
+    ):
         """Test that plugins property returns loaded plugins"""
         mock_plugin_service.get_loaded_plugins.return_value = {"test": {}}
 
@@ -180,9 +196,13 @@ class TestPluginManagerAdapter:
 
         assert result == {"test": {}}
 
-    def test_failed_plugins_property_returns_failed_plugins(self, adapter, mock_plugin_service):
+    def test_failed_plugins_property_returns_failed_plugins(
+        self, adapter, mock_plugin_service
+    ):
         """Test that failed_plugins property returns failed plugins"""
-        mock_plugin_service.get_failed_plugins.return_value = {"bad_plugin": "error message"}
+        mock_plugin_service.get_failed_plugins.return_value = {
+            "bad_plugin": "error message"
+        }
 
         result = adapter.failed_plugins
 
@@ -230,11 +250,7 @@ class TestAdapterSyncAsyncConversion:
 
     def test_is_plugin_enabled_returns_bool(self, adapter, mock_plugin_service):
         """Test that is_plugin_enabled returns boolean"""
-        test_plugin = PluginMetadata(
-            name="test",
-            version="1.0.0",
-            enabled=True
-        )
+        test_plugin = PluginMetadata(name="test", version="1.0.0", enabled=True)
         mock_plugin_service.get_plugin_metadata.return_value = test_plugin
 
         result = adapter.is_plugin_enabled("test")
@@ -242,7 +258,9 @@ class TestAdapterSyncAsyncConversion:
         assert isinstance(result, bool)
         assert result is True
 
-    def test_is_plugin_enabled_returns_false_for_nonexistent(self, adapter, mock_plugin_service):
+    def test_is_plugin_enabled_returns_false_for_nonexistent(
+        self, adapter, mock_plugin_service
+    ):
         """Test that is_plugin_enabled returns False for nonexistent plugin"""
         mock_plugin_service.get_plugin_metadata.return_value = None
 

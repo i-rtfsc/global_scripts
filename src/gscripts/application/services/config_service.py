@@ -4,7 +4,6 @@ Provides unified interface for configuration access
 """
 
 from typing import Any, Dict, Optional
-from pathlib import Path
 
 from ...domain.interfaces import IConfigRepository, IEnvironment
 
@@ -23,7 +22,7 @@ class ConfigService:
         self,
         config_repository: IConfigRepository,
         environment: IEnvironment,
-        defaults: Optional[Dict[str, Any]] = None
+        defaults: Optional[Dict[str, Any]] = None,
     ):
         """
         Initialize config service
@@ -40,18 +39,18 @@ class ConfigService:
     def _get_default_config(self) -> Dict[str, Any]:
         """Get default configuration"""
         return {
-            'language': 'zh',
-            'logging': {
-                'level': 'INFO',
-                'file': None,
+            "language": "zh",
+            "logging": {
+                "level": "INFO",
+                "file": None,
             },
-            'show_examples': False,
-            'completion': {
-                'show_descriptions': True,
-                'show_subcommand_descriptions': True,
+            "show_examples": False,
+            "completion": {
+                "show_descriptions": True,
+                "show_subcommand_descriptions": True,
             },
-            'prompt': {
-                'theme': 'bitstream',
+            "prompt": {
+                "theme": "bitstream",
             },
         }
 
@@ -88,7 +87,7 @@ class ConfigService:
             return default
 
         # 4. Try built-in defaults
-        keys = key.split('.')
+        keys = key.split(".")
         value = self._defaults
         for k in keys:
             if isinstance(value, dict) and k in value:
@@ -122,14 +121,14 @@ class ConfigService:
     def _parse_env_value(self, value: str) -> Any:
         """Parse environment variable value to appropriate type"""
         # Boolean parsing
-        if value.lower() in ('true', 'yes', '1'):
+        if value.lower() in ("true", "yes", "1"):
             return True
-        if value.lower() in ('false', 'no', '0'):
+        if value.lower() in ("false", "no", "0"):
             return False
 
         # Number parsing
         try:
-            if '.' in value:
+            if "." in value:
                 return float(value)
             return int(value)
         except ValueError:
@@ -150,23 +149,23 @@ class ConfigService:
 
     async def get_language(self) -> str:
         """Get UI language"""
-        return await self.get('language', 'zh')
+        return await self.get("language", "zh")
 
     async def get_logging_level(self) -> str:
         """Get logging level"""
-        return await self.get('logging.level', 'INFO')
+        return await self.get("logging.level", "INFO")
 
     async def get_show_examples(self) -> bool:
         """Get show examples flag"""
-        return await self.get('show_examples', False)
+        return await self.get("show_examples", False)
 
     async def get_prompt_theme(self) -> str:
         """Get prompt theme"""
-        return await self.get('prompt.theme', 'bitstream')
+        return await self.get("prompt.theme", "bitstream")
 
     async def is_debug_mode(self) -> bool:
         """Check if debug mode is enabled"""
-        return await self.get_logging_level() == 'DEBUG'
+        return await self.get_logging_level() == "DEBUG"
 
 
-__all__ = ['ConfigService']
+__all__ = ["ConfigService"]

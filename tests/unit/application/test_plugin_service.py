@@ -13,12 +13,9 @@ Tests for new methods added in Phase 1 (Tasks 3.2-3.9):
 
 import pytest
 from typing import Dict, Any, List
-from unittest.mock import Mock, AsyncMock, MagicMock
 
 from src.gscripts.application.services import PluginService
-from src.gscripts.application.services.plugin_service import IPluginObserver
 from src.gscripts.models.plugin import PluginMetadata, PluginType
-from src.gscripts.domain.interfaces import IPluginLoader, IPluginRepository
 
 
 # Mock Implementations
@@ -108,10 +105,7 @@ def mock_repository():
 @pytest.fixture
 def plugin_service(mock_loader, mock_repository):
     """Provide PluginService instance"""
-    return PluginService(
-        plugin_loader=mock_loader,
-        plugin_repository=mock_repository
-    )
+    return PluginService(plugin_loader=mock_loader, plugin_repository=mock_repository)
 
 
 @pytest.fixture
@@ -123,7 +117,7 @@ def sample_plugin():
         author="Test Author",
         description={"en": "Test plugin", "zh": "测试插件"},
         type=PluginType.PYTHON,
-        enabled=True
+        enabled=True,
     )
 
 
@@ -137,7 +131,7 @@ def sample_plugins():
             author="Author",
             description={"en": "Python plugin"},
             type=PluginType.PYTHON,
-            enabled=True
+            enabled=True,
         ),
         PluginMetadata(
             name="plugin_shell",
@@ -145,7 +139,7 @@ def sample_plugins():
             author="Author",
             description={"en": "Shell plugin"},
             type=PluginType.SHELL,
-            enabled=True
+            enabled=True,
         ),
         PluginMetadata(
             name="plugin_disabled",
@@ -153,7 +147,7 @@ def sample_plugins():
             author="Author",
             description={"en": "Disabled plugin"},
             type=PluginType.PYTHON,
-            enabled=False
+            enabled=False,
         ),
     ]
 
@@ -164,10 +158,7 @@ class TestEnablePlugin:
 
     @pytest.mark.asyncio
     async def test_enable_plugin_success(
-        self,
-        plugin_service,
-        mock_repository,
-        sample_plugin
+        self, plugin_service, mock_repository, sample_plugin
     ):
         """
         WHEN enabling an existing plugin
@@ -187,11 +178,7 @@ class TestEnablePlugin:
         assert updated_plugin.enabled is True
 
     @pytest.mark.asyncio
-    async def test_enable_plugin_nonexistent(
-        self,
-        plugin_service,
-        mock_repository
-    ):
+    async def test_enable_plugin_nonexistent(self, plugin_service, mock_repository):
         """
         WHEN enabling a non-existent plugin
         THEN method returns False
@@ -202,10 +189,7 @@ class TestEnablePlugin:
 
     @pytest.mark.asyncio
     async def test_enable_plugin_notifies_observers(
-        self,
-        plugin_service,
-        mock_repository,
-        sample_plugin
+        self, plugin_service, mock_repository, sample_plugin
     ):
         """
         WHEN enabling a plugin
@@ -231,10 +215,7 @@ class TestDisablePlugin:
 
     @pytest.mark.asyncio
     async def test_disable_plugin_success(
-        self,
-        plugin_service,
-        mock_repository,
-        sample_plugin
+        self, plugin_service, mock_repository, sample_plugin
     ):
         """
         WHEN disabling an enabled plugin
@@ -254,11 +235,7 @@ class TestDisablePlugin:
         assert updated_plugin.enabled is False
 
     @pytest.mark.asyncio
-    async def test_disable_plugin_nonexistent(
-        self,
-        plugin_service,
-        mock_repository
-    ):
+    async def test_disable_plugin_nonexistent(self, plugin_service, mock_repository):
         """
         WHEN disabling a non-existent plugin
         THEN method returns False
@@ -269,10 +246,7 @@ class TestDisablePlugin:
 
     @pytest.mark.asyncio
     async def test_disable_plugin_notifies_observers(
-        self,
-        plugin_service,
-        mock_repository,
-        sample_plugin
+        self, plugin_service, mock_repository, sample_plugin
     ):
         """
         WHEN disabling a plugin
@@ -298,11 +272,7 @@ class TestHealthCheck:
 
     @pytest.mark.asyncio
     async def test_health_check_healthy_status(
-        self,
-        plugin_service,
-        mock_repository,
-        mock_loader,
-        sample_plugins
+        self, plugin_service, mock_repository, mock_loader, sample_plugins
     ):
         """
         WHEN performing health check with no failures
@@ -322,11 +292,7 @@ class TestHealthCheck:
 
     @pytest.mark.asyncio
     async def test_health_check_degraded_status(
-        self,
-        plugin_service,
-        mock_repository,
-        mock_loader,
-        sample_plugins
+        self, plugin_service, mock_repository, mock_loader, sample_plugins
     ):
         """
         WHEN performing health check with failures
@@ -348,11 +314,7 @@ class TestHealthCheck:
 
     @pytest.mark.asyncio
     async def test_health_check_counts(
-        self,
-        plugin_service,
-        mock_repository,
-        mock_loader,
-        sample_plugins
+        self, plugin_service, mock_repository, mock_loader, sample_plugins
     ):
         """
         WHEN performing health check
@@ -362,10 +324,12 @@ class TestHealthCheck:
         for plugin in sample_plugins:
             mock_repository.add_plugin(plugin)
 
-        mock_loader.set_loaded_plugins({
-            "plugin_python": {},
-            "plugin_shell": {},
-        })
+        mock_loader.set_loaded_plugins(
+            {
+                "plugin_python": {},
+                "plugin_shell": {},
+            }
+        )
 
         # Execute
         health = await plugin_service.health_check()
@@ -383,10 +347,7 @@ class TestGetEnabledPlugins:
 
     @pytest.mark.asyncio
     async def test_get_enabled_plugins_filters_correctly(
-        self,
-        plugin_service,
-        mock_repository,
-        sample_plugins
+        self, plugin_service, mock_repository, sample_plugins
     ):
         """
         WHEN getting enabled plugins
@@ -409,9 +370,7 @@ class TestGetEnabledPlugins:
 
     @pytest.mark.asyncio
     async def test_get_enabled_plugins_empty_when_none(
-        self,
-        plugin_service,
-        mock_repository
+        self, plugin_service, mock_repository
     ):
         """
         WHEN no enabled plugins exist
@@ -424,7 +383,7 @@ class TestGetEnabledPlugins:
             author="Author",
             description={"en": "Disabled"},
             type=PluginType.PYTHON,
-            enabled=False
+            enabled=False,
         )
         mock_repository.add_plugin(disabled_plugin)
 
@@ -441,10 +400,7 @@ class TestGetDisabledPlugins:
 
     @pytest.mark.asyncio
     async def test_get_disabled_plugins_filters_correctly(
-        self,
-        plugin_service,
-        mock_repository,
-        sample_plugins
+        self, plugin_service, mock_repository, sample_plugins
     ):
         """
         WHEN getting disabled plugins
@@ -469,10 +425,7 @@ class TestGetPluginsByType:
 
     @pytest.mark.asyncio
     async def test_get_plugins_by_type_python(
-        self,
-        plugin_service,
-        mock_repository,
-        sample_plugins
+        self, plugin_service, mock_repository, sample_plugins
     ):
         """
         WHEN filtering by PYTHON type
@@ -491,10 +444,7 @@ class TestGetPluginsByType:
 
     @pytest.mark.asyncio
     async def test_get_plugins_by_type_shell(
-        self,
-        plugin_service,
-        mock_repository,
-        sample_plugins
+        self, plugin_service, mock_repository, sample_plugins
     ):
         """
         WHEN filtering by SHELL type
@@ -514,10 +464,7 @@ class TestGetPluginsByType:
 
     @pytest.mark.asyncio
     async def test_get_plugins_by_type_empty(
-        self,
-        plugin_service,
-        mock_repository,
-        sample_plugins
+        self, plugin_service, mock_repository, sample_plugins
     ):
         """
         WHEN filtering by type with no matches
@@ -640,6 +587,7 @@ class TestObserverPattern:
         WHEN observer raises exception during notification
         THEN other observers still get notified
         """
+
         class BrokenObserver:
             def __init__(self):
                 self.called = False
@@ -710,10 +658,7 @@ class TestPluginServiceIntegration:
 
     @pytest.mark.asyncio
     async def test_enable_disable_workflow(
-        self,
-        plugin_service,
-        mock_repository,
-        sample_plugin
+        self, plugin_service, mock_repository, sample_plugin
     ):
         """
         WHEN enabling then disabling a plugin
@@ -739,10 +684,7 @@ class TestPluginServiceIntegration:
 
     @pytest.mark.asyncio
     async def test_observer_receives_all_lifecycle_events(
-        self,
-        plugin_service,
-        mock_repository,
-        sample_plugin
+        self, plugin_service, mock_repository, sample_plugin
     ):
         """
         WHEN plugin goes through lifecycle
@@ -769,11 +711,7 @@ class TestPluginServiceIntegration:
 
     @pytest.mark.asyncio
     async def test_health_check_reflects_current_state(
-        self,
-        plugin_service,
-        mock_repository,
-        sample_plugins,
-        mock_loader
+        self, plugin_service, mock_repository, sample_plugins, mock_loader
     ):
         """
         WHEN plugins are enabled/disabled

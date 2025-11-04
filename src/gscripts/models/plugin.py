@@ -10,6 +10,7 @@ from typing import List, Dict, Optional, Union
 
 class PluginType(Enum):
     """插件类型枚举"""
+
     PYTHON = "python"
     SHELL = "shell"
     CONFIG = "config"
@@ -19,6 +20,7 @@ class PluginType(Enum):
 
 class FunctionType(Enum):
     """函数类型枚举"""
+
     PYTHON = "python"
     PYTHON_DECORATED = "python_decorated"
     SHELL = "shell"
@@ -32,6 +34,7 @@ class PluginPaths:
 
     避免重复的路径解析和exists检查
     """
+
     plugin_dir: Path
     python_file: Optional[Path] = None
     config_file: Optional[Path] = None
@@ -53,6 +56,7 @@ class PluginMetadata:
 
     标准化的插件元信息结构,从plugin.json加载
     """
+
     name: str
     version: str = "1.0.0"
     author: str = "Unknown"
@@ -68,8 +72,13 @@ class PluginMetadata:
     subplugins: List[str] = field(default_factory=list)
     type: PluginType = PluginType.UNKNOWN
 
-    def get_description(self, language: str = 'zh') -> str:
+    def get_description(self, language: str = "zh") -> str:
         """获取指定语言的描述"""
         if isinstance(self.description, dict):
-            return self.description.get(language) or self.description.get('zh') or self.description.get('en') or ''
+            return (
+                self.description.get(language)
+                or self.description.get("zh")
+                or self.description.get("en")
+                or ""
+            )
         return str(self.description)

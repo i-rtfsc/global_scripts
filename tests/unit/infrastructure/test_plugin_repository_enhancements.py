@@ -26,28 +26,16 @@ def sample_plugins():
     """Create sample plugin metadata"""
     return [
         PluginMetadata(
-            name="plugin1",
-            version="1.0.0",
-            enabled=True,
-            type=PluginType.PYTHON
+            name="plugin1", version="1.0.0", enabled=True, type=PluginType.PYTHON
         ),
         PluginMetadata(
-            name="plugin2",
-            version="1.0.0",
-            enabled=False,
-            type=PluginType.SHELL
+            name="plugin2", version="1.0.0", enabled=False, type=PluginType.SHELL
         ),
         PluginMetadata(
-            name="plugin3",
-            version="1.0.0",
-            enabled=True,
-            type=PluginType.PYTHON
+            name="plugin3", version="1.0.0", enabled=True, type=PluginType.PYTHON
         ),
         PluginMetadata(
-            name="plugin4",
-            version="1.0.0",
-            enabled=True,
-            type=PluginType.CONFIG
+            name="plugin4", version="1.0.0", enabled=True, type=PluginType.CONFIG
         ),
     ]
 
@@ -58,7 +46,7 @@ def repository(mock_filesystem):
     return PluginRepository(
         filesystem=mock_filesystem,
         plugins_dir=Path("/test/plugins"),
-        router_cache_path=None
+        router_cache_path=None,
     )
 
 
@@ -72,12 +60,15 @@ def populated_repository(repository, mock_filesystem, sample_plugins):
         plugin_dir = plugins_dir / plugin.name
         plugin_json = plugin_dir / "plugin.json"
 
-        mock_filesystem.write_json(plugin_json, {
-            "name": plugin.name,
-            "version": plugin.version,
-            "enabled": plugin.enabled,
-            "type": plugin.type.value,
-        })
+        mock_filesystem.write_json(
+            plugin_json,
+            {
+                "name": plugin.name,
+                "version": plugin.version,
+                "enabled": plugin.enabled,
+                "type": plugin.type.value,
+            },
+        )
 
     return repository
 
@@ -102,7 +93,9 @@ class TestPluginRepositoryGetEnabled:
         assert enabled == []
 
     @pytest.mark.asyncio
-    async def test_get_enabled_returns_empty_when_all_disabled(self, repository, mock_filesystem):
+    async def test_get_enabled_returns_empty_when_all_disabled(
+        self, repository, mock_filesystem
+    ):
         """Test that get_enabled returns empty when all plugins disabled"""
         plugins_dir = Path("/test/plugins")
 
@@ -110,11 +103,10 @@ class TestPluginRepositoryGetEnabled:
         for i in range(3):
             plugin_dir = plugins_dir / f"plugin{i}"
             plugin_json = plugin_dir / "plugin.json"
-            mock_filesystem.write_json(plugin_json, {
-                "name": f"plugin{i}",
-                "version": "1.0.0",
-                "enabled": False
-            })
+            mock_filesystem.write_json(
+                plugin_json,
+                {"name": f"plugin{i}", "version": "1.0.0", "enabled": False},
+            )
 
         enabled = await repository.get_enabled()
 
@@ -170,17 +162,17 @@ class TestPluginRepositoryUpdateEnabledStatus:
     """Tests for update_enabled_status() method"""
 
     @pytest.mark.asyncio
-    async def test_update_enabled_status_enables_plugin(self, repository, mock_filesystem):
+    async def test_update_enabled_status_enables_plugin(
+        self, repository, mock_filesystem
+    ):
         """Test that update_enabled_status can enable a plugin"""
         # Create disabled plugin
         plugins_dir = Path("/test/plugins")
         plugin_dir = plugins_dir / "test"
         plugin_json = plugin_dir / "plugin.json"
-        mock_filesystem.write_json(plugin_json, {
-            "name": "test",
-            "version": "1.0.0",
-            "enabled": False
-        })
+        mock_filesystem.write_json(
+            plugin_json, {"name": "test", "version": "1.0.0", "enabled": False}
+        )
 
         result = await repository.update_enabled_status("test", True)
 
@@ -191,17 +183,17 @@ class TestPluginRepositoryUpdateEnabledStatus:
         assert updated_plugin.enabled is True
 
     @pytest.mark.asyncio
-    async def test_update_enabled_status_disables_plugin(self, repository, mock_filesystem):
+    async def test_update_enabled_status_disables_plugin(
+        self, repository, mock_filesystem
+    ):
         """Test that update_enabled_status can disable a plugin"""
         # Create enabled plugin
         plugins_dir = Path("/test/plugins")
         plugin_dir = plugins_dir / "test"
         plugin_json = plugin_dir / "plugin.json"
-        mock_filesystem.write_json(plugin_json, {
-            "name": "test",
-            "version": "1.0.0",
-            "enabled": True
-        })
+        mock_filesystem.write_json(
+            plugin_json, {"name": "test", "version": "1.0.0", "enabled": True}
+        )
 
         result = await repository.update_enabled_status("test", False)
 
@@ -212,23 +204,25 @@ class TestPluginRepositoryUpdateEnabledStatus:
         assert updated_plugin.enabled is False
 
     @pytest.mark.asyncio
-    async def test_update_enabled_status_returns_false_for_nonexistent(self, repository):
+    async def test_update_enabled_status_returns_false_for_nonexistent(
+        self, repository
+    ):
         """Test that update_enabled_status returns False for nonexistent plugin"""
         result = await repository.update_enabled_status("nonexistent", True)
 
         assert result is False
 
     @pytest.mark.asyncio
-    async def test_update_enabled_status_updates_cache(self, repository, mock_filesystem):
+    async def test_update_enabled_status_updates_cache(
+        self, repository, mock_filesystem
+    ):
         """Test that update_enabled_status updates cache"""
         plugins_dir = Path("/test/plugins")
         plugin_dir = plugins_dir / "test"
         plugin_json = plugin_dir / "plugin.json"
-        mock_filesystem.write_json(plugin_json, {
-            "name": "test",
-            "version": "1.0.0",
-            "enabled": False
-        })
+        mock_filesystem.write_json(
+            plugin_json, {"name": "test", "version": "1.0.0", "enabled": False}
+        )
 
         await repository.update_enabled_status("test", True)
 
@@ -241,11 +235,9 @@ class TestPluginRepositoryUpdateEnabledStatus:
         plugins_dir = Path("/test/plugins")
         plugin_dir = plugins_dir / "test"
         plugin_json = plugin_dir / "plugin.json"
-        mock_filesystem.write_json(plugin_json, {
-            "name": "test",
-            "version": "1.0.0",
-            "enabled": True
-        })
+        mock_filesystem.write_json(
+            plugin_json, {"name": "test", "version": "1.0.0", "enabled": True}
+        )
 
         # Enable already enabled plugin
         result = await repository.update_enabled_status("test", True)

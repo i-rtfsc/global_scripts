@@ -4,11 +4,9 @@ Application layer service for plugin management
 """
 
 from typing import List, Optional, Dict, Any, Protocol
-from pathlib import Path
 
 from ...domain.interfaces import IPluginLoader, IPluginRepository
 from ...models.plugin import PluginMetadata, PluginType
-from ...models import CommandResult
 
 
 # Observer interface (will move to domain/interfaces later)
@@ -46,7 +44,7 @@ class PluginService:
         self,
         plugin_loader: IPluginLoader,
         plugin_repository: IPluginRepository,
-        config_manager: Any = None
+        config_manager: Any = None,
     ):
         """
         Initialize plugin service
@@ -168,8 +166,8 @@ class PluginService:
         """
         try:
             cfg = self._config_manager.get_config() or {}
-            system_map = cfg.get('system_plugins', {}) or {}
-            custom_map = cfg.get('custom_plugins', {}) or {}
+            system_map = cfg.get("system_plugins", {}) or {}
+            custom_map = cfg.get("custom_plugins", {}) or {}
 
             # Update the appropriate section
             if plugin_name in system_map:
@@ -180,8 +178,8 @@ class PluginService:
                 # If not in either, add to system_plugins by default
                 system_map[plugin_name] = enabled
 
-            cfg['system_plugins'] = system_map
-            cfg['custom_plugins'] = custom_map
+            cfg["system_plugins"] = system_map
+            cfg["custom_plugins"] = custom_map
             self._config_manager.save_config(cfg)
         except Exception as e:
             # Log error but don't fail the operation
@@ -207,17 +205,17 @@ class PluginService:
         plugin_info = loaded_plugins.get(plugin_name)
 
         return {
-            'name': metadata.name,
-            'version': metadata.version,
-            'author': metadata.author,
-            'description': metadata.description,
-            'enabled': metadata.enabled,
-            'priority': metadata.priority,
-            'category': metadata.category,
-            'keywords': metadata.keywords,
-            'tags': metadata.tags,
-            'loaded': plugin_info is not None,
-            'functions': plugin_info.get('functions', []) if plugin_info else [],
+            "name": metadata.name,
+            "version": metadata.version,
+            "author": metadata.author,
+            "description": metadata.description,
+            "enabled": metadata.enabled,
+            "priority": metadata.priority,
+            "category": metadata.category,
+            "keywords": metadata.keywords,
+            "tags": metadata.tags,
+            "loaded": plugin_info is not None,
+            "functions": plugin_info.get("functions", []) if plugin_info else [],
         }
 
     async def get_enabled_plugins(self) -> List[PluginMetadata]:
@@ -271,7 +269,9 @@ class PluginService:
             "failed_plugins": list(failed.keys()) if failed else [],
         }
 
-    async def get_plugins_by_type(self, plugin_type: PluginType) -> List[PluginMetadata]:
+    async def get_plugins_by_type(
+        self, plugin_type: PluginType
+    ) -> List[PluginMetadata]:
         """
         Get plugins of specific type
 
@@ -300,26 +300,30 @@ class PluginService:
         keyword_lower = keyword.lower()
 
         for plugin_name, plugin_info in loaded.items():
-            functions = plugin_info.get('functions', {})
+            functions = plugin_info.get("functions", {})
             for func_name, func_info in functions.items():
                 # Search in function name and description
                 if keyword_lower in func_name.lower():
-                    results.append({
-                        'plugin': plugin_name,
-                        'function': func_name,
-                        'description': func_info.get('description', ''),
-                        'usage': func_info.get('usage', ''),
-                    })
-                elif 'description' in func_info:
-                    desc = func_info['description']
+                    results.append(
+                        {
+                            "plugin": plugin_name,
+                            "function": func_name,
+                            "description": func_info.get("description", ""),
+                            "usage": func_info.get("usage", ""),
+                        }
+                    )
+                elif "description" in func_info:
+                    desc = func_info["description"]
                     desc_str = desc if isinstance(desc, str) else str(desc)
                     if keyword_lower in desc_str.lower():
-                        results.append({
-                            'plugin': plugin_name,
-                            'function': func_name,
-                            'description': func_info.get('description', ''),
-                            'usage': func_info.get('usage', ''),
-                        })
+                        results.append(
+                            {
+                                "plugin": plugin_name,
+                                "function": func_name,
+                                "description": func_info.get("description", ""),
+                                "usage": func_info.get("usage", ""),
+                            }
+                        )
 
         return results
 
@@ -351,7 +355,7 @@ class PluginService:
 
         for plugin_name, plugin_info in loaded.items():
             # Get shortcuts from plugin info if available
-            plugin_shortcuts = plugin_info.get('shortcuts', {})
+            plugin_shortcuts = plugin_info.get("shortcuts", {})
             shortcuts.update(plugin_shortcuts)
 
         return shortcuts
@@ -410,4 +414,4 @@ class PluginService:
                 pass
 
 
-__all__ = ['PluginService', 'IPluginObserver']
+__all__ = ["PluginService", "IPluginObserver"]

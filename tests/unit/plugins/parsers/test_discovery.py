@@ -6,13 +6,11 @@ Tests auto-discovery from Entry Points, directories, and config
 import pytest
 from pathlib import Path
 from typing import List
-import sys
 
 from gscripts.plugins.parsers import (
     FunctionParser,
     FunctionInfo,
-    ParserMetadata,
-    parser_metadata
+    parser_metadata,
 )
 from gscripts.plugins.parsers.discovery import ParserDiscovery
 
@@ -22,17 +20,14 @@ from gscripts.plugins.parsers.discovery import ParserDiscovery
     version="1.0.0",
     supported_extensions=[".test"],
     priority=50,
-    description="Parser for discovery testing"
+    description="Parser for discovery testing",
 )
 class TestDiscoveryParser(FunctionParser):
     def can_parse(self, file: Path) -> bool:
         return file.suffix == ".test"
 
     async def parse(
-        self,
-        file: Path,
-        plugin_name: str,
-        subplugin_name: str = ""
+        self, file: Path, plugin_name: str, subplugin_name: str = ""
     ) -> List[FunctionInfo]:
         return []
 
@@ -100,7 +95,8 @@ class TestParserDiscovery:
         """Test discovering parsers from directory"""
         # Create a parser file
         parser_file = tmp_path / "custom_parser.py"
-        parser_file.write_text("""
+        parser_file.write_text(
+            """
 from pathlib import Path
 from typing import List
 from gscripts.plugins.parsers import FunctionParser, FunctionInfo, parser_metadata
@@ -118,7 +114,8 @@ class CustomParser(FunctionParser):
 
     async def parse(self, file: Path, plugin_name: str, subplugin_name: str = "") -> List[FunctionInfo]:
         return []
-""")
+"""
+        )
 
         parsers = discovery.discover_from_directory(tmp_path)
 
@@ -131,24 +128,30 @@ class CustomParser(FunctionParser):
     def test_discover_from_directory_naming_convention(self, discovery, tmp_path):
         """Test that only *_parser.py files are discovered"""
         # Create files with different names
-        (tmp_path / "valid_parser.py").write_text("""
+        (tmp_path / "valid_parser.py").write_text(
+            """
 from gscripts.plugins.parsers import FunctionParser, FunctionInfo
 class ValidParser(FunctionParser):
     def can_parse(self, file): return False
     async def parse(self, file, plugin_name, subplugin_name=""): return []
-""")
+"""
+        )
 
-        (tmp_path / "not_a_parser.py").write_text("""
+        (tmp_path / "not_a_parser.py").write_text(
+            """
 class NotParser:
     pass
-""")
+"""
+        )
 
-        (tmp_path / "another_parser.py").write_text("""
+        (tmp_path / "another_parser.py").write_text(
+            """
 from gscripts.plugins.parsers import FunctionParser
 class AnotherParser(FunctionParser):
     def can_parse(self, file): return False
     async def parse(self, file, plugin_name, subplugin_name=""): return []
-""")
+"""
+        )
 
         parsers = discovery.discover_from_directory(tmp_path)
 
@@ -161,9 +164,11 @@ class AnotherParser(FunctionParser):
         """Test that discovery handles malformed parser files"""
         # Create invalid parser file
         bad_parser = tmp_path / "bad_parser.py"
-        bad_parser.write_text("""
+        bad_parser.write_text(
+            """
 this is not valid python code!
-""")
+"""
+        )
 
         # Should not crash
         parsers = discovery.discover_from_directory(tmp_path)
@@ -171,28 +176,22 @@ this is not valid python code!
 
     def test_discover_from_config_enabled_list(self, discovery):
         """Test getting enabled parsers from config"""
-        config = {
-            'enabled': ['python', 'shell', 'yaml'],
-            'disabled': ['experimental']
-        }
+        config = {"enabled": ["python", "shell", "yaml"], "disabled": ["experimental"]}
 
         enabled = discovery.discover_from_config(config)
-        assert 'python' in enabled
-        assert 'shell' in enabled
-        assert 'yaml' in enabled
-        assert 'experimental' not in enabled
+        assert "python" in enabled
+        assert "shell" in enabled
+        assert "yaml" in enabled
+        assert "experimental" not in enabled
 
     def test_discover_from_config_removes_disabled(self, discovery):
         """Test that disabled parsers are removed"""
-        config = {
-            'enabled': ['python', 'shell', 'yaml'],
-            'disabled': ['yaml']
-        }
+        config = {"enabled": ["python", "shell", "yaml"], "disabled": ["yaml"]}
 
         enabled = discovery.discover_from_config(config)
-        assert 'python' in enabled
-        assert 'shell' in enabled
-        assert 'yaml' not in enabled
+        assert "python" in enabled
+        assert "shell" in enabled
+        assert "yaml" not in enabled
 
     def test_discover_from_config_empty(self, discovery):
         """Test with empty config"""
@@ -201,7 +200,7 @@ this is not valid python code!
 
     def test_discover_from_config_no_enabled_key(self, discovery):
         """Test with config missing 'enabled' key"""
-        config = {'disabled': ['experimental']}
+        config = {"disabled": ["experimental"]}
         enabled = discovery.discover_from_config(config)
         assert enabled == []
 
@@ -213,33 +212,25 @@ this is not valid python code!
         path2 = tmp_path / "parsers2"
         path2.mkdir()
 
-        config = {
-            'custom_paths': [
-                str(path1),
-                str(path2),
-                '/nonexistent/path'
-            ]
-        }
+        config = {"custom_paths": [str(path1), str(path2), "/nonexistent/path"]}
 
         paths = discovery.get_custom_paths(config)
 
         assert len(paths) == 2
         assert path1 in paths
         assert path2 in paths
-        assert Path('/nonexistent/path') not in paths
+        assert Path("/nonexistent/path") not in paths
 
     def test_get_custom_paths_with_tilde(self, discovery, tmp_path):
         """Test that tilde expansion works"""
         # This tests expanduser functionality
-        config = {
-            'custom_paths': ['~/.gscripts/parsers']
-        }
+        config = {"custom_paths": ["~/.gscripts/parsers"]}
 
         paths = discovery.get_custom_paths(config)
 
         # Should have expanded tilde
         for path in paths:
-            assert '~' not in str(path)
+            assert "~" not in str(path)
 
     def test_get_custom_paths_empty(self, discovery):
         """Test with no custom_paths in config"""
@@ -248,19 +239,13 @@ this is not valid python code!
 
     def test_get_priority_overrides(self, discovery):
         """Test getting priority overrides from config"""
-        config = {
-            'priority_overrides': {
-                'yaml': 5,
-                'toml': 10,
-                'custom': 50
-            }
-        }
+        config = {"priority_overrides": {"yaml": 5, "toml": 10, "custom": 50}}
 
         overrides = discovery.get_priority_overrides(config)
 
-        assert overrides['yaml'] == 5
-        assert overrides['toml'] == 10
-        assert overrides['custom'] == 50
+        assert overrides["yaml"] == 5
+        assert overrides["toml"] == 10
+        assert overrides["custom"] == 50
 
     def test_get_priority_overrides_empty(self, discovery):
         """Test with no priority_overrides in config"""
@@ -274,7 +259,8 @@ this is not valid python code!
         subdir.mkdir()
 
         parser_file = subdir / "nested_parser.py"
-        parser_file.write_text("""
+        parser_file.write_text(
+            """
 from pathlib import Path
 from typing import List
 from gscripts.plugins.parsers import FunctionParser, FunctionInfo
@@ -285,18 +271,20 @@ class NestedParser(FunctionParser):
 
     async def parse(self, file: Path, plugin_name: str, subplugin_name: str = "") -> List[FunctionInfo]:
         return []
-""")
+"""
+        )
 
         parsers = discovery.discover_from_directory(tmp_path)
 
         # Should find parser in subdirectory
         assert len(parsers) == 1
-        assert parsers[0][0].__name__ == 'NestedParser'
+        assert parsers[0][0].__name__ == "NestedParser"
 
     def test_discover_skips_non_functionparser_classes(self, discovery, tmp_path):
         """Test that discovery only finds FunctionParser subclasses"""
         parser_file = tmp_path / "mixed_parser.py"
-        parser_file.write_text("""
+        parser_file.write_text(
+            """
 from pathlib import Path
 from typing import List
 from gscripts.plugins.parsers import FunctionParser, FunctionInfo
@@ -313,13 +301,14 @@ class ValidParser(FunctionParser):
 
 class AnotherRegularClass:
     pass
-""")
+"""
+        )
 
         parsers = discovery.discover_from_directory(tmp_path)
 
         # Should only find ValidParser
         assert len(parsers) == 1
-        assert parsers[0][0].__name__ == 'ValidParser'
+        assert parsers[0][0].__name__ == "ValidParser"
 
     def test_integration_full_discovery_flow(self, discovery, tmp_path):
         """Test complete discovery flow with all sources"""
@@ -328,7 +317,8 @@ class AnotherRegularClass:
         parser_dir.mkdir()
 
         # Create custom parser
-        (parser_dir / "test_parser.py").write_text("""
+        (parser_dir / "test_parser.py").write_text(
+            """
 from pathlib import Path
 from typing import List
 from gscripts.plugins.parsers import FunctionParser, FunctionInfo, parser_metadata
@@ -346,15 +336,14 @@ class IntegrationTestParser(FunctionParser):
 
     async def parse(self, file: Path, plugin_name: str, subplugin_name: str = "") -> List[FunctionInfo]:
         return []
-""")
+"""
+        )
 
         config = {
-            'enabled': ['python', 'shell', 'integration_test'],
-            'disabled': [],
-            'custom_paths': [str(parser_dir)],
-            'priority_overrides': {
-                'integration_test': 5
-            }
+            "enabled": ["python", "shell", "integration_test"],
+            "disabled": [],
+            "custom_paths": [str(parser_dir)],
+            "priority_overrides": {"integration_test": 5},
         }
 
         # Discover from entry points
@@ -366,7 +355,7 @@ class IntegrationTestParser(FunctionParser):
 
         # Get enabled list
         enabled = discovery.discover_from_config(config)
-        assert 'integration_test' in enabled
+        assert "integration_test" in enabled
 
         # Get custom paths
         paths = discovery.get_custom_paths(config)
@@ -374,4 +363,4 @@ class IntegrationTestParser(FunctionParser):
 
         # Get priority overrides
         overrides = discovery.get_priority_overrides(config)
-        assert overrides['integration_test'] == 5
+        assert overrides["integration_test"] == 5

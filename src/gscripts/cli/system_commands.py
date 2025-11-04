@@ -13,7 +13,8 @@ from pathlib import Path
 from typing import Dict, Any
 
 from .formatters import OutputFormatter
-from ..core.config_manager import ConfigManager, CommandResult
+from ..core.config_manager import ConfigManager
+from ..models.result import CommandResult
 from ..infrastructure.adapters.plugin_manager_adapter import (
     PluginManagerAdapter as PluginManager,
 )

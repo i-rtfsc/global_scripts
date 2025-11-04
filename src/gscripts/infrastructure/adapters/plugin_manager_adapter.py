@@ -33,7 +33,7 @@ class PluginManagerAdapter:
         plugin_service: PluginService,
         plugin_executor: PluginExecutor,
         plugins_root: Union[str, Path] = None,
-        config_manager: Any = None
+        config_manager: Any = None,
     ):
         """
         Initialize adapter
@@ -87,10 +87,7 @@ class PluginManagerAdapter:
         return await self._service.reload_plugin(plugin_name)
 
     async def execute_plugin_function(
-        self,
-        plugin_name: str,
-        function_name: str,
-        args: List[str] = None
+        self, plugin_name: str, function_name: str, args: List[str] = None
     ) -> CommandResult:
         """
         Execute a plugin function
@@ -108,9 +105,7 @@ class PluginManagerAdapter:
             f"plugin={plugin_name}, function={function_name}"
         )
         return await self._executor.execute_plugin_function(
-            plugin_name,
-            function_name,
-            args
+            plugin_name, function_name, args
         )
 
     async def list_all_plugins(self):
@@ -138,29 +133,29 @@ class PluginManagerAdapter:
 
         if success:
             # Clear repository cache to force reload from filesystem
-            logger.info(f"Clearing repository cache before reloading")
+            logger.info("Clearing repository cache before reloading")
             self._service._repository.clear_cache()
             self._service._loader.clear()
 
             # Reload all plugins to reflect the change
             logger.info(f"Reloading plugins after enabling {plugin_name}")
             loaded = await self._service.load_all_plugins()
-            logger.info(f"Loaded {len(loaded)} plugins after enable: {list(loaded.keys())}")
+            logger.info(
+                f"Loaded {len(loaded)} plugins after enable: {list(loaded.keys())}"
+            )
 
             # Regenerate router index and completions (like legacy system)
             self._generate_router_index()
             self._regenerate_completions()
 
             return CommandResult(
-                success=True,
-                output=f"Plugin '{plugin_name}' enabled",
-                exit_code=0
+                success=True, output=f"Plugin '{plugin_name}' enabled", exit_code=0
             )
         else:
             return CommandResult(
                 success=False,
                 error=f"Failed to enable plugin '{plugin_name}'",
-                exit_code=1
+                exit_code=1,
             )
 
     def enable_plugin(self, plugin_name: str) -> CommandResult:
@@ -181,6 +176,7 @@ class PluginManagerAdapter:
             # We're in an event loop - can't use asyncio.run()
             # Create a task and wait for it
             import nest_asyncio
+
             nest_asyncio.apply()
             return asyncio.run(self.enable_plugin_async(plugin_name))
         except RuntimeError:
@@ -202,7 +198,7 @@ class PluginManagerAdapter:
 
         if success:
             # Clear repository cache to force reload from filesystem
-            logger.info(f"Clearing repository cache before reloading")
+            logger.info("Clearing repository cache before reloading")
             self._service._repository.clear_cache()
             self._service._loader.clear()
 
@@ -215,15 +211,13 @@ class PluginManagerAdapter:
             self._regenerate_completions()
 
             return CommandResult(
-                success=True,
-                output=f"Plugin '{plugin_name}' disabled",
-                exit_code=0
+                success=True, output=f"Plugin '{plugin_name}' disabled", exit_code=0
             )
         else:
             return CommandResult(
                 success=False,
                 error=f"Failed to disable plugin '{plugin_name}'",
-                exit_code=1
+                exit_code=1,
             )
 
     def disable_plugin(self, plugin_name: str) -> CommandResult:
@@ -243,6 +237,7 @@ class PluginManagerAdapter:
             loop = asyncio.get_running_loop()
             # We're in an event loop - can't use asyncio.run()
             import nest_asyncio
+
             nest_asyncio.apply()
             return asyncio.run(self.disable_plugin_async(plugin_name))
         except RuntimeError:
@@ -264,6 +259,7 @@ class PluginManagerAdapter:
             plugin = asyncio.run(self._service.get_plugin_metadata(plugin_name))
         except RuntimeError:
             import nest_asyncio
+
             nest_asyncio.apply()
             plugin = asyncio.run(self._service.get_plugin_metadata(plugin_name))
 
@@ -283,6 +279,7 @@ class PluginManagerAdapter:
             plugins = asyncio.run(self._service.list_all_plugins())
         except RuntimeError:
             import nest_asyncio
+
             nest_asyncio.apply()
             plugins = asyncio.run(self._service.list_all_plugins())
 
@@ -290,15 +287,15 @@ class PluginManagerAdapter:
         result = {}
         for plugin in plugins:
             result[plugin.name] = {
-                'name': plugin.name,
-                'version': plugin.version,
-                'author': plugin.author,
-                'description': plugin.description,
-                'enabled': plugin.enabled,
-                'priority': plugin.priority,
-                'category': plugin.category,
-                'keywords': plugin.keywords,
-                'tags': plugin.tags,
+                "name": plugin.name,
+                "version": plugin.version,
+                "author": plugin.author,
+                "description": plugin.description,
+                "enabled": plugin.enabled,
+                "priority": plugin.priority,
+                "category": plugin.category,
+                "keywords": plugin.keywords,
+                "tags": plugin.tags,
             }
 
         return result
@@ -319,6 +316,7 @@ class PluginManagerAdapter:
             info = asyncio.run(self._service.get_plugin_info(plugin_name))
         except RuntimeError:
             import nest_asyncio
+
             nest_asyncio.apply()
             info = asyncio.run(self._service.get_plugin_info(plugin_name))
 
@@ -340,6 +338,7 @@ class PluginManagerAdapter:
             results = asyncio.run(self._service.search_functions(keyword))
         except RuntimeError:
             import nest_asyncio
+
             nest_asyncio.apply()
             results = asyncio.run(self._service.search_functions(keyword))
 
@@ -415,7 +414,7 @@ class PluginManagerAdapter:
         elif event_data.event == PluginEvent.DISABLED:
             self._service.notify_observers_disabled(event_data.plugin_name)
         elif event_data.event == PluginEvent.ERROR:
-            error_msg = event_data.metadata.get('error', 'Unknown error')
+            error_msg = event_data.metadata.get("error", "Unknown error")
             self._service.notify_observers_error(event_data.plugin_name, error_msg)
 
     def _generate_router_index(self):
@@ -435,7 +434,9 @@ class PluginManagerAdapter:
         try:
             # Note: Completion regeneration typically requires external script
             # For now, just log that it should be regenerated
-            logger.info("Completions should be regenerated - run: uv run python scripts/setup.py")
+            logger.info(
+                "Completions should be regenerated - run: uv run python scripts/setup.py"
+            )
         except Exception as e:
             logger.error(f"Failed to regenerate completions: {e}")
 
@@ -456,4 +457,4 @@ class PluginManagerAdapter:
         return self._service.get_failed_plugins()
 
 
-__all__ = ['PluginManagerAdapter']
+__all__ = ["PluginManagerAdapter"]

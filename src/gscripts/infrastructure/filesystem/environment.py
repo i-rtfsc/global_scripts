@@ -48,4 +48,4 @@ class MockEnvironment(IEnvironment):
         self._env.clear()
 
 
-__all__ = ['SystemEnvironment', 'MockEnvironment']
+__all__ = ["SystemEnvironment", "MockEnvironment"]

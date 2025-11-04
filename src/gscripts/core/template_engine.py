@@ -11,6 +11,7 @@ from typing import Dict, List, Any, Optional
 
 try:
     from jinja2 import Environment, FileSystemLoader, select_autoescape
+
     JINJA2_AVAILABLE = True
 except ImportError:
     JINJA2_AVAILABLE = False
@@ -56,11 +57,14 @@ class TemplateEngine:
         self.templates_dir = templates_dir
 
         if not self.templates_dir.exists():
-            raise FileNotFoundError(f"Templates directory not found: {self.templates_dir}")
+            raise FileNotFoundError(
+                f"Templates directory not found: {self.templates_dir}"
+            )
 
         # Store config manager
         if config_manager is None:
             from .config_manager import ConfigManager
+
             self.config_manager = ConfigManager()
         else:
             self.config_manager = config_manager
@@ -68,10 +72,10 @@ class TemplateEngine:
         # 创建 Jinja2 环境
         self.env = Environment(
             loader=FileSystemLoader(str(self.templates_dir)),
-            autoescape=select_autoescape(['html', 'xml']),
+            autoescape=select_autoescape(["html", "xml"]),
             trim_blocks=True,
             lstrip_blocks=True,
-            keep_trailing_newline=True
+            keep_trailing_newline=True,
         )
 
         # 注册自定义过滤器
@@ -79,9 +83,9 @@ class TemplateEngine:
 
     def _register_filters(self):
         """注册自定义 Jinja2 过滤器"""
-        self.env.filters['quote_shell'] = self._quote_shell
-        self.env.filters['escape_shell'] = self._escape_shell
-        self.env.filters['join_path'] = self._join_path
+        self.env.filters["quote_shell"] = self._quote_shell
+        self.env.filters["escape_shell"] = self._escape_shell
+        self.env.filters["join_path"] = self._join_path
 
     @staticmethod
     def _quote_shell(value: str) -> str:
@@ -92,7 +96,7 @@ class TemplateEngine:
     def _escape_shell(value: str) -> str:
         """转义 Shell 特殊字符"""
         # 简单转义，实际应用中可能需要更复杂的逻辑
-        return value.replace('"', '\\"').replace('$', '\\$').replace('`', '\\`')
+        return value.replace('"', '\\"').replace("$", "\\$").replace("`", "\\`")
 
     @staticmethod
     def _join_path(*parts: str) -> str:
@@ -122,9 +126,9 @@ class TemplateEngine:
         source_dir: Path,
         cache_dir: Path,
         plugins: Dict[str, Dict],
-        language: str = 'zh',
+        language: str = "zh",
         show_examples: bool = True,
-        **extra_context
+        **extra_context,
     ) -> str:
         """
         渲染 env.sh 脚本
@@ -142,38 +146,38 @@ class TemplateEngine:
         """
         # 构建基础上下文
         context = {
-            'timestamp': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'source_dir': str(source_dir),
-            'gs_root': str(source_dir.resolve()),
-            'cache_dir': str(cache_dir.resolve()),
-            'language': language,
-            'show_examples': show_examples,
-            'version': self._get_version(),
-            'platform': platform.system().lower(),
-            'prompt_theme': 'bitstream',  # 默认主题
-            'config_exports': {},
-            'aliases': []
+            "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "source_dir": str(source_dir),
+            "gs_root": str(source_dir.resolve()),
+            "cache_dir": str(cache_dir.resolve()),
+            "language": language,
+            "show_examples": show_examples,
+            "version": self._get_version(),
+            "platform": platform.system().lower(),
+            "prompt_theme": "bitstream",  # 默认主题
+            "config_exports": {},
+            "aliases": [],
         }
 
         # 处理配置导出
-        context['config_exports'] = self._extract_config_exports(source_dir)
+        context["config_exports"] = self._extract_config_exports(source_dir)
 
         # 处理 alias 插件
-        context['aliases'] = self._extract_aliases(plugins)
+        context["aliases"] = self._extract_aliases(plugins)
 
         # 合并额外上下文
         context.update(extra_context)
 
-        return self.render_template('env.sh.j2', context)
+        return self.render_template("env.sh.j2", context)
 
     def render_env_fish(
         self,
         source_dir: Path,
         cache_dir: Path,
         plugins: Dict[str, Dict],
-        language: str = 'zh',
+        language: str = "zh",
         show_examples: bool = True,
-        **extra_context
+        **extra_context,
     ) -> str:
         """
         渲染 env.fish 脚本
@@ -191,29 +195,30 @@ class TemplateEngine:
         """
         # 构建基础上下文
         context = {
-            'timestamp': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'source_dir': str(source_dir),
-            'gs_root': str(source_dir.resolve()),
-            'cache_dir': str(cache_dir.resolve()) + '/cache',  # Fish needs /cache suffix
-            'language': language,
-            'show_examples': show_examples,
-            'version': self._get_version(),
-            'platform': platform.system().lower(),
-            'prompt_theme': 'bitstream',  # 默认主题
-            'config_exports': {},
-            'aliases': []
+            "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "source_dir": str(source_dir),
+            "gs_root": str(source_dir.resolve()),
+            "cache_dir": str(cache_dir.resolve())
+            + "/cache",  # Fish needs /cache suffix
+            "language": language,
+            "show_examples": show_examples,
+            "version": self._get_version(),
+            "platform": platform.system().lower(),
+            "prompt_theme": "bitstream",  # 默认主题
+            "config_exports": {},
+            "aliases": [],
         }
 
         # 处理配置导出
-        context['config_exports'] = self._extract_config_exports(source_dir)
+        context["config_exports"] = self._extract_config_exports(source_dir)
 
         # 处理 Fish-specific alias 插件
-        context['aliases'] = self._extract_fish_aliases(plugins)
+        context["aliases"] = self._extract_fish_aliases(plugins)
 
         # 合并额外上下文
         context.update(extra_context)
 
-        return self.render_template('env.fish.j2', context)
+        return self.render_template("env.fish.j2", context)
 
     def _get_version(self) -> str:
         """获取项目版本"""
@@ -228,6 +233,7 @@ class TemplateEngine:
         # 如果 VERSION 文件不存在，尝试从系统配置加载
         try:
             from .system_config_loader import get_system_config
+
             return get_system_config().project.version
         except Exception:
             return "unknown"
@@ -248,7 +254,7 @@ class TemplateEngine:
 
             # 过滤掉复杂类型（dict/list）和特殊键
             exports = {}
-            skip_keys = {'system_plugins', 'custom_plugins', 'prompt_theme'}
+            skip_keys = {"system_plugins", "custom_plugins", "prompt_theme"}
 
             for key, value in config.items():
                 if key in skip_keys or isinstance(value, (dict, list)):
@@ -272,16 +278,16 @@ class TemplateEngine:
         aliases = []
 
         for plugin_name, plugin_info in plugins.items():
-            alias_info = plugin_info.get('alias')
+            alias_info = plugin_info.get("alias")
             if not alias_info or not isinstance(alias_info, dict):
                 continue
 
             # 提取 sources
-            sources = alias_info.get('sources', [])
+            sources = alias_info.get("sources", [])
             if isinstance(sources, dict):
                 # 新格式：dict
-                bash_sources = sources.get('bash', [])
-                zsh_sources = sources.get('zsh', [])
+                bash_sources = sources.get("bash", [])
+                zsh_sources = sources.get("zsh", [])
                 sources = list(dict.fromkeys(bash_sources + zsh_sources))
             elif not isinstance(sources, list):
                 sources = []
@@ -290,32 +296,34 @@ class TemplateEngine:
                 continue
 
             # 构建 alias 信息
-            shells = alias_info.get('shells', ['bash', 'zsh'])
+            shells = alias_info.get("shells", ["bash", "zsh"])
             shell_conditions = []
-            if 'bash' in shells:
+            if "bash" in shells:
                 shell_conditions.append('[ -n "$BASH_VERSION" ]')
-            if 'zsh' in shells:
+            if "zsh" in shells:
                 shell_conditions.append('[ -n "$ZSH_VERSION" ]')
 
             alias_data = {
-                'name': plugin_name,
-                'interactive_only': alias_info.get('interactive_only', True),
-                'priority': alias_info.get('priority', 100),
-                'shells': shells,
-                'shell_check': ' || '.join(shell_conditions) if shell_conditions else None,
-                'sources': [
+                "name": plugin_name,
+                "interactive_only": alias_info.get("interactive_only", True),
+                "priority": alias_info.get("priority", 100),
+                "shells": shells,
+                "shell_check": (
+                    " || ".join(shell_conditions) if shell_conditions else None
+                ),
+                "sources": [
                     {
-                        'path': source,
-                        'full_path': f'$GS_ROOT/plugins/{plugin_name}/{source}'
+                        "path": source,
+                        "full_path": f"$GS_ROOT/plugins/{plugin_name}/{source}",
                     }
                     for source in sources
-                ]
+                ],
             }
 
             aliases.append(alias_data)
 
         # 按优先级排序
-        aliases.sort(key=lambda x: (x['priority'], x['name']))
+        aliases.sort(key=lambda x: (x["priority"], x["name"]))
 
         return aliases
 
@@ -332,22 +340,24 @@ class TemplateEngine:
         aliases = []
 
         for plugin_name, plugin_info in plugins.items():
-            alias_info = plugin_info.get('alias')
+            alias_info = plugin_info.get("alias")
             if not alias_info or not isinstance(alias_info, dict):
                 continue
 
             # Check if fish is supported
-            shells = alias_info.get('shells', [])
-            if 'fish' not in shells:
+            shells = alias_info.get("shells", [])
+            if "fish" not in shells:
                 continue
 
             # 提取 Fish sources
-            sources = alias_info.get('sources')
+            sources = alias_info.get("sources")
             if isinstance(sources, dict):
-                fish_sources = sources.get('fish', [])
+                fish_sources = sources.get("fish", [])
             elif isinstance(sources, list):
                 # 尝试转换 .sh 到 .fish
-                fish_sources = [s.replace('.sh', '.fish') for s in sources if '.sh' in s]
+                fish_sources = [
+                    s.replace(".sh", ".fish") for s in sources if ".sh" in s
+                ]
             else:
                 fish_sources = []
 
@@ -356,23 +366,23 @@ class TemplateEngine:
 
             # 构建 Fish alias 信息
             alias_data = {
-                'name': plugin_name,
-                'interactive_only': alias_info.get('interactive_only', True),
-                'priority': alias_info.get('priority', 100),
-                'sources': [
+                "name": plugin_name,
+                "interactive_only": alias_info.get("interactive_only", True),
+                "priority": alias_info.get("priority", 100),
+                "sources": [
                     {
-                        'path': source,
-                        'fish_path': f'"$GS_ROOT/plugins/{plugin_name}/{source}"',
-                        'sh_path': f'"$GS_ROOT/plugins/{plugin_name}/{source.replace(".fish", ".sh")}"'
+                        "path": source,
+                        "fish_path": f'"$GS_ROOT/plugins/{plugin_name}/{source}"',
+                        "sh_path": f'"$GS_ROOT/plugins/{plugin_name}/{source.replace(".fish", ".sh")}"',
                     }
                     for source in fish_sources
-                ]
+                ],
             }
 
             aliases.append(alias_data)
 
         # 按优先级排序
-        aliases.sort(key=lambda x: (x['priority'], x['name']))
+        aliases.sort(key=lambda x: (x["priority"], x["name"]))
 
         return aliases
 

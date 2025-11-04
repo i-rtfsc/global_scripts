@@ -13,6 +13,7 @@ from functools import wraps
 @dataclass
 class ParserMetadata:
     """解析器元数据"""
+
     name: str
     version: str = "1.0.0"
     supported_extensions: List[str] = field(default_factory=list)
@@ -25,7 +26,7 @@ def parser_metadata(
     version: str = "1.0.0",
     supported_extensions: Optional[List[str]] = None,
     priority: int = 100,
-    description: str = ""
+    description: str = "",
 ) -> Callable:
     """
     解析器元数据装饰器
@@ -41,21 +42,24 @@ def parser_metadata(
         class YAMLParser(FunctionParser):
             pass
     """
+
     def decorator(cls: Type[FunctionParser]) -> Type[FunctionParser]:
         cls._metadata = ParserMetadata(
             name=name,
             version=version,
             supported_extensions=supported_extensions or [],
             priority=priority,
-            description=description
+            description=description,
         )
         return cls
+
     return decorator
 
 
 @dataclass
 class FunctionInfo:
     """函数信息数据类"""
+
     name: str
     description: str
     command: str
@@ -89,10 +93,12 @@ class FunctionParser(ABC):
     @property
     def metadata(self) -> Optional[ParserMetadata]:
         """获取解析器元数据"""
-        return getattr(self.__class__, '_metadata', None)
+        return getattr(self.__class__, "_metadata", None)
 
     @abstractmethod
-    async def parse(self, file: Path, plugin_name: str, subplugin_name: str = "") -> List[FunctionInfo]:
+    async def parse(
+        self, file: Path, plugin_name: str, subplugin_name: str = ""
+    ) -> List[FunctionInfo]:
         """
         解析文件中的函数
 
@@ -123,6 +129,7 @@ class FunctionParser(ABC):
 @dataclass
 class _RegisteredParser:
     """内部使用的解析器注册信息"""
+
     name: str
     parser: FunctionParser
     priority: int
@@ -148,7 +155,7 @@ class FunctionParserRegistry:
         self,
         parser: FunctionParser,
         name: Optional[str] = None,
-        priority: Optional[int] = None
+        priority: Optional[int] = None,
     ) -> None:
         """
         注册解析器
@@ -176,10 +183,7 @@ class FunctionParserRegistry:
 
         # 注册解析器
         self._parsers[name] = _RegisteredParser(
-            name=name,
-            parser=parser,
-            priority=priority,
-            enabled=True
+            name=name, parser=parser, priority=priority, enabled=True
         )
 
     def register_by_name(self, name: str, parser_class: Type[FunctionParser]) -> None:
@@ -204,7 +208,9 @@ class FunctionParserRegistry:
             del self._parsers[name]
 
         # 清理相关别名
-        aliases_to_remove = [alias for alias, target in self._aliases.items() if target == name]
+        aliases_to_remove = [
+            alias for alias, target in self._aliases.items() if target == name
+        ]
         for alias in aliases_to_remove:
             del self._aliases[alias]
 
@@ -250,19 +256,21 @@ class FunctionParserRegistry:
         for name, registered in self._parsers.items():
             metadata = registered.parser.metadata
             info = {
-                'name': name,
-                'priority': registered.priority,
-                'enabled': registered.enabled,
-                'class': registered.parser.__class__.__name__
+                "name": name,
+                "priority": registered.priority,
+                "enabled": registered.enabled,
+                "class": registered.parser.__class__.__name__,
             }
             if metadata:
-                info.update({
-                    'version': metadata.version,
-                    'supported_extensions': metadata.supported_extensions,
-                    'description': metadata.description
-                })
+                info.update(
+                    {
+                        "version": metadata.version,
+                        "supported_extensions": metadata.supported_extensions,
+                        "description": metadata.description,
+                    }
+                )
             result.append(info)
-        return sorted(result, key=lambda x: x['priority'])
+        return sorted(result, key=lambda x: x["priority"])
 
     def get_parser_info(self, name: str) -> Optional[Dict[str, Any]]:
         """
@@ -284,19 +292,21 @@ class FunctionParserRegistry:
         metadata = registered.parser.metadata
 
         info = {
-            'name': resolved_name,
-            'priority': registered.priority,
-            'enabled': registered.enabled,
-            'class': registered.parser.__class__.__name__,
-            'instance': registered.parser
+            "name": resolved_name,
+            "priority": registered.priority,
+            "enabled": registered.enabled,
+            "class": registered.parser.__class__.__name__,
+            "instance": registered.parser,
         }
 
         if metadata:
-            info.update({
-                'version': metadata.version,
-                'supported_extensions': metadata.supported_extensions,
-                'description': metadata.description
-            })
+            info.update(
+                {
+                    "version": metadata.version,
+                    "supported_extensions": metadata.supported_extensions,
+                    "description": metadata.description,
+                }
+            )
 
         return info
 
@@ -334,10 +344,7 @@ class FunctionParserRegistry:
             ValueError: 找不到合适的解析器
         """
         # 按优先级排序（数字越小优先级越高）
-        sorted_parsers = sorted(
-            self._parsers.values(),
-            key=lambda x: x.priority
-        )
+        sorted_parsers = sorted(self._parsers.values(), key=lambda x: x.priority)
 
         # 遍历所有启用的解析器
         for registered in sorted_parsers:
@@ -346,7 +353,9 @@ class FunctionParserRegistry:
 
         raise ValueError(f"No parser found for file: {file}")
 
-    def parse_all(self, files: List[Path], plugin_name: str, subplugin_name: str = "") -> List[FunctionInfo]:
+    def parse_all(
+        self, files: List[Path], plugin_name: str, subplugin_name: str = ""
+    ) -> List[FunctionInfo]:
         """
         解析多个文件
 
@@ -381,21 +390,25 @@ class FunctionParserRegistry:
 
         # 运行异步解析
         try:
+            loop = asyncio.get_running_loop()
+            # Already in async context - we need nest_asyncio
+            import nest_asyncio
+
+            nest_asyncio.apply()
             return asyncio.run(parse_files())
         except RuntimeError:
-            # 如果已经在事件循环中，使用当前循环
-            loop = asyncio.get_event_loop()
-            return loop.run_until_complete(parse_files())
+            # No event loop running, create one
+            return asyncio.run(parse_files())
 
 
 # Export discovery module
 from .discovery import ParserDiscovery
 
 __all__ = [
-    'FunctionInfo',
-    'FunctionParser',
-    'FunctionParserRegistry',
-    'ParserMetadata',
-    'parser_metadata',
-    'ParserDiscovery',
+    "FunctionInfo",
+    "FunctionParser",
+    "FunctionParserRegistry",
+    "ParserMetadata",
+    "parser_metadata",
+    "ParserDiscovery",
 ]

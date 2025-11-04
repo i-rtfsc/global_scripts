@@ -6,7 +6,7 @@ Handles plugin command execution
 import asyncio
 import shlex
 from pathlib import Path
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 from ...models import CommandResult
 from ...domain.interfaces import IPluginLoader, IProcessExecutor
 from ...core.logger import get_logger
@@ -35,7 +35,7 @@ class PluginExecutor:
         plugin_loader: IPluginLoader,
         process_executor: IProcessExecutor,
         max_concurrent: int = 10,
-        default_timeout: int = 30
+        default_timeout: int = 30,
     ):
         """
         Initialize plugin executor
@@ -69,9 +69,7 @@ class PluginExecutor:
     def _notify(self, event: PluginEvent, plugin_name: str, **kwargs) -> None:
         """Notify observers of events"""
         event_data = PluginEventData(
-            event=event,
-            plugin_name=plugin_name,
-            metadata=kwargs
+            event=event, plugin_name=plugin_name, metadata=kwargs
         )
         for observer in self._observers:
             try:
@@ -108,7 +106,7 @@ class PluginExecutor:
         plugin_name: str,
         function_name: str,
         args: List[str] = None,
-        timeout: Optional[int] = None
+        timeout: Optional[int] = None,
     ) -> CommandResult:
         """
         Execute a plugin function
@@ -125,10 +123,7 @@ class PluginExecutor:
         # Acquire semaphore for concurrent execution limiting
         async with self._semaphore:
             return await self._execute_plugin_function_internal(
-                plugin_name,
-                function_name,
-                args,
-                timeout
+                plugin_name, function_name, args, timeout
             )
 
     async def _execute_plugin_function_internal(
@@ -136,7 +131,7 @@ class PluginExecutor:
         plugin_name: str,
         function_name: str,
         args: List[str] = None,
-        timeout: Optional[int] = None
+        timeout: Optional[int] = None,
     ) -> CommandResult:
         """
         Internal execution method (runs under semaphore)
@@ -152,6 +147,7 @@ class PluginExecutor:
         """
         cid = correlation_id()
         from time import monotonic
+
         start_ts = monotonic()
 
         if args is None:
@@ -169,7 +165,9 @@ class PluginExecutor:
         )
 
         # Notify EXECUTING event
-        self._notify(PluginEvent.EXECUTING, plugin_name, function=function_name, args=args)
+        self._notify(
+            PluginEvent.EXECUTING, plugin_name, function=function_name, args=args
+        )
 
         try:
             # Get loaded plugins
@@ -177,37 +175,49 @@ class PluginExecutor:
 
             if plugin_name not in loaded_plugins:
                 took = duration(start_ts)
-                logger.warning(f"cid={cid} exec plugin_not_found plugin={plugin_name} took_ms={took}")
+                logger.warning(
+                    f"cid={cid} exec plugin_not_found plugin={plugin_name} took_ms={took}"
+                )
                 result = CommandResult(
                     success=False,
                     error=f"Plugin '{plugin_name}' not found or not loaded",
-                    exit_code=1
+                    exit_code=1,
                 )
-                self._notify(PluginEvent.EXECUTED, plugin_name, success=False, error=result.error)
+                self._notify(
+                    PluginEvent.EXECUTED, plugin_name, success=False, error=result.error
+                )
                 return result
 
             plugin = loaded_plugins[plugin_name]
 
             # Check if plugin is enabled (handle both dict and object types)
-            if hasattr(plugin, 'enabled'):
+            if hasattr(plugin, "enabled"):
                 plugin_enabled = plugin.enabled
             elif isinstance(plugin, dict):
-                plugin_enabled = plugin.get('enabled', True)
+                plugin_enabled = plugin.get("enabled", True)
             else:
                 plugin_enabled = True  # Default to True for backward compatibility
 
             if not plugin_enabled:
                 took = duration(start_ts)
-                logger.warning(f"cid={cid} exec plugin_disabled plugin={plugin_name} took_ms={took}")
+                logger.warning(
+                    f"cid={cid} exec plugin_disabled plugin={plugin_name} took_ms={took}"
+                )
                 result = CommandResult(
                     success=False,
                     error=f"Plugin '{plugin_name}' is disabled. Enable it with: gs plugin enable {plugin_name}",
-                    exit_code=1
+                    exit_code=1,
                 )
-                self._notify(PluginEvent.EXECUTED, plugin_name, success=False, error=result.error)
+                self._notify(
+                    PluginEvent.EXECUTED, plugin_name, success=False, error=result.error
+                )
                 return result
 
-            functions = plugin.get('functions', {}) if isinstance(plugin, dict) else getattr(plugin, 'functions', {})
+            functions = (
+                plugin.get("functions", {})
+                if isinstance(plugin, dict)
+                else getattr(plugin, "functions", {})
+            )
 
             if function_name not in functions:
                 took = duration(start_ts)
@@ -217,21 +227,29 @@ class PluginExecutor:
                 result = CommandResult(
                     success=False,
                     error=f"Function '{function_name}' not found in plugin '{plugin_name}'",
-                    exit_code=1
+                    exit_code=1,
                 )
-                self._notify(PluginEvent.EXECUTED, plugin_name, success=False, error=result.error)
+                self._notify(
+                    PluginEvent.EXECUTED, plugin_name, success=False, error=result.error
+                )
                 return result
 
             function_info = functions[function_name]
-            function_type = function_info.get('type', 'unknown')
+            function_type = function_info.get("type", "unknown")
 
             # Route to appropriate execution method
-            if function_type == 'config':
-                result = await self._execute_config_function(function_info, sanitized_args, timeout)
-            elif function_type in ('script', 'shell', 'shell_annotated'):
-                result = await self._execute_script_function(function_info, sanitized_args, timeout)
-            elif function_type in ('python', 'python_decorated'):
-                result = await self._execute_python_function(function_info, args)  # Python functions get unsanitized args
+            if function_type == "config":
+                result = await self._execute_config_function(
+                    function_info, sanitized_args, timeout
+                )
+            elif function_type in ("script", "shell", "shell_annotated"):
+                result = await self._execute_script_function(
+                    function_info, sanitized_args, timeout
+                )
+            elif function_type in ("python", "python_decorated"):
+                result = await self._execute_python_function(
+                    function_info, args
+                )  # Python functions get unsanitized args
             else:
                 took = duration(start_ts)
                 logger.error(
@@ -240,7 +258,7 @@ class PluginExecutor:
                 result = CommandResult(
                     success=False,
                     error=f"Unknown function type: {function_type}",
-                    exit_code=1
+                    exit_code=1,
                 )
 
             took = duration(start_ts)
@@ -259,7 +277,7 @@ class PluginExecutor:
                 plugin_name,
                 success=result.success,
                 exit_code=result.exit_code,
-                error=result.error if not result.success else None
+                error=result.error if not result.success else None,
             )
 
             return result
@@ -270,18 +288,13 @@ class PluginExecutor:
                 f"cid={cid} exec exception plugin={plugin_name} function={function_name} took_ms={took} error={type(e).__name__}: {e}"
             )
             result = CommandResult(
-                success=False,
-                error=f"Execution failed: {str(e)}",
-                exit_code=1
+                success=False, error=f"Execution failed: {str(e)}", exit_code=1
             )
             self._notify(PluginEvent.EXECUTED, plugin_name, success=False, error=str(e))
             return result
 
     async def _execute_config_function(
-        self,
-        function_info: dict,
-        args: List[str],
-        timeout: int = 30
+        self, function_info: dict, args: List[str], timeout: int = 30
     ) -> CommandResult:
         """
         Execute config-based command
@@ -293,17 +306,17 @@ class PluginExecutor:
             args: Sanitized arguments
             timeout: Timeout in seconds
         """
-        command_template = function_info.get('command', '')
+        command_template = function_info.get("command", "")
         if not command_template:
             return CommandResult(
                 success=False,
                 error="Config function missing 'command' field",
-                exit_code=1
+                exit_code=1,
             )
 
         # Replace {args} placeholder with actual arguments (already sanitized)
-        if '{args}' in command_template:
-            command_str = command_template.replace('{args}', ' '.join(args))
+        if "{args}" in command_template:
+            command_str = command_template.replace("{args}", " ".join(args))
         else:
             # Append args if no placeholder
             command_str = f"{command_template} {' '.join(args)}".strip()
@@ -313,18 +326,15 @@ class PluginExecutor:
             logger.warning(f"Command validation failed: {command_str}")
             return CommandResult(
                 success=False,
-                error=f"Command rejected by security policy: contains forbidden patterns or exceeds length limit",
-                exit_code=1
+                error="Command rejected by security policy: contains forbidden patterns or exceeds length limit",
+                exit_code=1,
             )
 
         # Execute as shell command with timeout
         return await self._executor.execute_shell(command_str, timeout=timeout)
 
     async def _execute_script_function(
-        self,
-        function_info: dict,
-        args: List[str],
-        timeout: int = 30
+        self, function_info: dict, args: List[str], timeout: int = 30
     ) -> CommandResult:
         """
         Execute shell script command
@@ -336,14 +346,14 @@ class PluginExecutor:
             args: Sanitized arguments
             timeout: Timeout in seconds
         """
-        command_template = function_info.get('command', '')
-        shell_file = function_info.get('shell_file')
+        command_template = function_info.get("command", "")
+        shell_file = function_info.get("shell_file")
 
         if not command_template:
             return CommandResult(
                 success=False,
                 error="Script function missing 'command' field",
-                exit_code=1
+                exit_code=1,
             )
 
         # For shell functions, we need to source the file and call the function
@@ -366,16 +376,14 @@ class PluginExecutor:
             logger.warning(f"Command validation failed: {command_str}")
             return CommandResult(
                 success=False,
-                error=f"Command rejected by security policy: contains forbidden patterns or exceeds length limit",
-                exit_code=1
+                error="Command rejected by security policy: contains forbidden patterns or exceeds length limit",
+                exit_code=1,
             )
 
         return await self._executor.execute_shell(command_str, timeout=timeout)
 
     async def _execute_python_function(
-        self,
-        function_info: dict,
-        args: List[str]
+        self, function_info: dict, args: List[str]
     ) -> CommandResult:
         """
         Execute Python function command - with full decorated function support
@@ -385,13 +393,13 @@ class PluginExecutor:
         2. Methods in BasePlugin subclasses
         3. Standalone Python scripts
         """
-        python_file = function_info.get('python_file')
+        python_file = function_info.get("python_file")
 
         if not python_file:
             return CommandResult(
                 success=False,
                 error="Python function missing 'python_file' field",
-                exit_code=1
+                exit_code=1,
             )
 
         python_file = Path(python_file)
@@ -400,7 +408,7 @@ class PluginExecutor:
             return CommandResult(
                 success=False,
                 error=f"Python file not found: {python_file}",
-                exit_code=1
+                exit_code=1,
             )
 
         try:
@@ -415,11 +423,11 @@ class PluginExecutor:
             # Find project root containing src/gscripts
             project_root = None
             for parent in [resolved_path.parent, *resolved_path.parents]:
-                if (parent / 'src' / 'gscripts').exists():
+                if (parent / "src" / "gscripts").exists():
                     project_root = parent
                     break
-            if project_root and str(project_root / 'src') not in sys.path:
-                sys.path.insert(0, str(project_root / 'src'))
+            if project_root and str(project_root / "src") not in sys.path:
+                sys.path.insert(0, str(project_root / "src"))
 
             # Dynamic module import
             module_name = f"plugin_{resolved_path.stem}_{resolved_path.parent.name}"
@@ -428,31 +436,44 @@ class PluginExecutor:
             sys.modules[module_name] = module
             spec.loader.exec_module(module)
 
-            target_name = function_info.get('name', '')
+            target_name = function_info.get("name", "")
 
             # 1) Look for module-level @plugin_function decorated functions
             for attr_name in dir(module):
                 attr = getattr(module, attr_name)
-                if callable(attr) and hasattr(attr, '_function_info'):
-                    info = getattr(attr, '_function_info', None)
-                    if info and getattr(info, 'name', None) == target_name:
+                if callable(attr) and hasattr(attr, "_function_info"):
+                    info = getattr(attr, "_function_info", None)
+                    if info and getattr(info, "name", None) == target_name:
                         # Call decorated function
                         try:
                             sig = inspect.signature(attr)
                             if len(sig.parameters) == 0:
-                                ret = await attr() if asyncio.iscoroutinefunction(attr) else attr()
+                                ret = (
+                                    await attr()
+                                    if asyncio.iscoroutinefunction(attr)
+                                    else attr()
+                                )
                             else:
-                                ret = await attr(args) if asyncio.iscoroutinefunction(attr) else attr(args)
+                                ret = (
+                                    await attr(args)
+                                    if asyncio.iscoroutinefunction(attr)
+                                    else attr(args)
+                                )
 
                             # Normalize return value
                             from ...models import CommandResult as CR
+
                             if isinstance(ret, CR):
                                 return ret
                             if ret is None:
                                 return CR(True)
                             return CR(True, output=str(ret))
                         except Exception as e:
-                            return CommandResult(False, error=f"Python function error: {str(e)}", exit_code=1)
+                            return CommandResult(
+                                False,
+                                error=f"Python function error: {str(e)}",
+                                exit_code=1,
+                            )
 
             # 2) Look for BasePlugin subclasses
             try:
@@ -465,12 +486,17 @@ class PluginExecutor:
                 for attr_name in dir(module):
                     attr = getattr(module, attr_name)
                     if isinstance(attr, type):
-                        if issubclass(attr, BasePlugin) and attr is not BasePlugin and getattr(attr, '__module__', '') == module.__name__:
+                        if (
+                            issubclass(attr, BasePlugin)
+                            and attr is not BasePlugin
+                            and getattr(attr, "__module__", "") == module.__name__
+                        ):
                             class_candidates.append(attr)
 
             # Prioritize classes with @subplugin decorator
             def class_priority(cls):
-                return 0 if getattr(cls, '_is_subplugin_class', False) else 1
+                return 0 if getattr(cls, "_is_subplugin_class", False) else 1
+
             class_candidates.sort(key=class_priority)
 
             # 3) Instantiate and find method
@@ -483,8 +509,8 @@ class PluginExecutor:
 
                 # If loader provided method name, use it
                 method = None
-                if 'method' in function_info:
-                    candidate_name = function_info['method']
+                if "method" in function_info:
+                    candidate_name = function_info["method"]
                     if hasattr(plugin_instance, candidate_name):
                         method = getattr(plugin_instance, candidate_name)
 
@@ -493,10 +519,10 @@ class PluginExecutor:
                     for name in dir(plugin_instance):
                         member = getattr(plugin_instance, name)
                         if callable(member):
-                            info = getattr(member, '_function_info', None)
-                            if info is None and hasattr(member, '__func__'):
-                                info = getattr(member.__func__, '_function_info', None)
-                            if info and getattr(info, 'name', None) == target_name:
+                            info = getattr(member, "_function_info", None)
+                            if info is None and hasattr(member, "__func__"):
+                                info = getattr(member.__func__, "_function_info", None)
+                            if info and getattr(info, "name", None) == target_name:
                                 method = member
                                 break
 
@@ -506,7 +532,7 @@ class PluginExecutor:
                         target_name,
                         f"{target_name}_command",
                         f"execute_{target_name}",
-                        f"handle_{target_name}"
+                        f"handle_{target_name}",
                     ]:
                         if hasattr(plugin_instance, candidate):
                             method = getattr(plugin_instance, candidate)
@@ -518,34 +544,43 @@ class PluginExecutor:
                 # Call method
                 try:
                     sig = inspect.signature(method)
-                    params = [p for p in sig.parameters.values() if p.name != 'self']
+                    params = [p for p in sig.parameters.values() if p.name != "self"]
                     if len(params) == 0:
-                        ret = await method() if asyncio.iscoroutinefunction(method) else method()
+                        ret = (
+                            await method()
+                            if asyncio.iscoroutinefunction(method)
+                            else method()
+                        )
                     else:
-                        ret = await method(args) if asyncio.iscoroutinefunction(method) else method(args)
+                        ret = (
+                            await method(args)
+                            if asyncio.iscoroutinefunction(method)
+                            else method(args)
+                        )
 
                     from ...models import CommandResult as CR
+
                     if isinstance(ret, CR):
                         return ret
                     if ret is None:
                         return CR(True)
                     return CR(True, output=str(ret))
                 except Exception as e:
-                    return CommandResult(False, error=f"Python method error: {str(e)}", exit_code=1)
+                    return CommandResult(
+                        False, error=f"Python method error: {str(e)}", exit_code=1
+                    )
 
             # No entry point found
             return CommandResult(
                 success=False,
                 error=f"No callable found for '{target_name}' in {python_file}",
-                exit_code=1
+                exit_code=1,
             )
 
         except Exception as e:
             return CommandResult(
-                success=False,
-                error=f"Python execution error: {str(e)}",
-                exit_code=1
+                success=False, error=f"Python execution error: {str(e)}", exit_code=1
             )
 
 
-__all__ = ['PluginExecutor']
+__all__ = ["PluginExecutor"]

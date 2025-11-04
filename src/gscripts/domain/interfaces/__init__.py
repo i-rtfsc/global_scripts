@@ -14,11 +14,11 @@ from .services import (
 )
 
 __all__ = [
-    'IPluginRepository',
-    'IConfigRepository',
-    'IPluginLoader',
-    'IProcessExecutor',
-    'ICommandExecutor',
-    'IFileSystem',
-    'IEnvironment',
+    "IPluginRepository",
+    "IConfigRepository",
+    "IPluginLoader",
+    "IProcessExecutor",
+    "ICommandExecutor",
+    "IFileSystem",
+    "IEnvironment",
 ]

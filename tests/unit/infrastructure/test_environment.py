@@ -2,7 +2,6 @@
 环境变量抽象层的单元测试
 """
 
-import pytest
 
 from src.gscripts.infrastructure.filesystem import (
     SystemEnvironment,
@@ -83,6 +82,7 @@ class TestSystemEnvironment:
         env.set("NEW_VAR", "new_value")
 
         import os
+
         assert os.environ.get("NEW_VAR") == "new_value"
 
     def test_all_returns_dict(self):

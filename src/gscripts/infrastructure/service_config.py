@@ -24,7 +24,7 @@ def configure_services(
     use_mocks: bool = False,
     plugins_dir: Path = None,
     config_path: Path = None,
-    router_cache_path: Path = None
+    router_cache_path: Path = None,
 ) -> None:
     """配置服务容器
 
@@ -38,15 +38,18 @@ def configure_services(
     # Set default paths if not provided
     if plugins_dir is None:
         from ..core.constants import GlobalConstants
+
         plugins_dir = GlobalConstants.get_plugins_dir()
 
     if config_path is None:
         from ..core.constants import GlobalConstants
+
         config_path = GlobalConstants.get_main_config_path()
 
     if router_cache_path is None:
         from ..core.constants import GlobalConstants
-        router_cache_path = GlobalConstants.gs_home / 'cache' / 'router.json'
+
+        router_cache_path = GlobalConstants.gs_home / "cache" / "router.json"
 
     if use_mocks:
         # 测试环境：使用模拟实现
@@ -55,96 +58,65 @@ def configure_services(
         filesystem = InMemoryFileSystem()
         environment = MockEnvironment()
 
-        container.register(
-            IFileSystem,
-            lambda: filesystem,
-            singleton=True
-        )
-        container.register(
-            IEnvironment,
-            lambda: environment,
-            singleton=True
-        )
+        container.register(IFileSystem, lambda: filesystem, singleton=True)
+        container.register(IEnvironment, lambda: environment, singleton=True)
     else:
         # 生产环境：使用真实实现
         filesystem = RealFileSystem()
         environment = SystemEnvironment()
 
-        container.register(
-            IFileSystem,
-            lambda: filesystem,
-            singleton=True
-        )
-        container.register(
-            IEnvironment,
-            lambda: environment,
-            singleton=True
-        )
+        container.register(IFileSystem, lambda: filesystem, singleton=True)
+        container.register(IEnvironment, lambda: environment, singleton=True)
 
     # ProcessExecutor（生产和测试共用）
-    container.register(
-        IProcessExecutor,
-        lambda: ProcessExecutor(),
-        singleton=True
-    )
+    container.register(IProcessExecutor, lambda: ProcessExecutor(), singleton=True)
 
     # Repositories
     container.register(
         IPluginRepository,
         lambda: PluginRepository(
-            container.resolve(IFileSystem),
-            plugins_dir,
-            router_cache_path
+            container.resolve(IFileSystem), plugins_dir, router_cache_path
         ),
-        singleton=True
+        singleton=True,
     )
 
     container.register(
         IConfigRepository,
-        lambda: ConfigRepository(
-            container.resolve(IFileSystem),
-            config_path
-        ),
-        singleton=True
+        lambda: ConfigRepository(container.resolve(IFileSystem), config_path),
+        singleton=True,
     )
 
     # Plugin Loader
     container.register(
         IPluginLoader,
-        lambda: PluginLoader(
-            container.resolve(IPluginRepository),
-            plugins_dir
-        ),
-        singleton=True
+        lambda: PluginLoader(container.resolve(IPluginRepository), plugins_dir),
+        singleton=True,
     )
 
     # Application Services
     container.register(
         ConfigService,
         lambda: ConfigService(
-            container.resolve(IConfigRepository),
-            container.resolve(IEnvironment)
+            container.resolve(IConfigRepository), container.resolve(IEnvironment)
         ),
-        singleton=True
+        singleton=True,
     )
 
     container.register(
         PluginService,
         lambda: PluginService(
-            container.resolve(IPluginLoader),
-            container.resolve(IPluginRepository)
+            container.resolve(IPluginLoader), container.resolve(IPluginRepository)
         ),
-        singleton=True
+        singleton=True,
     )
 
     container.register(
         PluginExecutor,
         lambda: PluginExecutor(
-            container.resolve(IPluginLoader),
-            container.resolve(IProcessExecutor)
+            container.resolve(IPluginLoader), container.resolve(IProcessExecutor)
         ),
-        singleton=True
+        singleton=True,
     )
 
 
-__all__ = ['configure_services']
+__all__ = ["configure_services"]
