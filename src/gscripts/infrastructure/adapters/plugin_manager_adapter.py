@@ -113,6 +113,46 @@ class PluginManagerAdapter:
             args
         )
 
+    async def list_all_plugins(self):
+        """
+        List all plugins (delegates to wrapped PluginService)
+
+        Returns:
+            List: All plugin metadata
+        """
+        logger.debug("list_all_plugins called via adapter")
+        return await self._service.list_all_plugins()
+
+    async def enable_plugin_async(self, plugin_name: str) -> CommandResult:
+        """
+        Enable a plugin (async version)
+
+        Args:
+            plugin_name: Name of plugin to enable
+
+        Returns:
+            CommandResult: Result of operation
+        """
+        logger.debug(f"enable_plugin_async called via adapter: {plugin_name}")
+        success = await self._service.enable_plugin(plugin_name)
+
+        if success:
+            # Regenerate router index and completions (like legacy system)
+            self._generate_router_index()
+            self._regenerate_completions()
+
+            return CommandResult(
+                success=True,
+                output=f"Plugin '{plugin_name}' enabled",
+                exit_code=0
+            )
+        else:
+            return CommandResult(
+                success=False,
+                error=f"Failed to enable plugin '{plugin_name}'",
+                exit_code=1
+            )
+
     def enable_plugin(self, plugin_name: str) -> CommandResult:
         """
         Enable a plugin (sync wrapper for async method)
@@ -125,26 +165,45 @@ class PluginManagerAdapter:
         """
         logger.debug(f"enable_plugin called via adapter: {plugin_name}")
 
-        # Run async method - use asyncio.run for sync context
+        # Check if we're in an async context
         try:
-            success = asyncio.run(self._service.enable_plugin(plugin_name))
-        except RuntimeError:
-            # Already in an event loop - this shouldn't happen in sync context
-            # but handle it gracefully
+            loop = asyncio.get_running_loop()
+            # We're in an event loop - can't use asyncio.run()
+            # Create a task and wait for it
             import nest_asyncio
             nest_asyncio.apply()
-            success = asyncio.run(self._service.enable_plugin(plugin_name))
+            return asyncio.run(self.enable_plugin_async(plugin_name))
+        except RuntimeError:
+            # No event loop running - safe to use asyncio.run()
+            return asyncio.run(self.enable_plugin_async(plugin_name))
+
+    async def disable_plugin_async(self, plugin_name: str) -> CommandResult:
+        """
+        Disable a plugin (async version)
+
+        Args:
+            plugin_name: Name of plugin to disable
+
+        Returns:
+            CommandResult: Result of operation
+        """
+        logger.debug(f"disable_plugin_async called via adapter: {plugin_name}")
+        success = await self._service.disable_plugin(plugin_name)
 
         if success:
+            # Regenerate router index and completions (like legacy system)
+            self._generate_router_index()
+            self._regenerate_completions()
+
             return CommandResult(
                 success=True,
-                output=f"Plugin '{plugin_name}' enabled",
+                output=f"Plugin '{plugin_name}' disabled",
                 exit_code=0
             )
         else:
             return CommandResult(
                 success=False,
-                error=f"Failed to enable plugin '{plugin_name}'",
+                error=f"Failed to disable plugin '{plugin_name}'",
                 exit_code=1
             )
 
@@ -160,26 +219,16 @@ class PluginManagerAdapter:
         """
         logger.debug(f"disable_plugin called via adapter: {plugin_name}")
 
-        # Run async method - use asyncio.run for sync context
+        # Check if we're in an async context
         try:
-            success = asyncio.run(self._service.disable_plugin(plugin_name))
-        except RuntimeError:
+            loop = asyncio.get_running_loop()
+            # We're in an event loop - can't use asyncio.run()
             import nest_asyncio
             nest_asyncio.apply()
-            success = asyncio.run(self._service.disable_plugin(plugin_name))
-
-        if success:
-            return CommandResult(
-                success=True,
-                output=f"Plugin '{plugin_name}' disabled",
-                exit_code=0
-            )
-        else:
-            return CommandResult(
-                success=False,
-                error=f"Failed to disable plugin '{plugin_name}'",
-                exit_code=1
-            )
+            return asyncio.run(self.disable_plugin_async(plugin_name))
+        except RuntimeError:
+            # No event loop running - safe to use asyncio.run()
+            return asyncio.run(self.disable_plugin_async(plugin_name))
 
     def is_plugin_enabled(self, plugin_name: str) -> bool:
         """
@@ -349,6 +398,27 @@ class PluginManagerAdapter:
         elif event_data.event == PluginEvent.ERROR:
             error_msg = event_data.metadata.get('error', 'Unknown error')
             self._service.notify_observers_error(event_data.plugin_name, error_msg)
+
+    def _generate_router_index(self):
+        """Regenerate router index for shell/json command routing"""
+        try:
+            from ...router.indexer import build_router_index, write_router_index
+
+            # Build router index from loaded plugins
+            router_index = build_router_index(self.plugins)
+            write_router_index(router_index)
+            logger.info("Router index regenerated successfully")
+        except Exception as e:
+            logger.error(f"Failed to regenerate router index: {e}")
+
+    def _regenerate_completions(self):
+        """Regenerate shell completions (placeholder - legacy behavior)"""
+        try:
+            # Note: Completion regeneration typically requires external script
+            # For now, just log that it should be regenerated
+            logger.info("Completions should be regenerated - run: uv run python scripts/setup.py")
+        except Exception as e:
+            logger.error(f"Failed to regenerate completions: {e}")
 
     # Properties for compatibility
     @property

@@ -4,11 +4,11 @@ PluginDisableCommand - 禁用插件命令
 
 from typing import List
 
-from .base import SimpleCommand
+from .base import Command
 from ...core.config_manager import CommandResult
 
 
-class PluginDisableCommand(SimpleCommand):
+class PluginDisableCommand(Command):
     """禁用插件命令"""
 
     @property
@@ -23,7 +23,7 @@ class PluginDisableCommand(SimpleCommand):
     def help_text(self) -> str:
         return self.i18n.get_message("commands.plugin_disable_help")
 
-    def _execute(self, args: List[str]) -> CommandResult:
+    async def execute(self, args: List[str]) -> CommandResult:
         """执行禁用插件"""
         if not args:
             return CommandResult(
@@ -33,4 +33,10 @@ class PluginDisableCommand(SimpleCommand):
             )
 
         plugin_name = args[0]
-        return self.plugin_manager.disable_plugin(plugin_name)
+
+        # Check if adapter has async method
+        if hasattr(self.plugin_manager, 'disable_plugin_async'):
+            return await self.plugin_manager.disable_plugin_async(plugin_name)
+        else:
+            # Fallback to sync method
+            return self.plugin_manager.disable_plugin(plugin_name)

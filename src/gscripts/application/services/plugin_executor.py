@@ -187,7 +187,27 @@ class PluginExecutor:
                 return result
 
             plugin = loaded_plugins[plugin_name]
-            functions = plugin.get('functions', {})
+
+            # Check if plugin is enabled (handle both dict and object types)
+            if hasattr(plugin, 'enabled'):
+                plugin_enabled = plugin.enabled
+            elif isinstance(plugin, dict):
+                plugin_enabled = plugin.get('enabled', True)
+            else:
+                plugin_enabled = True  # Default to True for backward compatibility
+
+            if not plugin_enabled:
+                took = duration(start_ts)
+                logger.warning(f"cid={cid} exec plugin_disabled plugin={plugin_name} took_ms={took}")
+                result = CommandResult(
+                    success=False,
+                    error=f"Plugin '{plugin_name}' is disabled. Enable it with: gs plugin enable {plugin_name}",
+                    exit_code=1
+                )
+                self._notify(PluginEvent.EXECUTED, plugin_name, success=False, error=result.error)
+                return result
+
+            functions = plugin.get('functions', {}) if isinstance(plugin, dict) else getattr(plugin, 'functions', {})
 
             if function_name not in functions:
                 took = duration(start_ts)
