@@ -8,6 +8,8 @@ from .help_command import HelpCommand
 from .version_command import VersionCommand
 from .plugin_list_command import PluginListCommand
 from .plugin_info_command import PluginInfoCommand
+from .plugin_enable_command import PluginEnableCommand
+from .plugin_disable_command import PluginDisableCommand
 from .status_command import StatusCommand
 from .doctor_command import DoctorCommand
 from .refresh_command import RefreshCommand
@@ -25,6 +27,8 @@ __all__ = [
     'VersionCommand',
     'PluginListCommand',
     'PluginInfoCommand',
+    'PluginEnableCommand',
+    'PluginDisableCommand',
     'StatusCommand',
     'DoctorCommand',
     'RefreshCommand',
