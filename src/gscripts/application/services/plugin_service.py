@@ -45,7 +45,8 @@ class PluginService:
     def __init__(
         self,
         plugin_loader: IPluginLoader,
-        plugin_repository: IPluginRepository
+        plugin_repository: IPluginRepository,
+        config_manager: Any = None
     ):
         """
         Initialize plugin service
@@ -53,9 +54,11 @@ class PluginService:
         Args:
             plugin_loader: Plugin loader instance
             plugin_repository: Plugin repository instance
+            config_manager: ConfigManager for persisting plugin state (optional)
         """
         self._loader = plugin_loader
         self._repository = plugin_repository
+        self._config_manager = config_manager
         self._observers: List[IPluginObserver] = []
 
     async def load_all_plugins(self, include_examples: bool = False) -> Dict[str, Any]:
@@ -120,6 +123,10 @@ class PluginService:
         plugin.enabled = True
         await self._repository.save(plugin)
 
+        # Persist to config file (system_plugins or custom_plugins)
+        if self._config_manager:
+            self._save_plugin_state_to_config(plugin_name, True)
+
         # Notify observers
         self.notify_observers_enabled(plugin_name)
 
@@ -142,10 +149,43 @@ class PluginService:
         plugin.enabled = False
         await self._repository.save(plugin)
 
+        # Persist to config file (system_plugins or custom_plugins)
+        if self._config_manager:
+            self._save_plugin_state_to_config(plugin_name, False)
+
         # Notify observers
         self.notify_observers_disabled(plugin_name)
 
         return True
+
+    def _save_plugin_state_to_config(self, plugin_name: str, enabled: bool) -> None:
+        """
+        Save plugin state to config file (system_plugins or custom_plugins section)
+
+        Args:
+            plugin_name: Name of the plugin
+            enabled: Enabled status
+        """
+        try:
+            cfg = self._config_manager.get_config() or {}
+            system_map = cfg.get('system_plugins', {}) or {}
+            custom_map = cfg.get('custom_plugins', {}) or {}
+
+            # Update the appropriate section
+            if plugin_name in system_map:
+                system_map[plugin_name] = enabled
+            elif plugin_name in custom_map:
+                custom_map[plugin_name] = enabled
+            else:
+                # If not in either, add to system_plugins by default
+                system_map[plugin_name] = enabled
+
+            cfg['system_plugins'] = system_map
+            cfg['custom_plugins'] = custom_map
+            self._config_manager.save_config(cfg)
+        except Exception as e:
+            # Log error but don't fail the operation
+            print(f"Warning: Failed to save plugin state to config: {e}")
 
     async def get_plugin_info(self, plugin_name: str) -> Optional[Dict[str, Any]]:
         """

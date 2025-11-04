@@ -187,8 +187,12 @@ class PluginListCommand(Command):
     async def execute(self, args: List[str]) -> CommandResult:
         """Display plugin list using PluginService"""
         try:
-            # Use PluginService to get all plugins
-            all_plugins = await self.plugin_service.list_all_plugins()
+            # Use plugin_manager's list_all_plugins if available (Clean Architecture adapter)
+            if hasattr(self.plugin_manager, 'list_all_plugins'):
+                all_plugins = await self.plugin_manager.list_all_plugins()
+            else:
+                # Fallback: Use plugin_service (legacy or standalone)
+                all_plugins = await self.plugin_service.list_all_plugins()
 
             if not all_plugins:
                 return CommandResult(
@@ -201,7 +205,8 @@ class PluginListCommand(Command):
             router_plugins = self._load_router_index()
 
             # Get loaded plugin info for command counts (fallback)
-            loaded_plugins = self.plugin_service.get_loaded_plugins()
+            # Use plugin_manager.plugins directly (works for both legacy and adapter)
+            loaded_plugins = self.plugin_manager.plugins if hasattr(self.plugin_manager, 'plugins') else {}
 
             # Separate enabled and disabled plugins
             enabled_plugins = []
