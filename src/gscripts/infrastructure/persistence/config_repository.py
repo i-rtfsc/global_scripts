@@ -50,7 +50,7 @@ class ConfigRepository(IConfigRepository):
         config = await self.load()
 
         # Support nested key access with dot notation (e.g., "logging.level")
-        keys = key.split('.')
+        keys = key.split(".")
         value = config
 
         for k in keys:
@@ -66,7 +66,7 @@ class ConfigRepository(IConfigRepository):
         config = await self.load()
 
         # Support nested key setting with dot notation
-        keys = key.split('.')
+        keys = key.split(".")
         current = config
 
         for k in keys[:-1]:
@@ -83,4 +83,4 @@ class ConfigRepository(IConfigRepository):
         self._cache = None
 
 
-__all__ = ['ConfigRepository']
+__all__ = ["ConfigRepository"]

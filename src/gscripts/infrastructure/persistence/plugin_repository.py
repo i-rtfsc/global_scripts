@@ -3,7 +3,6 @@ Plugin Repository Implementation
 Manages plugin persistence and retrieval
 """
 
-import json
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 
@@ -14,7 +13,12 @@ from ...models.plugin import PluginMetadata, PluginType
 class PluginRepository(IPluginRepository):
     """Plugin repository implementation using filesystem with router.json cache support"""
 
-    def __init__(self, filesystem: IFileSystem, plugins_dir: Path, router_cache_path: Optional[Path] = None):
+    def __init__(
+        self,
+        filesystem: IFileSystem,
+        plugins_dir: Path,
+        router_cache_path: Optional[Path] = None,
+    ):
         """
         Initialize plugin repository
 
@@ -40,7 +44,7 @@ class PluginRepository(IPluginRepository):
         if self._router_cache_path and self._fs.exists(self._router_cache_path):
             try:
                 cache_data = self._fs.read_json(self._router_cache_path)
-                plugins_data = cache_data.get('plugins', {})
+                plugins_data = cache_data.get("plugins", {})
 
                 plugins = []
                 for plugin_name, plugin_data in plugins_data.items():
@@ -94,7 +98,7 @@ class PluginRepository(IPluginRepository):
         if self._router_cache_path and self._fs.exists(self._router_cache_path):
             try:
                 cache_data = self._fs.read_json(self._router_cache_path)
-                plugins_data = cache_data.get('plugins', {})
+                plugins_data = cache_data.get("plugins", {})
 
                 if name in plugins_data:
                     plugin = self._parse_plugin_metadata(plugins_data[name], name)
@@ -131,21 +135,23 @@ class PluginRepository(IPluginRepository):
             data = {}
 
         # Update with new metadata
-        data.update({
-            'name': plugin.name,
-            'version': plugin.version,
-            'author': plugin.author,
-            'description': plugin.description,
-            'homepage': plugin.homepage,
-            'license': plugin.license,
-            'enabled': plugin.enabled,
-            'priority': plugin.priority,
-            'category': plugin.category,
-            'keywords': plugin.keywords,
-            'requirements': plugin.requirements,
-            'tags': plugin.tags,
-            'subplugins': plugin.subplugins,
-        })
+        data.update(
+            {
+                "name": plugin.name,
+                "version": plugin.version,
+                "author": plugin.author,
+                "description": plugin.description,
+                "homepage": plugin.homepage,
+                "license": plugin.license,
+                "enabled": plugin.enabled,
+                "priority": plugin.priority,
+                "category": plugin.category,
+                "keywords": plugin.keywords,
+                "requirements": plugin.requirements,
+                "tags": plugin.tags,
+                "subplugins": plugin.subplugins,
+            }
+        )
 
         # Write back to filesystem
         self._fs.write_json(plugin_json, data)
@@ -208,7 +214,7 @@ class PluginRepository(IPluginRepository):
     def _parse_plugin_metadata(self, data: Dict[str, Any], name: str) -> PluginMetadata:
         """Parse plugin metadata from JSON data"""
         # Parse type string to PluginType enum
-        type_str = data.get('type', 'unknown').lower()
+        type_str = data.get("type", "unknown").lower()
 
         # Map alternate names to canonical types
         type_mapping = {
@@ -224,19 +230,19 @@ class PluginRepository(IPluginRepository):
             plugin_type = PluginType.UNKNOWN
 
         return PluginMetadata(
-            name=data.get('name', name),
-            version=data.get('version', '1.0.0'),
-            author=data.get('author', 'Unknown'),
-            description=data.get('description', ''),
-            homepage=data.get('homepage', ''),
-            license=data.get('license', ''),
-            enabled=data.get('enabled', True),
-            priority=data.get('priority', 50),
-            category=data.get('category', ''),
-            keywords=data.get('keywords', []),
-            requirements=data.get('requirements', {}),
-            tags=data.get('tags', []),
-            subplugins=data.get('subplugins', []),
+            name=data.get("name", name),
+            version=data.get("version", "1.0.0"),
+            author=data.get("author", "Unknown"),
+            description=data.get("description", ""),
+            homepage=data.get("homepage", ""),
+            license=data.get("license", ""),
+            enabled=data.get("enabled", True),
+            priority=data.get("priority", 50),
+            category=data.get("category", ""),
+            keywords=data.get("keywords", []),
+            requirements=data.get("requirements", {}),
+            tags=data.get("tags", []),
+            subplugins=data.get("subplugins", []),
             type=plugin_type,
         )
 
@@ -245,4 +251,4 @@ class PluginRepository(IPluginRepository):
         self._cache.clear()
 
 
-__all__ = ['PluginRepository']
+__all__ = ["PluginRepository"]

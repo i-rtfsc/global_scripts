@@ -9,7 +9,7 @@ import subprocess
 
 from ...core.logger import get_logger
 from .base import Command
-from ...core.config_manager import CommandResult
+from gscripts.models.result import CommandResult
 
 logger = get_logger(tag="CLI.REFRESH", name=__name__)
 

@@ -16,7 +16,7 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 from gscripts.plugins.decorators import plugin_function, subplugin
-from gscripts.core.config_manager import CommandResult
+from gscripts.models.result import CommandResult
 from plugins.dotfiles.plugin import DotfilesPlugin
 
 

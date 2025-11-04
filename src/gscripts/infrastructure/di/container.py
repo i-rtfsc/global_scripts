@@ -6,12 +6,13 @@
 from typing import Any, Callable, Dict, Optional, Type, TypeVar
 from dataclasses import dataclass
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 @dataclass
 class ServiceDescriptor:
     """服务描述符"""
+
     service_type: Type
     factory: Callable
     singleton: bool = True
@@ -25,10 +26,7 @@ class DIContainer:
         self._services: Dict[Type, ServiceDescriptor] = {}
 
     def register(
-        self,
-        service_type: Type[T],
-        factory: Callable[[], T],
-        singleton: bool = True
+        self, service_type: Type[T], factory: Callable[[], T], singleton: bool = True
     ) -> None:
         """注册服务
 
@@ -38,9 +36,7 @@ class DIContainer:
             singleton: 是否为单例模式
         """
         self._services[service_type] = ServiceDescriptor(
-            service_type=service_type,
-            factory=factory,
-            singleton=singleton
+            service_type=service_type, factory=factory, singleton=singleton
         )
 
     def register_instance(self, service_type: Type[T], instance: T) -> None:
@@ -54,7 +50,7 @@ class DIContainer:
             service_type=service_type,
             factory=lambda: instance,
             singleton=True,
-            instance=instance
+            instance=instance,
         )
 
     def resolve(self, service_type: Type[T]) -> T:
@@ -107,8 +103,8 @@ def reset_container() -> None:
 
 
 __all__ = [
-    'DIContainer',
-    'ServiceDescriptor',
-    'get_container',
-    'reset_container',
+    "DIContainer",
+    "ServiceDescriptor",
+    "get_container",
+    "reset_container",
 ]

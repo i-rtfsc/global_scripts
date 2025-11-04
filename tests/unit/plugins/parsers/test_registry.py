@@ -11,8 +11,7 @@ from gscripts.plugins.parsers import (
     FunctionParser,
     FunctionParserRegistry,
     FunctionInfo,
-    ParserMetadata,
-    parser_metadata
+    parser_metadata,
 )
 
 
@@ -22,17 +21,14 @@ from gscripts.plugins.parsers import (
     version="1.0.0",
     supported_extensions=[".test1"],
     priority=10,
-    description="Test parser 1"
+    description="Test parser 1",
 )
 class TestParser1(FunctionParser):
     def can_parse(self, file: Path) -> bool:
         return file.suffix == ".test1"
 
     async def parse(
-        self,
-        file: Path,
-        plugin_name: str,
-        subplugin_name: str = ""
+        self, file: Path, plugin_name: str, subplugin_name: str = ""
     ) -> List[FunctionInfo]:
         return [
             FunctionInfo(
@@ -41,7 +37,7 @@ class TestParser1(FunctionParser):
                 command="echo test",
                 type="shell",
                 plugin_name=plugin_name,
-                subplugin_name=subplugin_name
+                subplugin_name=subplugin_name,
             )
         ]
 
@@ -51,31 +47,26 @@ class TestParser1(FunctionParser):
     version="2.0.0",
     supported_extensions=[".test2"],
     priority=20,
-    description="Test parser 2"
+    description="Test parser 2",
 )
 class TestParser2(FunctionParser):
     def can_parse(self, file: Path) -> bool:
         return file.suffix == ".test2"
 
     async def parse(
-        self,
-        file: Path,
-        plugin_name: str,
-        subplugin_name: str = ""
+        self, file: Path, plugin_name: str, subplugin_name: str = ""
     ) -> List[FunctionInfo]:
         return []
 
 
 class TestParser3(FunctionParser):
     """Parser without metadata decorator"""
+
     def can_parse(self, file: Path) -> bool:
         return file.suffix == ".test3"
 
     async def parse(
-        self,
-        file: Path,
-        plugin_name: str,
-        subplugin_name: str = ""
+        self, file: Path, plugin_name: str, subplugin_name: str = ""
     ) -> List[FunctionInfo]:
         return []
 
@@ -106,9 +97,9 @@ class TestFunctionParserRegistry:
 
         parsers = registry.list_parsers()
         assert len(parsers) == 1
-        assert parsers[0]['name'] == 'test_parser_1'
-        assert parsers[0]['priority'] == 10
-        assert parsers[0]['enabled'] is True
+        assert parsers[0]["name"] == "test_parser_1"
+        assert parsers[0]["priority"] == 10
+        assert parsers[0]["enabled"] is True
 
     def test_register_parser_without_metadata(self, registry, parser3):
         """Test registering a parser without metadata"""
@@ -116,8 +107,8 @@ class TestFunctionParserRegistry:
 
         parsers = registry.list_parsers()
         assert len(parsers) == 1
-        assert parsers[0]['name'] == 'TestParser3'
-        assert parsers[0]['priority'] == 100  # Default priority
+        assert parsers[0]["name"] == "TestParser3"
+        assert parsers[0]["priority"] == 100  # Default priority
 
     def test_register_with_custom_name(self, registry, parser1):
         """Test registering with custom name"""
@@ -125,14 +116,14 @@ class TestFunctionParserRegistry:
 
         info = registry.get_parser_info("custom_name")
         assert info is not None
-        assert info['name'] == 'custom_name'
+        assert info["name"] == "custom_name"
 
     def test_register_with_custom_priority(self, registry, parser1):
         """Test registering with custom priority"""
         registry.register(parser1, priority=5)
 
         info = registry.get_parser_info("test_parser_1")
-        assert info['priority'] == 5
+        assert info["priority"] == 5
 
     def test_register_by_name(self, registry):
         """Test register_by_name method"""
@@ -140,7 +131,7 @@ class TestFunctionParserRegistry:
 
         info = registry.get_parser_info("my_parser")
         assert info is not None
-        assert info['name'] == 'my_parser'
+        assert info["name"] == "my_parser"
 
     def test_unregister_parser(self, registry, parser1):
         """Test unregistering a parser"""
@@ -156,17 +147,17 @@ class TestFunctionParserRegistry:
 
         # Initially enabled
         info = registry.get_parser_info("test_parser_1")
-        assert info['enabled'] is True
+        assert info["enabled"] is True
 
         # Disable
         registry.disable("test_parser_1")
         info = registry.get_parser_info("test_parser_1")
-        assert info['enabled'] is False
+        assert info["enabled"] is False
 
         # Enable
         registry.enable("test_parser_1")
         info = registry.get_parser_info("test_parser_1")
-        assert info['enabled'] is True
+        assert info["enabled"] is True
 
     def test_register_alias(self, registry, parser1):
         """Test parser aliases"""
@@ -176,7 +167,7 @@ class TestFunctionParserRegistry:
         # Should be able to get by alias
         info = registry.get_parser_info("alias1")
         assert info is not None
-        assert info['name'] == 'test_parser_1'
+        assert info["name"] == "test_parser_1"
 
     def test_get_parser_by_name(self, registry, parser1):
         """Test get method"""
@@ -201,21 +192,21 @@ class TestFunctionParserRegistry:
 
         parsers = registry.list_parsers()
         assert len(parsers) == 2
-        assert parsers[0]['name'] == 'test_parser_1'  # Priority 10 first
-        assert parsers[1]['name'] == 'test_parser_2'  # Priority 20 second
+        assert parsers[0]["name"] == "test_parser_1"  # Priority 10 first
+        assert parsers[1]["name"] == "test_parser_2"  # Priority 20 second
 
     def test_get_parser_info_detailed(self, registry, parser1):
         """Test get_parser_info returns all details"""
         registry.register(parser1)
 
         info = registry.get_parser_info("test_parser_1")
-        assert info['name'] == 'test_parser_1'
-        assert info['priority'] == 10
-        assert info['enabled'] is True
-        assert info['class'] == 'TestParser1'
-        assert info['version'] == '1.0.0'
-        assert '.test1' in info['supported_extensions']
-        assert info['description'] == 'Test parser 1'
+        assert info["name"] == "test_parser_1"
+        assert info["priority"] == 10
+        assert info["enabled"] is True
+        assert info["class"] == "TestParser1"
+        assert info["version"] == "1.0.0"
+        assert ".test1" in info["supported_extensions"]
+        assert info["description"] == "Test parser 1"
 
     def test_get_parser_by_file(self, registry, parser1, parser2, tmp_path):
         """Test get_parser method with file matching"""
@@ -246,11 +237,10 @@ class TestFunctionParserRegistry:
 
     def test_get_parser_respects_priority(self, registry, tmp_path):
         """Test that higher priority parser is selected first"""
+
         # Both parsers match .test1
         @parser_metadata(
-            name="high_priority",
-            priority=5,
-            supported_extensions=[".test1"]
+            name="high_priority", priority=5, supported_extensions=[".test1"]
         )
         class HighPriorityParser(FunctionParser):
             def can_parse(self, file: Path) -> bool:
@@ -260,9 +250,7 @@ class TestFunctionParserRegistry:
                 return []
 
         @parser_metadata(
-            name="low_priority",
-            priority=100,
-            supported_extensions=[".test1"]
+            name="low_priority", priority=100, supported_extensions=[".test1"]
         )
         class LowPriorityParser(FunctionParser):
             def can_parse(self, file: Path) -> bool:
@@ -314,10 +302,7 @@ class TestFunctionParserRegistry:
         file2 = tmp_path / "test2.test1"
         file2.touch()
 
-        functions = registry.parse_all(
-            [file1, file2],
-            plugin_name="test_plugin"
-        )
+        functions = registry.parse_all([file1, file2], plugin_name="test_plugin")
 
         assert len(functions) == 2
         assert all(f.name == "test_func" for f in functions)

@@ -20,12 +20,14 @@ from .constants import GlobalConstants
 
 _CONFIGURED = False
 VERBOSE_LEVEL = 15  # Between DEBUG(10) and INFO(20)
-if not hasattr(logging, 'VERBOSE'):
-    logging.addLevelName(VERBOSE_LEVEL, 'VERBOSE')
+if not hasattr(logging, "VERBOSE"):
+    logging.addLevelName(VERBOSE_LEVEL, "VERBOSE")
+
 
 def _verbose(self, message, *args, **kwargs):
     if self.isEnabledFor(VERBOSE_LEVEL):
         self._log(VERBOSE_LEVEL, message, args, **kwargs)
+
 
 logging.Logger.verbose = _verbose  # type: ignore
 
@@ -59,11 +61,11 @@ def setup_logging(level: Optional[int] = None, console: bool = False) -> None:
 
     # Pre-truncate log file if it exceeds maximum size to avoid unbounded growth
     try:
-        max_size = getattr(GlobalConstants, 'MAX_LOG_FILE_SIZE', None)
+        max_size = getattr(GlobalConstants, "MAX_LOG_FILE_SIZE", None)
         if max_size and log_file_path.exists():
             if log_file_path.stat().st_size > max_size:
                 # Truncate by rewriting empty file (simple & atomic enough for this context)
-                with open(log_file_path, 'w', encoding='utf-8'):
+                with open(log_file_path, "w", encoding="utf-8"):
                     pass
     except Exception:
         # Fail silently; logging must continue even if size check fails
@@ -72,7 +74,10 @@ def setup_logging(level: Optional[int] = None, console: bool = False) -> None:
     # Avoid duplicate configuration if a FileHandler for this file already exists
     for h in root_logger.handlers:
         try:
-            if isinstance(h, logging.FileHandler) and Path(getattr(h, "baseFilename", "")) == log_file_path:
+            if (
+                isinstance(h, logging.FileHandler)
+                and Path(getattr(h, "baseFilename", "")) == log_file_path
+            ):
                 _CONFIGURED = True
                 return
         except Exception:
@@ -87,16 +92,20 @@ def setup_logging(level: Optional[int] = None, console: bool = False) -> None:
         cfg_level = None
         try:
             import json
+
             cfg_path = GlobalConstants.get_main_config_path()
             if cfg_path.exists():
-                with open(cfg_path, 'r', encoding='utf-8') as f:
+                with open(cfg_path, "r", encoding="utf-8") as f:
                     cfg_data = json.load(f)
                 from .constants import GlobalConstants as _GC
+
                 cfg_level = _GC.resolve_logging_level(cfg_data)
         except Exception:
             cfg_level = None
-        level_candidate = cfg_level if cfg_level is not None else (
-            logging.DEBUG if GlobalConstants.is_debug_mode() else logging.INFO
+        level_candidate = (
+            cfg_level
+            if cfg_level is not None
+            else (logging.DEBUG if GlobalConstants.is_debug_mode() else logging.INFO)
         )
     else:
         level_candidate = level

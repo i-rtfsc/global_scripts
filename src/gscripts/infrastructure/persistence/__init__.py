@@ -8,7 +8,7 @@ from .config_repository import ConfigRepository
 from .plugin_loader import PluginLoader
 
 __all__ = [
-    'PluginRepository',
-    'ConfigRepository',
-    'PluginLoader',
+    "PluginRepository",
+    "ConfigRepository",
+    "PluginLoader",
 ]

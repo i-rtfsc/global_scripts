@@ -5,7 +5,6 @@
 
 from abc import ABC, abstractmethod
 from typing import List, Optional, Dict, Any
-from pathlib import Path
 
 
 class IPluginRepository(ABC):
@@ -76,7 +75,7 @@ class IPluginLoader(ABC):
 
 
 __all__ = [
-    'IPluginRepository',
-    'IConfigRepository',
-    'IPluginLoader',
+    "IPluginRepository",
+    "IConfigRepository",
+    "IPluginLoader",
 ]

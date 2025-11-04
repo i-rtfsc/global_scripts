@@ -27,7 +27,7 @@ if str(project_root) not in sys.path:
 
 from gscripts.plugins.decorators import plugin_function
 from gscripts.plugins.base import BasePlugin
-from gscripts.core.config_manager import CommandResult
+from gscripts.models.result import CommandResult
 from gscripts.core.logger import get_logger
 
 logger = get_logger(tag="PLUGIN.MULTIREPO", name=__name__)

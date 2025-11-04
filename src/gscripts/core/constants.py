@@ -16,6 +16,7 @@ from functools import cached_property
 
 class SingletonMeta(type):
     """单例元类，使类属性访问重定向到单例实例"""
+
     _instances = {}
 
     def __call__(cls, *args, **kwargs):
@@ -25,7 +26,12 @@ class SingletonMeta(type):
 
     def __getattribute__(cls, name):
         # 对于特殊属性和方法，使用默认行为
-        if name.startswith('_') or name in ('mro', 'validate_command_safety', 'get_plugin_schema_path', 'get_i18n_file_path'):
+        if name.startswith("_") or name in (
+            "mro",
+            "validate_command_safety",
+            "get_plugin_schema_path",
+            "get_i18n_file_path",
+        ):
             return super().__getattribute__(name)
 
         # 对于普通属性，尝试从单例实例获取
@@ -55,6 +61,7 @@ class GlobalConstants(metaclass=SingletonMeta):
         """懒加载系统配置"""
         # 延迟导入避免循环依赖
         from .system_config_loader import get_system_config
+
         return get_system_config()
 
     # ============= 基础目录常量（静态） =============
@@ -301,15 +308,15 @@ class GlobalConstants(metaclass=SingletonMeta):
     # ============= 插件优先级 =============
     @property
     def default_plugin_priority(self) -> int:
-        return self._system_config.plugins.priority['default']
+        return self._system_config.plugins.priority["default"]
 
     @property
     def min_plugin_priority(self) -> int:
-        return self._system_config.plugins.priority['min']
+        return self._system_config.plugins.priority["min"]
 
     @property
     def max_plugin_priority(self) -> int:
-        return self._system_config.plugins.priority['max']
+        return self._system_config.plugins.priority["max"]
 
     # ============= 网络相关 =============
     @property
@@ -325,16 +332,16 @@ class GlobalConstants(metaclass=SingletonMeta):
     def colors(self) -> Dict[str, str]:
         colors = self._system_config.ui.colors
         return {
-            'RED': colors.red,
-            'GREEN': colors.green,
-            'YELLOW': colors.yellow,
-            'BLUE': colors.blue,
-            'MAGENTA': colors.magenta,
-            'CYAN': colors.cyan,
-            'WHITE': colors.white,
-            'RESET': colors.reset,
-            'BOLD': colors.bold,
-            'UNDERLINE': colors.underline
+            "RED": colors.red,
+            "GREEN": colors.green,
+            "YELLOW": colors.yellow,
+            "BLUE": colors.blue,
+            "MAGENTA": colors.magenta,
+            "CYAN": colors.cyan,
+            "WHITE": colors.white,
+            "RESET": colors.reset,
+            "BOLD": colors.bold,
+            "UNDERLINE": colors.underline,
         }
 
     # ============= Shell相关 =============
@@ -364,27 +371,32 @@ class GlobalConstants(metaclass=SingletonMeta):
           Legacy keys are still honored here but are stripped from in-memory config by ConfigManager
         """
         import logging as _logging
-        from .logger import VERBOSE_LEVEL  # local import to avoid circular at module load
+        from .logger import (
+            VERBOSE_LEVEL,
+        )  # local import to avoid circular at module load
 
         raw = None
         if isinstance(cfg, dict):
-            raw = cfg.get('logging_level')
+            raw = cfg.get("logging_level")
         if raw:
             raw_upper = str(raw).upper().strip()
             mapped = self.log_level_alias.get(raw_upper, raw_upper)
-            if mapped == 'NONE':
+            if mapped == "NONE":
                 return 1000
-            if mapped == 'VERBOSE':
+            if mapped == "VERBOSE":
                 return VERBOSE_LEVEL
             if hasattr(_logging, mapped):
                 return getattr(_logging, mapped)
-        debug_flag = bool(cfg.get('config_debug')) if isinstance(cfg, dict) else False
-        verbose_flag = bool(cfg.get('config_verbose')) if isinstance(cfg, dict) else False
+        debug_flag = bool(cfg.get("config_debug")) if isinstance(cfg, dict) else False
+        verbose_flag = (
+            bool(cfg.get("config_verbose")) if isinstance(cfg, dict) else False
+        )
         if debug_flag:
             return _logging.DEBUG
         if verbose_flag:
             try:
                 from .logger import VERBOSE_LEVEL as _V
+
                 return _V
             except Exception:
                 return _logging.INFO
@@ -395,7 +407,7 @@ class GlobalConstants(metaclass=SingletonMeta):
     @classmethod
     def get_config_dir(cls) -> Path:
         """获取配置目录路径 - 优先级：~/.config/global-scripts/config > 当前工程/config"""
-        instance = cls() if not hasattr(cls, '_instance') else cls._instance
+        instance = cls() if not hasattr(cls, "_instance") else cls._instance
         user_config_dir = instance.gs_home / instance._system_config.paths.config_dir
         project_config_dir = instance.project_config_dir
 
@@ -410,37 +422,41 @@ class GlobalConstants(metaclass=SingletonMeta):
     @classmethod
     def get_plugins_dir(cls) -> Path:
         """获取插件目录路径 - 当前插件工程的根目录"""
-        instance = cls() if not hasattr(cls, '_instance') else cls._instance
+        instance = cls() if not hasattr(cls, "_instance") else cls._instance
         return instance.gs_plugins_dir
 
     @classmethod
     def get_cache_dir(cls) -> Path:
         """获取缓存目录路径 - ~/.config/global-scripts/cache"""
-        instance = cls() if not hasattr(cls, '_instance') else cls._instance
+        instance = cls() if not hasattr(cls, "_instance") else cls._instance
         return instance.gs_cache_dir
 
     @classmethod
     def get_language(cls) -> str:
         """获取当前语言设置 - 从配置读取，默认为en"""
-        instance = cls() if not hasattr(cls, '_instance') else cls._instance
-        return os.environ.get('GS_LANGUAGE', instance.default_language)
+        instance = cls() if not hasattr(cls, "_instance") else cls._instance
+        return os.environ.get("GS_LANGUAGE", instance.default_language)
 
     @classmethod
     def is_debug_mode(cls) -> bool:
         """检查是否为调试模式"""
-        return os.environ.get('GS_DEBUG', '').lower() in ['1', 'true', 'yes', 'on']
+        return os.environ.get("GS_DEBUG", "").lower() in ["1", "true", "yes", "on"]
 
     @classmethod
     def get_main_config_path(cls) -> Path:
         """获取主配置文件路径"""
-        instance = cls() if not hasattr(cls, '_instance') else cls._instance
+        instance = cls() if not hasattr(cls, "_instance") else cls._instance
         return cls.get_config_dir() / instance.main_config_file
 
     @classmethod
     def get_i18n_config_path(cls) -> Path:
         """获取国际化配置文件路径 - 优先级：~/.config/global-scripts/config > 当前工程/config"""
-        instance = cls() if not hasattr(cls, '_instance') else cls._instance
-        user_i18n_file = instance.gs_home / instance._system_config.paths.config_dir / instance.i18n_config_file
+        instance = cls() if not hasattr(cls, "_instance") else cls._instance
+        user_i18n_file = (
+            instance.gs_home
+            / instance._system_config.paths.config_dir
+            / instance.i18n_config_file
+        )
         project_i18n_file = instance.project_config_dir / instance.i18n_config_file
 
         # 检查用户配置目录下是否有i18n配置文件
@@ -453,13 +469,17 @@ class GlobalConstants(metaclass=SingletonMeta):
     @classmethod
     def get_plugin_schema_path(cls) -> Path:
         """获取插件Schema文件路径"""
-        instance = cls() if not hasattr(cls, '_instance') else cls._instance
-        return instance.CURRENT_DIR / instance._system_config.paths.schemas_dir / instance.plugin_schema_file
+        instance = cls() if not hasattr(cls, "_instance") else cls._instance
+        return (
+            instance.CURRENT_DIR
+            / instance._system_config.paths.schemas_dir
+            / instance.plugin_schema_file
+        )
 
     @classmethod
     def validate_command_safety(cls, command: str) -> bool:
         """验证命令是否安全"""
-        instance = cls() if not hasattr(cls, '_instance') else cls._instance
+        instance = cls() if not hasattr(cls, "_instance") else cls._instance
         if len(command) > instance.max_command_length:
             return False
 
