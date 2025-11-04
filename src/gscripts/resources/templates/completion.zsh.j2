@@ -57,10 +57,15 @@ _gs_subplugins() {
         done
     else
         # No subplugins, extract first words from commands
-        local cmd_list=($(jq -r ".plugins[\"$plugin\"].commands | keys[]" "$_GS_ROUTER_INDEX" 2>/dev/null))
+        local -a cmd_list
         local -A seen_words
 
-        for cmd in ${cmd_list[@]}; do
+        # Read commands properly, preserving spaces
+        while IFS= read -r cmd; do
+            cmd_list+=("$cmd")
+        done < <(jq -r ".plugins[\"$plugin\"].commands | keys[]" "$_GS_ROUTER_INDEX" 2>/dev/null)
+
+        for cmd in "${cmd_list[@]}"; do
             local first_word=$(echo "$cmd" | awk '{print $1}')
             if [[ -z "${seen_words[$first_word]}" ]]; then
                 seen_words[$first_word]=1
@@ -93,10 +98,15 @@ _gs_functions() {
     fi
 
     # Get all commands matching the prefix
-    local cmd_list=($(jq -r ".plugins[\"$plugin\"].commands | keys[] | select(startswith(\"$cmd_prefix\"))" "$_GS_ROUTER_INDEX" 2>/dev/null))
+    local -a cmd_list
     local -A seen_words
 
-    for cmd in ${cmd_list[@]}; do
+    # Read commands properly, preserving spaces
+    while IFS= read -r cmd; do
+        cmd_list+=("$cmd")
+    done < <(jq -r ".plugins[\"$plugin\"].commands | keys[] | select(startswith(\"$cmd_prefix\"))" "$_GS_ROUTER_INDEX" 2>/dev/null)
+
+    for cmd in "${cmd_list[@]}"; do
         # Extract the next word after prefix
         local remaining=$(echo "$cmd" | sed "s/^$cmd_prefix//")
         local next_word=$(echo "$remaining" | awk '{print $1}')

@@ -217,19 +217,86 @@ async def main():
     # 使用 PluginRepository 加载插件（创建 PluginMetadata 对象）
     filesystem = RealFileSystem()
 
-    # 系统插件
+    # 系统插件 - 直接扫描 plugins/ 目录
     system_repository = PluginRepository(
         filesystem=filesystem, plugins_dir=plugins_root
     )
     system_plugins_list = await system_repository.get_all()
 
-    # 自定义插件
+    # 自定义插件 - 递归扫描 custom/ 目录下的所有插件
     custom_plugins_list = []
     if custom_root.exists():
-        custom_repository = PluginRepository(
-            filesystem=filesystem, plugins_dir=custom_root
-        )
-        custom_plugins_list = await custom_repository.get_all()
+        # 使用 PluginDiscovery 递归查找所有 plugin.json 文件
+        custom_discovery = PluginDiscovery(custom_root)
+
+        # 递归发现所有插件目录
+        def find_all_plugin_dirs(root_dir):
+            """递归查找所有包含 plugin.json 的目录"""
+            plugin_dirs = []
+            if not root_dir.exists():
+                return plugin_dirs
+
+            for item in root_dir.iterdir():
+                if not item.is_dir():
+                    continue
+
+                # 检查当前目录是否有 plugin.json
+                if (item / "plugin.json").exists():
+                    plugin_dirs.append(item)
+                else:
+                    # 递归查找子目录
+                    plugin_dirs.extend(find_all_plugin_dirs(item))
+
+            return plugin_dirs
+
+        custom_plugin_dirs = find_all_plugin_dirs(custom_root)
+
+        # 为每个找到的插件目录创建 PluginMetadata
+        for plugin_dir in custom_plugin_dirs:
+            try:
+                # 读取 plugin.json
+                plugin_json_path = plugin_dir / "plugin.json"
+                if plugin_json_path.exists():
+                    import json
+
+                    with open(plugin_json_path, "r", encoding="utf-8") as f:
+                        plugin_data = json.load(f)
+
+                    # 使用 PluginRepository._parse_plugin_metadata 创建对象
+                    from gscripts.models.plugin import PluginMetadata, PluginType
+
+                    # Parse plugin type, default to PYTHON if invalid
+                    plugin_type_str = plugin_data.get("type", "python").lower()
+
+                    # Map alternate names to canonical types
+                    type_mapping = {
+                        "json": "config",
+                        "script": "shell",
+                        "sh": "shell",
+                    }
+                    plugin_type_str = type_mapping.get(plugin_type_str, plugin_type_str)
+
+                    try:
+                        plugin_type = PluginType(plugin_type_str)
+                    except ValueError:
+                        # Invalid type, default to PYTHON
+                        plugin_type = PluginType.PYTHON
+
+                    plugin_meta = PluginMetadata(
+                        name=plugin_data.get("name", plugin_dir.name),
+                        version=plugin_data.get("version", "1.0.0"),
+                        author=plugin_data.get("author", ""),
+                        description=plugin_data.get("description", {}),
+                        enabled=plugin_data.get("enabled", True),
+                        priority=plugin_data.get("priority", 50),
+                        type=plugin_type,
+                        subplugins=plugin_data.get("subplugins", []),
+                    )
+                    # Store plugin_dir separately for use in load_plugin_functions
+                    plugin_meta._plugin_dir = plugin_dir
+                    custom_plugins_list.append(plugin_meta)
+            except Exception as e:
+                print(f"  ⚠️  Failed to load custom plugin {plugin_dir.name}: {e}")
 
     # 为每个插件解析函数
     discovery = PluginDiscovery(plugins_root)
@@ -269,13 +336,16 @@ async def main():
                 ):
                     continue
 
+                # 子插件名称就是子目录名
+                subplugin_name = item.name
+
                 # 扫描子目录
                 sub_scan = discovery.scan_plugin_directory(item)
 
                 if sub_scan.has_python and sub_scan.python_file:
                     parser = PythonFunctionParser()
                     functions.extend(
-                        await parser.parse(sub_scan.python_file, plugin_name)
+                        await parser.parse(sub_scan.python_file, plugin_name, subplugin_name)
                     )
 
                 if sub_scan.has_config:
@@ -289,7 +359,15 @@ async def main():
                     functions.extend(await parser.parse(script_file, plugin_name))
 
             # 将函数附加到 PluginMetadata 对象
-            plugin_meta.functions = {f.name: f for f in functions}
+            # 使用唯一键：对于子插件函数使用 "subplugin name" 格式，否则使用函数名
+            function_dict = {}
+            for f in functions:
+                if f.subplugin:
+                    key = f"{f.subplugin} {f.name}"
+                else:
+                    key = f.name
+                function_dict[key] = f
+            plugin_meta.functions = function_dict
 
             return plugin_meta
         except Exception as e:
@@ -307,7 +385,7 @@ async def main():
 
     # 加载自定义插件函数
     custom_tasks = [
-        load_plugin_functions(p, custom_root / p.name) for p in custom_plugins_list
+        load_plugin_functions(p, p._plugin_dir) for p in custom_plugins_list
     ]
     custom_results = await asyncio.gather(*custom_tasks, return_exceptions=True)
     custom_plugins = {
