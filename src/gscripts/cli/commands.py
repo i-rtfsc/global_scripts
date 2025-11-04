@@ -11,14 +11,14 @@ Phase 2.5: 拆分 CommandHandler
 - 保留核心路由和插件执行逻辑
 """
 
-import asyncio
-from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import List, Optional
 
-from .command_classes import create_command_registry, CommandRegistry
+from .command_classes import create_command_registry
 from .formatters import OutputFormatter
 from ..core.config_manager import ConfigManager, CommandResult
-from ..core.plugin_manager import PluginManager
+from ..infrastructure.adapters.plugin_manager_adapter import (
+    PluginManagerAdapter as PluginManager,
+)
 from ..core.constants import GlobalConstants
 from ..utils.i18n import I18nManager
 
@@ -42,7 +42,12 @@ class CommandHandler:
     - 格式化逻辑（已在 command_classes 中）
     """
 
-    def __init__(self, config_manager: ConfigManager, plugin_manager: PluginManager, chinese: bool = True):
+    def __init__(
+        self,
+        config_manager: ConfigManager,
+        plugin_manager: PluginManager,
+        chinese: bool = True,
+    ):
         self.config_manager = config_manager
         self.plugin_manager = plugin_manager
         self.chinese = chinese
@@ -52,9 +57,7 @@ class CommandHandler:
 
         # 初始化 CommandRegistry
         self.command_registry = create_command_registry(
-            config_manager,
-            plugin_manager,
-            chinese
+            config_manager, plugin_manager, chinese
         )
 
     async def handle_command(self, args: List[str]) -> CommandResult:
@@ -67,16 +70,19 @@ class CommandHandler:
         3. 单个命令回退处理
         """
         from time import monotonic
+
         start_ts = monotonic()
         cid = correlation_id()
 
         try:
             if not args:
                 logger.debug(f"cid={cid} empty_args -> help")
-                return await self._execute_system_command('help', [])
+                return await self._execute_system_command("help", [])
 
             command = args[0]
-            logger.info(f"cid={cid} enter handle_command command={command} args={args[1:]}")
+            logger.info(
+                f"cid={cid} enter handle_command command={command} args={args[1:]}"
+            )
 
             # 1. 尝试作为系统命令
             if self._is_system_command(command):
@@ -84,7 +90,7 @@ class CommandHandler:
                 return await self._execute_system_command(command, args[1:])
 
             # 2. 尝试作为插件命令 (plugin subcommand)
-            if command == 'plugin':
+            if command == "plugin":
                 logger.debug(f"cid={cid} route=plugin_subcommand args={args[1:]}")
                 return await self._handle_plugin_subcommand(args[1:])
 
@@ -106,14 +112,16 @@ class CommandHandler:
         """检查是否为系统命令"""
         return self.command_registry.has_command(command)
 
-    async def _execute_system_command(self, command: str, args: List[str]) -> CommandResult:
+    async def _execute_system_command(
+        self, command: str, args: List[str]
+    ) -> CommandResult:
         """执行系统命令"""
         cmd = self.command_registry.get(command)
         if cmd is None:
             return CommandResult(
                 success=False,
                 error=f"Unknown command: {command}",
-                exit_code=self.constants.exit_command_not_found
+                exit_code=self.constants.exit_command_not_found,
             )
 
         return await cmd.execute(args)
@@ -128,16 +136,16 @@ class CommandHandler:
         """
         if not args:
             # 默认显示 plugin list
-            return await self._execute_system_command('plugin:list', [])
+            return await self._execute_system_command("plugin:list", [])
 
         subcommand = args[0]
 
         # 映射 plugin 子命令到 CommandRegistry
         command_map = {
-            'list': 'plugin:list',
-            'info': 'plugin:info',
-            'enable': 'plugin:enable',
-            'disable': 'plugin:disable',
+            "list": "plugin:list",
+            "info": "plugin:info",
+            "enable": "plugin:enable",
+            "disable": "plugin:disable",
         }
 
         if subcommand in command_map:
@@ -148,11 +156,15 @@ class CommandHandler:
         # 未知的 plugin 子命令
         return CommandResult(
             success=False,
-            error=self.i18n.get_message('errors.unknown_plugin_command', command=subcommand),
-            exit_code=self.constants.exit_command_not_found
+            error=self.i18n.get_message(
+                "errors.unknown_plugin_command", command=subcommand
+            ),
+            exit_code=self.constants.exit_command_not_found,
         )
 
-    async def _try_execute_plugin_function(self, args: List[str]) -> Optional[CommandResult]:
+    async def _try_execute_plugin_function(
+        self, args: List[str]
+    ) -> Optional[CommandResult]:
         """
         尝试执行插件函数
 
@@ -182,7 +194,9 @@ class CommandHandler:
 
                 # 回退: sub 作为函数名，function 作为参数
                 if subplugin_name in plugin.functions:
-                    logger.debug(f"cid={cid} fallback=2layer plugin={plugin_name} func={subplugin_name}")
+                    logger.debug(
+                        f"cid={cid} fallback=2layer plugin={plugin_name} func={subplugin_name}"
+                    )
                     return await self._execute_plugin_function(
                         plugin_name, subplugin_name, [function_name] + args[3:]
                     )
@@ -190,7 +204,9 @@ class CommandHandler:
         # 2层: plugin function
         elif len(args) >= 2:
             plugin_name, function_name = args[0], args[1]
-            logger.debug(f"cid={cid} try_plugin depth=2 plugin={plugin_name} func={function_name}")
+            logger.debug(
+                f"cid={cid} try_plugin depth=2 plugin={plugin_name} func={function_name}"
+            )
 
             if plugin_name in self.plugin_manager.plugins:
                 return await self._execute_plugin_function(
@@ -200,10 +216,7 @@ class CommandHandler:
         return None
 
     async def _execute_plugin_function(
-        self,
-        plugin_name: str,
-        function_name: str,
-        args: List[str]
+        self, plugin_name: str, function_name: str, args: List[str]
     ) -> CommandResult:
         """执行插件函数 - 委托给 PluginManager"""
         cid = correlation_id()
@@ -228,12 +241,12 @@ class CommandHandler:
             logger.debug(f"cid={cid} single_command is_plugin={command}")
             # 可以选择执行插件的默认函数或显示信息
             # 这里选择显示信息
-            return await self._execute_system_command('plugin:info', [command])
+            return await self._execute_system_command("plugin:info", [command])
 
         # 完全未知的命令
         logger.warning(f"cid={cid} command_not_found command={command}")
         return CommandResult(
             success=False,
-            error=self.i18n.get_message('errors.command_not_found', command=command),
-            exit_code=self.constants.exit_command_not_found
+            error=self.i18n.get_message("errors.command_not_found", command=command),
+            exit_code=self.constants.exit_command_not_found,
         )
