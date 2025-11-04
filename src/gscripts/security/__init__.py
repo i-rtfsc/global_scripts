@@ -7,4 +7,4 @@ Global Scripts - 安全模块初始化
 from .validators import *
 from .sanitizers import *
 
-__all__ = ['validators', 'sanitizers']
+__all__ = ["validators", "sanitizers"]

@@ -8,7 +8,7 @@ from .plugin_service import PluginService
 from .plugin_executor import PluginExecutor
 
 __all__ = [
-    'ConfigService',
-    'PluginService',
-    'PluginExecutor',
+    "ConfigService",
+    "PluginService",
+    "PluginExecutor",
 ]

@@ -7,7 +7,7 @@ Completion generator based on router index
 
 import datetime
 from pathlib import Path
-from typing import Dict, Set, List, Tuple
+from typing import Dict, List, Tuple
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
@@ -20,8 +20,16 @@ class CompletionGenerator:
     """Generate shell completions from router index using Jinja2 templates"""
 
     # System commands that should always be available
-    SYSTEM_COMMANDS = ['help', 'version', 'plugin', 'refresh', 'status', 'doctor', 'parser']
-    PLUGIN_SUBCOMMANDS = ['list', 'info', 'enable', 'disable', 'create']
+    SYSTEM_COMMANDS = [
+        "help",
+        "version",
+        "plugin",
+        "refresh",
+        "status",
+        "doctor",
+        "parser",
+    ]
+    PLUGIN_SUBCOMMANDS = ["list", "info", "enable", "disable", "create"]
 
     def __init__(self, router_index_path: Path, templates_dir: Path = None):
         """
@@ -44,9 +52,9 @@ class CompletionGenerator:
 
         self.jinja_env = Environment(
             loader=FileSystemLoader(str(templates_dir)),
-            autoescape=select_autoescape(['html', 'xml']),
+            autoescape=select_autoescape(["html", "xml"]),
             trim_blocks=True,
-            lstrip_blocks=True
+            lstrip_blocks=True,
         )
 
     def _load_router_index(self) -> Dict:
@@ -56,13 +64,16 @@ class CompletionGenerator:
 
         try:
             import json
-            with open(self.router_index_path, 'r', encoding='utf-8') as f:
+
+            with open(self.router_index_path, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
             logger.warning(f"Failed to load router index: {e}")
             return {}
 
-    def _parse_commands(self, plugin_name: str) -> Tuple[List[str], Dict[str, List[str]]]:
+    def _parse_commands(
+        self, plugin_name: str
+    ) -> Tuple[List[str], Dict[str, List[str]]]:
         """
         Parse commands from plugin
 
@@ -72,15 +83,15 @@ class CompletionGenerator:
         Example:
             (['aosp', 'list'], {'brew': ['aliyun', 'github'], 'config': ['backup']})
         """
-        plugins = self.index.get('plugins', {})
+        plugins = self.index.get("plugins", {})
         plugin_data = plugins.get(plugin_name, {})
-        commands = plugin_data.get('commands', {})
+        commands = plugin_data.get("commands", {})
 
         single_word = []
         multi_word = {}
 
         for cmd_key in commands.keys():
-            parts = cmd_key.split(' ', 1)
+            parts = cmd_key.split(" ", 1)
             if len(parts) == 1:
                 # Single word command
                 single_word.append(cmd_key)
@@ -95,7 +106,7 @@ class CompletionGenerator:
 
     def _prepare_bash_context(self) -> Dict:
         """Prepare template context for bash completion"""
-        plugins = self.index.get('plugins', {})
+        plugins = self.index.get("plugins", {})
         plugin_names = sorted(plugins.keys())
 
         # Build plugin commands structure
@@ -108,83 +119,86 @@ class CompletionGenerator:
             level2_commands.update(multi_word.keys())
 
             plugin_commands[plugin_name] = {
-                'level2': sorted(level2_commands) if level2_commands else None,
-                'level3': multi_word if multi_word else None
+                "level2": sorted(level2_commands) if level2_commands else None,
+                "level3": multi_word if multi_word else None,
             }
 
         return {
-            'timestamp': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'system_commands': self.SYSTEM_COMMANDS,
-            'plugin_subcommands': self.PLUGIN_SUBCOMMANDS,
-            'plugin_names': plugin_names,
-            'plugins': plugin_commands
+            "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "system_commands": self.SYSTEM_COMMANDS,
+            "plugin_subcommands": self.PLUGIN_SUBCOMMANDS,
+            "plugin_names": plugin_names,
+            "plugins": plugin_commands,
         }
 
-    def _prepare_zsh_fish_context(self, language: str = 'zh') -> Dict:
+    def _prepare_zsh_fish_context(self, language: str = "zh") -> Dict:
         """Prepare template context for zsh/fish completion"""
         # Get system command descriptions
         try:
             from ..utils.i18n import I18nManager
-            i18n = I18nManager(chinese=(language == 'zh'))
-            help_desc = i18n.get_message('commands.help')
-            version_desc = i18n.get_message('commands.version')
-            plugin_desc = i18n.get_message('commands.plugin_management')
-            refresh_desc = i18n.get_message('commands.refresh')
-            status_desc = i18n.get_message('commands.system_status')
-            doctor_desc = i18n.get_message('commands.doctor')
-            parser_desc = i18n.get_message('commands.parser_management')
+
+            i18n = I18nManager(chinese=(language == "zh"))
+            help_desc = i18n.get_message("commands.help")
+            version_desc = i18n.get_message("commands.version")
+            plugin_desc = i18n.get_message("commands.plugin_management")
+            refresh_desc = i18n.get_message("commands.refresh")
+            status_desc = i18n.get_message("commands.system_status")
+            doctor_desc = i18n.get_message("commands.doctor")
+            parser_desc = i18n.get_message("commands.parser_management")
         except Exception:
             # Fallback to hardcoded if i18n fails
-            if language == 'zh':
-                help_desc = '显示帮助信息'
-                version_desc = '显示版本信息'
-                plugin_desc = '插件管理'
-                refresh_desc = '刷新系统'
-                status_desc = '显示系统状态'
-                doctor_desc = '系统诊断'
-                parser_desc = '解析器管理'
+            if language == "zh":
+                help_desc = "显示帮助信息"
+                version_desc = "显示版本信息"
+                plugin_desc = "插件管理"
+                refresh_desc = "刷新系统"
+                status_desc = "显示系统状态"
+                doctor_desc = "系统诊断"
+                parser_desc = "解析器管理"
             else:
-                help_desc = 'Show help information'
-                version_desc = 'Show version information'
-                plugin_desc = 'Plugin management'
-                refresh_desc = 'Refresh configuration'
-                status_desc = 'Show system status'
-                doctor_desc = 'Check system health'
-                parser_desc = 'Parser management'
+                help_desc = "Show help information"
+                version_desc = "Show version information"
+                plugin_desc = "Plugin management"
+                refresh_desc = "Refresh configuration"
+                status_desc = "Show system status"
+                doctor_desc = "Check system health"
+                parser_desc = "Parser management"
 
         return {
-            'timestamp': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'router_index_path': str(self.router_index_path.resolve()),
-            'language': language,
-            'help_desc': help_desc,
-            'version_desc': version_desc,
-            'plugin_desc': plugin_desc,
-            'refresh_desc': refresh_desc,
-            'status_desc': status_desc,
-            'doctor_desc': doctor_desc,
-            'parser_desc': parser_desc
+            "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "router_index_path": str(self.router_index_path.resolve()),
+            "language": language,
+            "help_desc": help_desc,
+            "version_desc": version_desc,
+            "plugin_desc": plugin_desc,
+            "refresh_desc": refresh_desc,
+            "status_desc": status_desc,
+            "doctor_desc": doctor_desc,
+            "parser_desc": parser_desc,
         }
 
     def generate_bash_completion(self) -> str:
         """Generate bash completion script using template"""
-        template = self.jinja_env.get_template('completion.bash.j2')
+        template = self.jinja_env.get_template("completion.bash.j2")
         context = self._prepare_bash_context()
         return template.render(**context)
 
-    def generate_zsh_completion(self, language: str = 'zh') -> str:
+    def generate_zsh_completion(self, language: str = "zh") -> str:
         """Generate zsh completion script using template"""
-        template = self.jinja_env.get_template('completion.zsh.j2')
+        template = self.jinja_env.get_template("completion.zsh.j2")
         context = self._prepare_zsh_fish_context(language)
         return template.render(**context)
 
-    def generate_fish_completion(self, language: str = 'zh') -> str:
+    def generate_fish_completion(self, language: str = "zh") -> str:
         """Generate fish completion script using template"""
-        template = self.jinja_env.get_template('completion.fish.j2')
+        template = self.jinja_env.get_template("completion.fish.j2")
         context = self._prepare_zsh_fish_context(language)
         return template.render(**context)
 
 
-def generate_completions_from_index(router_index_path: Path, output_dir: Path, language: str = 'zh') -> Tuple[Path, Path, Path]:
+def generate_completions_from_index(
+    router_index_path: Path, output_dir: Path, language: str = "zh"
+) -> Tuple[Path, Path, Path]:
     """
     Generate completion scripts from router index
 
@@ -202,20 +216,20 @@ def generate_completions_from_index(router_index_path: Path, output_dir: Path, l
 
     # Generate bash completion
     bash_content = generator.generate_bash_completion()
-    bash_file = output_dir / 'gs.bash'
-    with open(bash_file, 'w', encoding='utf-8') as f:
+    bash_file = output_dir / "gs.bash"
+    with open(bash_file, "w", encoding="utf-8") as f:
         f.write(bash_content)
 
     # Generate zsh completion
     zsh_content = generator.generate_zsh_completion(language=language)
-    zsh_file = output_dir / 'gs.zsh'
-    with open(zsh_file, 'w', encoding='utf-8') as f:
+    zsh_file = output_dir / "gs.zsh"
+    with open(zsh_file, "w", encoding="utf-8") as f:
         f.write(zsh_content)
 
     # Generate fish completion
     fish_content = generator.generate_fish_completion(language=language)
-    fish_file = output_dir / 'gs.fish'
-    with open(fish_file, 'w', encoding='utf-8') as f:
+    fish_file = output_dir / "gs.fish"
+    with open(fish_file, "w", encoding="utf-8") as f:
         f.write(fish_content)
 
     logger.info(f"Generated completion scripts: {bash_file}, {zsh_file}, {fish_file}")

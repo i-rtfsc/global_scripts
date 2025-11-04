@@ -33,6 +33,7 @@ def test_container() -> Generator[DIContainer, None, None]:
 def mock_filesystem(test_container: DIContainer) -> InMemoryFileSystem:
     """Provide mock filesystem"""
     from src.gscripts.domain.interfaces import IFileSystem
+
     return test_container.resolve(IFileSystem)
 
 
@@ -40,6 +41,7 @@ def mock_filesystem(test_container: DIContainer) -> InMemoryFileSystem:
 def mock_environment(test_container: DIContainer) -> MockEnvironment:
     """Provide mock environment"""
     from src.gscripts.domain.interfaces import IEnvironment
+
     return test_container.resolve(IEnvironment)
 
 
@@ -147,10 +149,10 @@ goodbye() {
 def mock_parser_config():
     """Mock parser configuration for testing"""
     return {
-        'enabled': ['python', 'shell', 'config'],
-        'disabled': [],
-        'custom_paths': [],
-        'priority_overrides': {}
+        "enabled": ["python", "shell", "config"],
+        "disabled": [],
+        "custom_paths": [],
+        "priority_overrides": {},
     }
 
 
@@ -161,26 +163,23 @@ def extended_parser_config(tmp_path):
     custom_dir.mkdir()
 
     return {
-        'enabled': ['python', 'shell', 'config', 'yaml', 'toml'],
-        'disabled': ['experimental'],
-        'custom_paths': [str(custom_dir)],
-        'priority_overrides': {
-            'yaml': 15,
-            'toml': 25
-        }
+        "enabled": ["python", "shell", "config", "yaml", "toml"],
+        "disabled": ["experimental"],
+        "custom_paths": [str(custom_dir)],
+        "priority_overrides": {"yaml": 15, "toml": 25},
     }
 
 
 __all__ = [
-    'test_container',
-    'mock_filesystem',
-    'mock_environment',
-    'temp_plugin_dir',
-    'sample_plugin_config',
-    'sample_yaml_content',
-    'sample_toml_content',
-    'sample_python_plugin',
-    'sample_shell_plugin',
-    'mock_parser_config',
-    'extended_parser_config',
+    "test_container",
+    "mock_filesystem",
+    "mock_environment",
+    "temp_plugin_dir",
+    "sample_plugin_config",
+    "sample_yaml_content",
+    "sample_toml_content",
+    "sample_python_plugin",
+    "sample_shell_plugin",
+    "mock_parser_config",
+    "extended_parser_config",
 ]

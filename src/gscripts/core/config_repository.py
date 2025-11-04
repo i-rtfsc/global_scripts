@@ -67,7 +67,7 @@ class JsonConfigRepository(ConfigRepository):
         # 加载项目配置
         if self.config_file.exists():
             try:
-                with open(self.config_file, 'r', encoding='utf-8') as f:
+                with open(self.config_file, "r", encoding="utf-8") as f:
                     config = json.load(f)
             except Exception as e:
                 logger.warning(f"Failed to load config from {self.config_file}: {e}")
@@ -75,11 +75,13 @@ class JsonConfigRepository(ConfigRepository):
         # 加载并合并用户配置
         if self.user_config_file and self.user_config_file.exists():
             try:
-                with open(self.user_config_file, 'r', encoding='utf-8') as f:
+                with open(self.user_config_file, "r", encoding="utf-8") as f:
                     user_config = json.load(f)
                     config.update(user_config)
             except Exception as e:
-                logger.warning(f"Failed to load user config from {self.user_config_file}: {e}")
+                logger.warning(
+                    f"Failed to load user config from {self.user_config_file}: {e}"
+                )
 
         self._cache = config
         return config
@@ -99,7 +101,7 @@ class JsonConfigRepository(ConfigRepository):
         try:
             target_file.parent.mkdir(parents=True, exist_ok=True)
 
-            with open(target_file, 'w', encoding='utf-8') as f:
+            with open(target_file, "w", encoding="utf-8") as f:
                 json.dump(config, f, indent=2, ensure_ascii=False)
 
             self._cache = config
@@ -181,8 +183,7 @@ _config_service: Optional[ConfigService] = None
 
 
 def get_config_service(
-    config_file: Optional[Path] = None,
-    user_config_file: Optional[Path] = None
+    config_file: Optional[Path] = None, user_config_file: Optional[Path] = None
 ) -> ConfigService:
     """
     获取全局配置服务单例
@@ -200,12 +201,15 @@ def get_config_service(
         # 默认路径
         if config_file is None:
             from pathlib import Path
+
             project_root = Path.cwd()
             config_file = project_root / "config" / "gs.json"
 
         if user_config_file is None:
             user_home = Path.home()
-            user_config_file = user_home / ".config" / "global-scripts" / "config" / "gs.json"
+            user_config_file = (
+                user_home / ".config" / "global-scripts" / "config" / "gs.json"
+            )
 
         repository = JsonConfigRepository(config_file, user_config_file)
         _config_service = ConfigService(repository)

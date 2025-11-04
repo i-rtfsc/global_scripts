@@ -101,42 +101,60 @@ gs <plugin> <subplugin> <function> [args]
 
 ## Architecture Overview
 
+**Note**: Clean Architecture migration completed as of Phase 3 (Nov 2024). The legacy `core/plugin_manager.py` and `core/plugin_loader.py` have been removed.
+
 ### Core Execution Flow
 
 ```
-User Command → CLI Layer → Command Handler → Plugin Manager → Plugin Executor → Result
-              (main.py)   (commands.py)      (plugin_manager.py)  (plugin_executor.py)
+User Command → CLI Layer → Command Handler → Adapter → Application Services → Domain/Infrastructure
+              (main.py)   (commands.py)      (adapter)   (PluginService)      (repositories)
 ```
 
-### Key Architectural Components
+### Clean Architecture Layers
 
 1. **CLI Layer** (`src/gscripts/cli/`)
-   - `main.py`: Entry point, argument parsing, async event loop
+   - `main.py`: Entry point, argument parsing, async event loop initialization
    - `commands.py`: Command routing and delegation
    - `formatters.py`: Output formatting with i18n support
+   - `command_classes/`: Individual command implementations
 
-2. **Core Layer** (`src/gscripts/core/`)
-   - `plugin_manager.py`: Plugin lifecycle, enable/disable, health checks
-   - `plugin_loader.py`: Discovers and parses plugins from directories
+2. **Application Layer** (`src/gscripts/application/`)
+   - `services/plugin_service.py`: Plugin lifecycle management (load, enable, disable, health checks)
+   - `services/plugin_executor.py`: Safe plugin execution with validation and timeout control
+   - `services/config_service.py`: Configuration management
+   - Orchestrates domain logic and coordinates infrastructure
+
+3. **Domain Layer** (`src/gscripts/domain/`)
+   - `interfaces/`: Contracts (IPluginLoader, IPluginRepository, IFileSystem)
+   - Pure business logic, no dependencies on outer layers
+   - Defines plugin models and rules
+
+4. **Infrastructure Layer** (`src/gscripts/infrastructure/`)
+   - `adapters/plugin_manager_adapter.py`: Legacy API compatibility adapter
+   - `persistence/plugin_loader.py`: Plugin discovery and loading implementation
+   - `persistence/plugin_repository.py`: Plugin data access
+   - `execution/process_executor.py`: Subprocess execution
+   - `filesystem/`: File system operations
+   - Implements domain interfaces
+
+5. **Core Layer** (`src/gscripts/core/`) - **Transitional, being phased out**
    - `config_manager.py`: Configuration loading (user > project > defaults)
    - `command_executor.py`: Safe command execution with whitelist/blacklist
+   - `constants.py`: Global constants and configuration
+   - `logger.py`: Logging setup and utilities
    - `router/indexer.py`: Builds command routing index for shell integration
 
-3. **Models Layer** (`src/gscripts/models/`)
+6. **Models Layer** (`src/gscripts/models/`)
    - `result.py`: `CommandResult` dataclass for unified return values
    - `plugin.py`: `PluginMetadata` and `PluginType` enum
    - `function.py`: `FunctionInfo` for plugin function metadata
 
-4. **Plugin System** (`src/gscripts/plugins/`)
+7. **Plugin System** (`src/gscripts/plugins/`)
    - `base.py`: `BasePlugin` and `BaseSubPlugin` base classes
    - `decorators.py`: `@plugin_function` and `@subplugin` decorators
    - `parsers/`: Python, Shell, and Config parsers for plugin discovery
    - `discovery.py`: Plugin file scanning and validation
-
-5. **Infrastructure Layer** (`src/gscripts/infrastructure/`)
-   - `execution/process_executor.py`: Async subprocess execution
-   - `persistence/`: Config and plugin data persistence
-   - `di/container.py`: Dependency injection setup
+   - `loader.py`: RefactoredPluginLoader for coordinated plugin loading
 
 ### Plugin Types
 

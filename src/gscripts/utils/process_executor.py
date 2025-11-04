@@ -22,6 +22,7 @@ logger = get_logger(tag="UTILS.PROCESS_EXECUTOR", name=__name__)
 @dataclass
 class ProcessConfig:
     """进程配置"""
+
     timeout: int = 30
     cwd: Optional[Path] = None
     env: Optional[Dict[str, str]] = None
@@ -43,7 +44,7 @@ class ProcessExecutor:
         self,
         command: Union[str, List[str]],
         config: Optional[ProcessConfig] = None,
-        **kwargs
+        **kwargs,
     ) -> CommandResult:
         """执行命令
 
@@ -59,10 +60,10 @@ class ProcessExecutor:
             config = ProcessConfig(timeout=self.default_timeout)
 
         # 允许通过kwargs覆盖config
-        timeout = kwargs.get('timeout', config.timeout)
-        cwd = kwargs.get('cwd', config.cwd)
-        env = kwargs.get('env', config.env)
-        capture_output = kwargs.get('capture_output', config.capture_output)
+        timeout = kwargs.get("timeout", config.timeout)
+        cwd = kwargs.get("cwd", config.cwd)
+        env = kwargs.get("env", config.env)
+        capture_output = kwargs.get("capture_output", config.capture_output)
 
         cid = correlation_id()
         start_time = time.monotonic()
@@ -73,7 +74,7 @@ class ProcessExecutor:
             cmd_str = command
         else:
             cmd_list = command
-            cmd_str = ' '.join(command)
+            cmd_str = " ".join(command)
 
         logger.debug(f"cid={cid} Executing: {cmd_str}, timeout={timeout}")
 
@@ -101,7 +102,7 @@ class ProcessExecutor:
                 stderr=stderr,
                 cwd=cwd,
                 env=final_env,
-                preexec_fn=os.setsid if os.name == 'posix' else None
+                preexec_fn=os.setsid if os.name == "posix" else None,
             )
 
             process_id = str(process.pid)
@@ -110,12 +111,15 @@ class ProcessExecutor:
             # 等待进程完成或超时
             try:
                 stdout_data, stderr_data = await asyncio.wait_for(
-                    process.communicate(),
-                    timeout=timeout
+                    process.communicate(), timeout=timeout
                 )
 
-                output = stdout_data.decode('utf-8', errors='replace') if stdout_data else ""
-                error = stderr_data.decode('utf-8', errors='replace') if stderr_data else ""
+                output = (
+                    stdout_data.decode("utf-8", errors="replace") if stdout_data else ""
+                )
+                error = (
+                    stderr_data.decode("utf-8", errors="replace") if stderr_data else ""
+                )
 
                 elapsed = duration(start_time)
 
@@ -126,10 +130,10 @@ class ProcessExecutor:
                     exit_code=process.returncode or 0,
                     execution_time=elapsed / 1000.0,  # 转换为秒
                     metadata={
-                        'command': cmd_str,
-                        'pid': process.pid,
-                        'cwd': str(cwd) if cwd else None
-                    }
+                        "command": cmd_str,
+                        "pid": process.pid,
+                        "cwd": str(cwd) if cwd else None,
+                    },
                 )
 
                 logger.debug(
@@ -154,10 +158,7 @@ class ProcessExecutor:
                     error=f"命令执行超时 (>{timeout}秒)",
                     exit_code=-1,
                     execution_time=timeout,
-                    metadata={
-                        'command': cmd_str,
-                        'timeout': True
-                    }
+                    metadata={"command": cmd_str, "timeout": True},
                 )
 
         except Exception as e:
@@ -175,10 +176,7 @@ class ProcessExecutor:
                 error=f"命令执行失败: {str(e)}",
                 exit_code=-1,
                 execution_time=elapsed / 1000.0,
-                metadata={
-                    'command': cmd_str,
-                    'exception': str(e)
-                }
+                metadata={"command": cmd_str, "exception": str(e)},
             )
 
         finally:
@@ -187,10 +185,7 @@ class ProcessExecutor:
                 del self.running_processes[process_id]
 
     async def execute_shell(
-        self,
-        command: str,
-        config: Optional[ProcessConfig] = None,
-        **kwargs
+        self, command: str, config: Optional[ProcessConfig] = None, **kwargs
     ) -> CommandResult:
         """执行Shell命令
 
@@ -212,10 +207,10 @@ class ProcessExecutor:
 
         logger.debug(f"cid={cid} Executing shell: {command}")
 
-        timeout = kwargs.get('timeout', config.timeout)
-        cwd = kwargs.get('cwd', config.cwd)
-        env = kwargs.get('env', config.env)
-        capture_output = kwargs.get('capture_output', config.capture_output)
+        timeout = kwargs.get("timeout", config.timeout)
+        cwd = kwargs.get("cwd", config.cwd)
+        env = kwargs.get("env", config.env)
+        capture_output = kwargs.get("capture_output", config.capture_output)
 
         process = None
         process_id = None
@@ -241,7 +236,7 @@ class ProcessExecutor:
                 stderr=stderr,
                 cwd=cwd,
                 env=final_env,
-                preexec_fn=os.setsid if os.name == 'posix' else None
+                preexec_fn=os.setsid if os.name == "posix" else None,
             )
 
             process_id = str(process.pid)
@@ -250,12 +245,15 @@ class ProcessExecutor:
             # 等待进程完成或超时
             try:
                 stdout_data, stderr_data = await asyncio.wait_for(
-                    process.communicate(),
-                    timeout=timeout
+                    process.communicate(), timeout=timeout
                 )
 
-                output = stdout_data.decode('utf-8', errors='replace') if stdout_data else ""
-                error = stderr_data.decode('utf-8', errors='replace') if stderr_data else ""
+                output = (
+                    stdout_data.decode("utf-8", errors="replace") if stdout_data else ""
+                )
+                error = (
+                    stderr_data.decode("utf-8", errors="replace") if stderr_data else ""
+                )
 
                 elapsed = duration(start_time)
 
@@ -266,11 +264,11 @@ class ProcessExecutor:
                     exit_code=process.returncode or 0,
                     execution_time=elapsed / 1000.0,
                     metadata={
-                        'command': command,
-                        'pid': process.pid,
-                        'cwd': str(cwd) if cwd else None,
-                        'shell': True
-                    }
+                        "command": command,
+                        "pid": process.pid,
+                        "cwd": str(cwd) if cwd else None,
+                        "shell": True,
+                    },
                 )
 
                 logger.debug(
@@ -294,11 +292,7 @@ class ProcessExecutor:
                     error=f"Shell命令执行超时 (>{timeout}秒)",
                     exit_code=-1,
                     execution_time=timeout,
-                    metadata={
-                        'command': command,
-                        'timeout': True,
-                        'shell': True
-                    }
+                    metadata={"command": command, "timeout": True, "shell": True},
                 )
 
         except Exception as e:
@@ -316,11 +310,7 @@ class ProcessExecutor:
                 error=f"Shell命令执行失败: {str(e)}",
                 exit_code=-1,
                 execution_time=elapsed / 1000.0,
-                metadata={
-                    'command': command,
-                    'exception': str(e),
-                    'shell': True
-                }
+                metadata={"command": command, "exception": str(e), "shell": True},
             )
 
         finally:
@@ -333,7 +323,7 @@ class ProcessExecutor:
 
         try:
             if process and process.returncode is None:
-                if os.name == 'posix':
+                if os.name == "posix":
                     # POSIX系统:终止整个进程组
                     try:
                         os.killpg(os.getpgid(process.pid), signal.SIGTERM)
@@ -360,12 +350,14 @@ class ProcessExecutor:
     def kill_all(self):
         """终止所有运行中的进程"""
         cid = correlation_id()
-        logger.info(f"cid={cid} Killing all running processes: count={len(self.running_processes)}")
+        logger.info(
+            f"cid={cid} Killing all running processes: count={len(self.running_processes)}"
+        )
 
         for process_id, process in list(self.running_processes.items()):
             try:
                 if process.returncode is None:
-                    if os.name == 'posix':
+                    if os.name == "posix":
                         os.killpg(os.getpgid(process.pid), signal.SIGTERM)
                     else:
                         process.terminate()
@@ -379,9 +371,9 @@ class ProcessExecutor:
         result = {}
         for process_id, process in self.running_processes.items():
             result[process_id] = {
-                'pid': process.pid,
-                'returncode': process.returncode,
-                'running': process.returncode is None
+                "pid": process.pid,
+                "returncode": process.returncode,
+                "running": process.returncode is None,
             }
         return result
 

@@ -9,6 +9,7 @@ from typing import Dict, Any, Optional
 @dataclass
 class ExecutionMetadata:
     """命令执行元数据"""
+
     command: Optional[str] = None
     pid: Optional[int] = None
     cwd: Optional[str] = None
@@ -33,6 +34,7 @@ class CommandResult:
         execution_time: 执行耗时(秒)
         metadata: 额外的元数据信息
     """
+
     success: bool
     stdout: str = ""
     stderr: str = ""
@@ -55,7 +57,7 @@ class CommandResult:
         """命令是否失败"""
         return not self.success
 
-    def with_metadata(self, **kwargs) -> 'CommandResult':
+    def with_metadata(self, **kwargs) -> "CommandResult":
         """添加元数据并返回自身(链式调用)"""
         self.metadata.update(kwargs)
         return self

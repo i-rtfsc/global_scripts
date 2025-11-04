@@ -4,11 +4,9 @@ Tests the plugin executor service with dependency injection
 """
 
 import pytest
-import asyncio
 from pathlib import Path
 
 from src.gscripts.infrastructure import DIContainer, configure_services
-from src.gscripts.infrastructure.filesystem import InMemoryFileSystem
 from src.gscripts.application.services import PluginExecutor, PluginService
 from src.gscripts.domain.interfaces import IFileSystem, IPluginLoader
 
@@ -21,23 +19,23 @@ def test_container_with_executor():
     config_path = Path("/test/gs.json")
 
     configure_services(
-        container,
-        use_mocks=True,
-        plugins_dir=plugins_dir,
-        config_path=config_path
+        container, use_mocks=True, plugins_dir=plugins_dir, config_path=config_path
     )
 
     # Setup mock plugins
     fs = container.resolve(IFileSystem)
 
     # Plugin 1: Config-based command
-    fs.write_json(plugins_dir / "test_plugin" / "plugin.json", {
-        "name": "test_plugin",
-        "version": "1.0.0",
-        "description": {"zh": "测试插件", "en": "Test Plugin"},
-        "enabled": True,
-        "priority": 10
-    })
+    fs.write_json(
+        plugins_dir / "test_plugin" / "plugin.json",
+        {
+            "name": "test_plugin",
+            "version": "1.0.0",
+            "description": {"zh": "测试插件", "en": "Test Plugin"},
+            "enabled": True,
+            "priority": 10,
+        },
+    )
 
     return container
 
@@ -54,8 +52,7 @@ class TestPluginExecutor:
 
     @pytest.mark.asyncio
     async def test_executor_has_loader_and_process_executor(
-        self,
-        test_container_with_executor
+        self, test_container_with_executor
     ):
         """Test that PluginExecutor is properly configured"""
         executor = test_container_with_executor.resolve(PluginExecutor)
@@ -66,8 +63,7 @@ class TestPluginExecutor:
 
     @pytest.mark.asyncio
     async def test_execute_nonexistent_plugin_returns_error(
-        self,
-        test_container_with_executor
+        self, test_container_with_executor
     ):
         """Test executing a non-existent plugin returns error"""
         executor = test_container_with_executor.resolve(PluginExecutor)
@@ -78,9 +74,7 @@ class TestPluginExecutor:
 
         # Try to execute non-existent plugin
         result = await executor.execute_plugin_function(
-            "nonexistent_plugin",
-            "test_function",
-            []
+            "nonexistent_plugin", "test_function", []
         )
 
         assert result.success is False
@@ -89,8 +83,7 @@ class TestPluginExecutor:
 
     @pytest.mark.asyncio
     async def test_execute_nonexistent_function_returns_error(
-        self,
-        test_container_with_executor
+        self, test_container_with_executor
     ):
         """Test executing non-existent function in valid plugin returns error"""
         executor = test_container_with_executor.resolve(PluginExecutor)
@@ -107,27 +100,22 @@ class TestPluginExecutor:
                     "existing_function": {
                         "name": "existing_function",
                         "type": "config",
-                        "command": "echo 'test'"
+                        "command": "echo 'test'",
                     }
-                }
+                },
             }
         }
 
         # Try to execute non-existent function
         result = await executor.execute_plugin_function(
-            "test_plugin",
-            "nonexistent_function",
-            []
+            "test_plugin", "nonexistent_function", []
         )
 
         assert result.success is False
         assert "not found" in result.error.lower()
 
     @pytest.mark.asyncio
-    async def test_observer_events_on_execution(
-        self,
-        test_container_with_executor
-    ):
+    async def test_observer_events_on_execution(self, test_container_with_executor):
         """Test that executor fires EXECUTING and EXECUTED events"""
         from src.gscripts.plugins.interfaces import IPluginObserver, PluginEvent
 
@@ -153,9 +141,9 @@ class TestPluginExecutor:
                     "test_cmd": {
                         "name": "test_cmd",
                         "type": "config",
-                        "command": "echo 'test'"
+                        "command": "echo 'test'",
                     }
-                }
+                },
             }
         }
 
@@ -177,10 +165,7 @@ class TestPluginExecutorIntegration:
     """Integration tests with full DI stack"""
 
     @pytest.mark.asyncio
-    async def test_full_stack_plugin_execution(
-        self,
-        test_container_with_executor
-    ):
+    async def test_full_stack_plugin_execution(self, test_container_with_executor):
         """Test full stack from service resolution to execution"""
         # Resolve all services
         plugin_service = test_container_with_executor.resolve(PluginService)

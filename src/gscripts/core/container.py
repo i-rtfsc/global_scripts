@@ -16,9 +16,8 @@ Lightweight Dependency Injection Container
 
 import threading
 from typing import Any, Callable, Dict, Type, TypeVar, Optional, get_type_hints
-from functools import wraps
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class Container:
@@ -57,10 +56,7 @@ class Container:
             self._singletons[interface] = instance
 
     def register_factory(
-        self,
-        interface: Type[T],
-        factory: Callable[..., T],
-        singleton: bool = False
+        self, interface: Type[T], factory: Callable[..., T], singleton: bool = False
     ) -> None:
         """
         注册工厂函数
@@ -88,10 +84,7 @@ class Container:
                 self._factories[interface] = factory
 
     def register_type(
-        self,
-        interface: Type[T],
-        implementation: Type[T],
-        singleton: bool = False
+        self, interface: Type[T], implementation: Type[T], singleton: bool = False
     ) -> None:
         """
         注册类型（自动创建工厂）
@@ -101,6 +94,7 @@ class Container:
             implementation: 实现类型
             singleton: 是否单例
         """
+
         def factory():
             # 尝试自动注入依赖
             return self._auto_inject(implementation)
@@ -163,7 +157,7 @@ class Container:
             # 构建参数
             kwargs = {}
             for param_name, param_type in hints.items():
-                if param_name == 'return':
+                if param_name == "return":
                     continue
 
                 # 尝试解析依赖
@@ -188,7 +182,7 @@ class Container:
             self._singletons.clear()
             self._factories.clear()
 
-    def clone(self) -> 'Container':
+    def clone(self) -> "Container":
         """克隆容器（浅拷贝）"""
         new_container = Container()
         new_container._singletons = self._singletons.copy()
@@ -222,6 +216,7 @@ def reset_container() -> None:
 
 # ============= 装饰器 =============
 
+
 def injectable(singleton: bool = False):
     """
     可注入装饰器
@@ -236,6 +231,7 @@ def injectable(singleton: bool = False):
             self.dependency = dependency
     ```
     """
+
     def decorator(cls: Type[T]) -> Type[T]:
         container = get_container()
 
@@ -274,6 +270,7 @@ def inject(interface: Type[T]) -> T:
 
 # ============= 上下文管理器 =============
 
+
 class ContainerScope:
     """
     容器作用域
@@ -307,10 +304,10 @@ class ContainerScope:
 
 
 __all__ = [
-    'Container',
-    'get_container',
-    'reset_container',
-    'injectable',
-    'inject',
-    'ContainerScope',
+    "Container",
+    "get_container",
+    "reset_container",
+    "injectable",
+    "inject",
+    "ContainerScope",
 ]

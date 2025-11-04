@@ -15,14 +15,15 @@ from rich.panel import Panel
 from rich.text import Text
 from gscripts.utils.color_helpers import get_color_helper
 
+
 def test_color_helpers():
     """测试颜色辅助工具"""
     console = Console()
     color_helper = get_color_helper()
 
-    console.print("\n" + "="*70, style="bold blue")
+    console.print("\n" + "=" * 70, style="bold blue")
     console.print("        颜色辅助工具测试", style="bold magenta")
-    console.print("="*70 + "\n", style="bold blue")
+    console.print("=" * 70 + "\n", style="bold blue")
 
     # 测试插件类型颜色
     console.print("[bold cyan]1. 插件类型颜色测试:[/bold cyan]\n")
@@ -73,13 +74,14 @@ def test_color_helpers():
         colored = color_helper.colorize_number(num, "bright_green")
         console.print(f"  数字: {colored}")
 
+
 def test_rich_components():
     """测试 Rich 组件美化"""
     console = Console()
 
-    console.print("\n" + "="*70, style="bold blue")
+    console.print("\n" + "=" * 70, style="bold blue")
     console.print("        Rich 组件美化测试", style="bold magenta")
-    console.print("="*70 + "\n", style="bold blue")
+    console.print("=" * 70 + "\n", style="bold blue")
 
     # 测试 Panel
     console.print("[bold cyan]1. Panel 标题测试:[/bold cyan]\n")
@@ -108,17 +110,18 @@ def test_rich_components():
 
     console.print()
 
+
 def test_table_with_colors():
     """测试带颜色的表格"""
     from gscripts.utils.rich_table import RichTableFormatter
     from gscripts.utils.color_helpers import get_color_helper
 
     console = Console()
-    console.print("\n" + "="*70, style="bold blue")
+    console.print("\n" + "=" * 70, style="bold blue")
     console.print("        彩色表格测试", style="bold magenta")
-    console.print("="*70 + "\n", style="bold blue")
+    console.print("=" * 70 + "\n", style="bold blue")
 
-    formatter = RichTableFormatter(style='rounded')
+    formatter = RichTableFormatter(style="rounded")
     color_helper = get_color_helper()
 
     # 测试插件列表表格
@@ -135,22 +138,41 @@ def test_table_with_colors():
 
     rows = []
     for name, status, ptype, priority, version, cmd_count, desc in plugins:
-        rows.append([
-            f"[bold white]{name}[/bold white]",
-            color_helper.colorize_status(status),
-            color_helper.colorize_type(ptype),
-            color_helper.colorize_number(priority, "bright_blue"),
-            f"[dim]{version}[/dim]",
-            color_helper.colorize_number(cmd_count, "bright_green"),
-            f"[dim]{desc}[/dim]",
-        ])
+        rows.append(
+            [
+                f"[bold white]{name}[/bold white]",
+                color_helper.colorize_status(status),
+                color_helper.colorize_type(ptype),
+                color_helper.colorize_number(priority, "bright_blue"),
+                f"[dim]{version}[/dim]",
+                color_helper.colorize_number(cmd_count, "bright_green"),
+                f"[dim]{desc}[/dim]",
+            ]
+        )
 
     formatter.print_table(
-        headers, rows,
+        headers,
+        rows,
         title="插件列表",
         show_footer=True,
-        column_justifies=["left", "center", "center", "center", "center", "right", "left"],
-        footer_values=[f"[bold green]总计: {len(rows)}[/bold green]", "", "", "", "", f"[bold green]140[/bold green]", ""]
+        column_justifies=[
+            "left",
+            "center",
+            "center",
+            "center",
+            "center",
+            "right",
+            "left",
+        ],
+        footer_values=[
+            f"[bold green]总计: {len(rows)}[/bold green]",
+            "",
+            "",
+            "",
+            "",
+            "[bold green]140[/bold green]",
+            "",
+        ],
     )
 
     # 测试命令列表表格
@@ -159,30 +181,69 @@ def test_table_with_colors():
     headers2 = ["命令", "子插件", "函数", "类型", "用法", "描述"]
 
     commands = [
-        ("gs android device devices", "device", "devices", "python", "gs android device devices", "列出所有连接的设备"),
-        ("gs android device connect", "device", "connect", "python", "gs android device connect <ip[:port]>", "通过IP连接设备"),
-        ("gs android emulator list", "emulator", "list", "python", "gs android emulator list", "列出所有可用模拟器"),
-        ("gs android logcat clear", "logcat", "clear", "python", "gs android logcat clear [tag]", "清除日志"),
+        (
+            "gs android device devices",
+            "device",
+            "devices",
+            "python",
+            "gs android device devices",
+            "列出所有连接的设备",
+        ),
+        (
+            "gs android device connect",
+            "device",
+            "connect",
+            "python",
+            "gs android device connect <ip[:port]>",
+            "通过IP连接设备",
+        ),
+        (
+            "gs android emulator list",
+            "emulator",
+            "list",
+            "python",
+            "gs android emulator list",
+            "列出所有可用模拟器",
+        ),
+        (
+            "gs android logcat clear",
+            "logcat",
+            "clear",
+            "python",
+            "gs android logcat clear [tag]",
+            "清除日志",
+        ),
     ]
 
     rows2 = []
     for cmd, subplugin, func, ptype, usage, desc in commands:
-        rows2.append([
-            f"[bold white]{cmd}[/bold white]",
-            color_helper.colorize_subplugin(subplugin),
-            f"[dim]{func}[/dim]",
-            color_helper.colorize_type(ptype),
-            color_helper.colorize_usage(usage),
-            f"[dim]{desc}[/dim]",
-        ])
+        rows2.append(
+            [
+                f"[bold white]{cmd}[/bold white]",
+                color_helper.colorize_subplugin(subplugin),
+                f"[dim]{func}[/dim]",
+                color_helper.colorize_type(ptype),
+                color_helper.colorize_usage(usage),
+                f"[dim]{desc}[/dim]",
+            ]
+        )
 
     formatter.print_table(
-        headers2, rows2,
+        headers2,
+        rows2,
         title="命令列表",
         show_footer=True,
         column_justifies=["left", "center", "center", "center", "left", "left"],
-        footer_values=[f"[bold green]共 {len(rows2)} 个命令[/bold green]", "", "", "", "", ""]
+        footer_values=[
+            f"[bold green]共 {len(rows2)} 个命令[/bold green]",
+            "",
+            "",
+            "",
+            "",
+            "",
+        ],
     )
+
 
 if __name__ == "__main__":
     test_color_helpers()
@@ -190,6 +251,6 @@ if __name__ == "__main__":
     test_table_with_colors()
 
     console = Console()
-    console.print("\n" + "="*70, style="bold blue")
+    console.print("\n" + "=" * 70, style="bold blue")
     console.print("        ✅ 所有测试完成！", style="bold green")
-    console.print("="*70 + "\n", style="bold blue")
+    console.print("=" * 70 + "\n", style="bold blue")

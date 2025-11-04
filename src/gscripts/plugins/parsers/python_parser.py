@@ -27,9 +27,11 @@ class PythonFunctionParser(FunctionParser):
 
     def can_parse(self, file: Path) -> bool:
         """检查是否为 Python 文件"""
-        return file.suffix == '.py'
+        return file.suffix == ".py"
 
-    async def parse(self, file: Path, plugin_name: str, subplugin_name: str = "") -> List[FunctionInfo]:
+    async def parse(
+        self, file: Path, plugin_name: str, subplugin_name: str = ""
+    ) -> List[FunctionInfo]:
         """
         解析 Python 文件中的函数
 
@@ -44,11 +46,11 @@ class PythonFunctionParser(FunctionParser):
         functions = []
 
         try:
-            with open(file, 'r', encoding='utf-8') as f:
+            with open(file, "r", encoding="utf-8") as f:
                 content = f.read()
 
             # 使用正则表达式查找装饰器
-            pattern = r'@plugin_function\((.*?)\)\s*(?:async\s+)?def\s+(\w+)'
+            pattern = r"@plugin_function\((.*?)\)\s*(?:async\s+)?def\s+(\w+)"
             matches = re.finditer(pattern, content, re.DOTALL)
 
             for match in matches:
@@ -61,7 +63,7 @@ class PythonFunctionParser(FunctionParser):
                     func_name,
                     plugin_name,
                     subplugin_name,
-                    file  # Pass file path
+                    file,  # Pass file path
                 )
 
                 if func_info:
@@ -78,7 +80,7 @@ class PythonFunctionParser(FunctionParser):
         func_name: str,
         plugin_name: str,
         subplugin_name: str,
-        file: Path
+        file: Path,
     ) -> FunctionInfo:
         """
         解析装饰器参数
@@ -97,7 +99,7 @@ class PythonFunctionParser(FunctionParser):
         try:
             # 构造一个完整的函数调用表达式
             expr = f"f({decorator_content})"
-            tree = ast.parse(expr, mode='eval')
+            tree = ast.parse(expr, mode="eval")
 
             # 提取关键字参数
             call = tree.body
@@ -109,19 +111,19 @@ class PythonFunctionParser(FunctionParser):
                 kwargs[key] = value
 
             # 构建 FunctionInfo
-            description = kwargs.get('description', {})
+            description = kwargs.get("description", {})
             if isinstance(description, str):
-                description = {'en': description}
+                description = {"en": description}
 
             return FunctionInfo(
-                name=kwargs.get('name', func_name),
-                description=description.get('zh', description.get('en', '')),
-                command=kwargs.get('command', func_name),
+                name=kwargs.get("name", func_name),
+                description=description.get("zh", description.get("en", "")),
+                command=kwargs.get("command", func_name),
                 type=FunctionType.PYTHON,
                 subplugin=subplugin_name,
-                examples=kwargs.get('examples', []),
+                examples=kwargs.get("examples", []),
                 python_file=file,
-                method=func_name  # Set the actual Python method name
+                method=func_name,  # Set the actual Python method name
             )
 
         except Exception:
@@ -131,7 +133,7 @@ class PythonFunctionParser(FunctionParser):
                 func_name,
                 plugin_name,
                 subplugin_name,
-                file  # Pass file to simple parser
+                file,  # Pass file to simple parser
             )
 
     def _parse_decorator_simple(
@@ -140,7 +142,7 @@ class PythonFunctionParser(FunctionParser):
         func_name: str,
         plugin_name: str,
         subplugin_name: str,
-        file: Path
+        file: Path,
     ) -> FunctionInfo:
         """
         简单的装饰器解析（正则表达式）
@@ -161,7 +163,7 @@ class PythonFunctionParser(FunctionParser):
 
         # 提取 description
         desc_match = re.search(r'description\s*=\s*["\'](.+?)["\']', decorator_content)
-        description = desc_match.group(1) if desc_match else ''
+        description = desc_match.group(1) if desc_match else ""
 
         # 提取 command
         cmd_match = re.search(r'command\s*=\s*["\'](.+?)["\']', decorator_content)
@@ -174,5 +176,5 @@ class PythonFunctionParser(FunctionParser):
             type=FunctionType.PYTHON,
             subplugin=subplugin_name,
             python_file=file,  # Set python_file
-            method=func_name  # Set the actual Python method name
+            method=func_name,  # Set the actual Python method name
         )

@@ -5,10 +5,9 @@
 
 import json
 import time
-from functools import lru_cache
 from pathlib import Path
 from typing import Dict, Any, Optional, Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from ..core.logger import get_logger
 
@@ -19,6 +18,7 @@ logger = get_logger(tag="UTILS.CACHE", name=__name__)
 @dataclass
 class CacheEntry:
     """缓存条目"""
+
     value: Any
     timestamp: float
     ttl: Optional[float] = None  # Time to live in seconds
@@ -43,11 +43,7 @@ class PluginConfigCache:
         """
         self.ttl = ttl
         self._cache: Dict[str, CacheEntry] = {}
-        self._stats = {
-            'hits': 0,
-            'misses': 0,
-            'invalidations': 0
-        }
+        self._stats = {"hits": 0, "misses": 0, "invalidations": 0}
 
     def get(self, plugin_path: Path) -> Optional[Dict[str, Any]]:
         """从缓存获取插件配置
@@ -67,14 +63,14 @@ class PluginConfigCache:
                 # 过期,删除
                 del self._cache[key]
                 logger.debug(f"Cache expired: {key}")
-                self._stats['misses'] += 1
+                self._stats["misses"] += 1
                 return None
 
-            self._stats['hits'] += 1
+            self._stats["hits"] += 1
             logger.debug(f"Cache hit: {key}")
             return entry.value
 
-        self._stats['misses'] += 1
+        self._stats["misses"] += 1
         return None
 
     def set(self, plugin_path: Path, config: Dict[str, Any]):
@@ -85,11 +81,7 @@ class PluginConfigCache:
             config: 插件配置
         """
         key = str(plugin_path.resolve())
-        entry = CacheEntry(
-            value=config,
-            timestamp=time.time(),
-            ttl=self.ttl
-        )
+        entry = CacheEntry(value=config, timestamp=time.time(), ttl=self.ttl)
         self._cache[key] = entry
         logger.debug(f"Cache set: {key}")
 
@@ -102,7 +94,7 @@ class PluginConfigCache:
         key = str(plugin_path.resolve())
         if key in self._cache:
             del self._cache[key]
-            self._stats['invalidations'] += 1
+            self._stats["invalidations"] += 1
             logger.debug(f"Cache invalidated: {key}")
 
     def clear(self):
@@ -113,14 +105,10 @@ class PluginConfigCache:
 
     def get_stats(self) -> Dict[str, int]:
         """获取缓存统计信息"""
-        total = self._stats['hits'] + self._stats['misses']
-        hit_rate = (self._stats['hits'] / total * 100) if total > 0 else 0
+        total = self._stats["hits"] + self._stats["misses"]
+        hit_rate = (self._stats["hits"] / total * 100) if total > 0 else 0
 
-        return {
-            **self._stats,
-            'size': len(self._cache),
-            'hit_rate': hit_rate
-        }
+        return {**self._stats, "size": len(self._cache), "hit_rate": hit_rate}
 
 
 class FileCache:
@@ -139,9 +127,7 @@ class FileCache:
         self._access_times: Dict[str, float] = {}  # LRU tracking
 
     def get(
-        self,
-        file_path: Path,
-        loader: Optional[Callable[[Path], Any]] = None
+        self, file_path: Path, loader: Optional[Callable[[Path], Any]] = None
     ) -> Optional[Any]:
         """获取文件内容(带缓存)
 
@@ -213,13 +199,13 @@ class FileCache:
 # 预定义的加载器
 def json_loader(file_path: Path) -> Dict[str, Any]:
     """JSON文件加载器"""
-    with open(file_path, 'r', encoding='utf-8') as f:
+    with open(file_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
 def text_loader(file_path: Path) -> str:
     """文本文件加载器"""
-    with open(file_path, 'r', encoding='utf-8') as f:
+    with open(file_path, "r", encoding="utf-8") as f:
         return f.read()
 
 
@@ -276,7 +262,7 @@ def load_plugin_json(plugin_path: Path) -> Optional[Dict[str, Any]]:
         插件配置字典
     """
     # 智能判断：如果传入的是JSON文件，直接使用；否则拼接plugin.json
-    if plugin_path.suffix == '.json' and plugin_path.is_file():
+    if plugin_path.suffix == ".json" and plugin_path.is_file():
         plugin_json = plugin_path
     elif plugin_path.is_dir():
         plugin_json = plugin_path / "plugin.json"
@@ -288,7 +274,7 @@ def load_plugin_json(plugin_path: Path) -> Optional[Dict[str, Any]]:
         return None
 
     try:
-        with open(plugin_json, 'r', encoding='utf-8') as f:
+        with open(plugin_json, "r", encoding="utf-8") as f:
             content = f.read().strip()
             if not content:
                 logger.warning(f"Empty JSON file: {plugin_json}")

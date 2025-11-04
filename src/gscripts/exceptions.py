@@ -14,6 +14,7 @@ from typing import Optional, Dict, Any
 
 # ============= 基础异常类 =============
 
+
 class GScriptsError(Exception):
     """
     Global Scripts 基础异常类
@@ -22,10 +23,7 @@ class GScriptsError(Exception):
     """
 
     def __init__(
-        self,
-        message: str,
-        exit_code: int = 1,
-        details: Optional[Dict[str, Any]] = None
+        self, message: str, exit_code: int = 1, details: Optional[Dict[str, Any]] = None
     ):
         """
         初始化异常
@@ -46,6 +44,7 @@ class GScriptsError(Exception):
 
 # ============= 配置相关异常 =============
 
+
 class ConfigError(GScriptsError):
     """配置错误基类"""
 
@@ -59,8 +58,7 @@ class ConfigNotFoundError(ConfigError):
 
     def __init__(self, config_path: str):
         super().__init__(
-            f"Configuration file not found: {config_path}",
-            config_path=config_path
+            f"Configuration file not found: {config_path}", config_path=config_path
         )
 
 
@@ -74,10 +72,12 @@ class ConfigValidationError(ConfigError):
 
 class ConfigParseError(ConfigError):
     """配置解析失败"""
+
     pass
 
 
 # ============= 插件相关异常 =============
+
 
 class PluginError(GScriptsError):
     """插件错误基类"""
@@ -94,17 +94,18 @@ class PluginNotFoundError(PluginError):
         super().__init__(
             f"Plugin not found: {plugin_name}",
             plugin_name=plugin_name,
-            exit_code=127  # Command not found
+            exit_code=127,  # Command not found
         )
 
 
 class PluginLoadError(PluginError):
     """插件加载失败"""
 
-    def __init__(self, plugin_name: str, reason: str, original_error: Optional[Exception] = None):
+    def __init__(
+        self, plugin_name: str, reason: str, original_error: Optional[Exception] = None
+    ):
         super().__init__(
-            f"Failed to load plugin '{plugin_name}': {reason}",
-            plugin_name=plugin_name
+            f"Failed to load plugin '{plugin_name}': {reason}", plugin_name=plugin_name
         )
         self.reason = reason
         self.original_error = original_error
@@ -123,25 +124,23 @@ class PluginDisabledError(PluginError):
     """插件已禁用"""
 
     def __init__(self, plugin_name: str):
-        super().__init__(
-            f"Plugin '{plugin_name}' is disabled",
-            plugin_name=plugin_name
-        )
+        super().__init__(f"Plugin '{plugin_name}' is disabled", plugin_name=plugin_name)
 
 
 class PluginDependencyError(PluginError):
     """插件依赖错误"""
 
     def __init__(self, plugin_name: str, missing_dependencies: list):
-        deps = ', '.join(missing_dependencies)
+        deps = ", ".join(missing_dependencies)
         super().__init__(
             f"Plugin '{plugin_name}' has missing dependencies: {deps}",
-            plugin_name=plugin_name
+            plugin_name=plugin_name,
         )
         self.missing_dependencies = missing_dependencies
 
 
 # ============= 函数/命令相关异常 =============
+
 
 class FunctionError(GScriptsError):
     """函数错误基类"""
@@ -151,7 +150,7 @@ class FunctionError(GScriptsError):
         message: str,
         plugin_name: Optional[str] = None,
         function_name: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(message, exit_code=4, **kwargs)
         self.plugin_name = plugin_name
@@ -166,7 +165,7 @@ class FunctionNotFoundError(FunctionError):
             f"Function '{function_name}' not found in plugin '{plugin_name}'",
             plugin_name=plugin_name,
             function_name=function_name,
-            exit_code=127
+            exit_code=127,
         )
 
 
@@ -178,12 +177,12 @@ class FunctionExecutionError(FunctionError):
         plugin_name: str,
         function_name: str,
         reason: str,
-        original_error: Optional[Exception] = None
+        original_error: Optional[Exception] = None,
     ):
         super().__init__(
             f"Failed to execute {plugin_name}.{function_name}: {reason}",
             plugin_name=plugin_name,
-            function_name=function_name
+            function_name=function_name,
         )
         self.reason = reason
         self.original_error = original_error
@@ -193,14 +192,12 @@ class CommandNotFoundError(GScriptsError):
     """命令未找到"""
 
     def __init__(self, command: str):
-        super().__init__(
-            f"Command not found: {command}",
-            exit_code=127
-        )
+        super().__init__(f"Command not found: {command}", exit_code=127)
         self.command = command
 
 
 # ============= 执行相关异常 =============
+
 
 class ExecutionError(GScriptsError):
     """执行错误基类"""
@@ -217,7 +214,7 @@ class CommandExecutionError(ExecutionError):
         super().__init__(
             f"Command failed with exit code {return_code}: {command}",
             command=command,
-            exit_code=return_code
+            exit_code=return_code,
         )
         self.return_code = return_code
         self.stderr = stderr
@@ -230,7 +227,7 @@ class TimeoutError(ExecutionError):
         super().__init__(
             f"Command timed out after {timeout}s: {command}",
             command=command,
-            exit_code=124  # timeout command exit code
+            exit_code=124,  # timeout command exit code
         )
         self.timeout = timeout
 
@@ -240,14 +237,13 @@ class SecurityViolationError(ExecutionError):
 
     def __init__(self, command: str, reason: str):
         super().__init__(
-            f"Security violation: {reason}",
-            command=command,
-            exit_code=125
+            f"Security violation: {reason}", command=command, exit_code=125
         )
         self.reason = reason
 
 
 # ============= 验证相关异常 =============
+
 
 class ValidationError(GScriptsError):
     """验证错误基类"""
@@ -275,6 +271,7 @@ class PathError(ValidationError):
 
 # ============= 系统相关异常 =============
 
+
 class SystemError(GScriptsError):
     """系统错误基类"""
 
@@ -284,6 +281,7 @@ class SystemError(GScriptsError):
 
 class InitializationError(SystemError):
     """初始化失败"""
+
     pass
 
 
@@ -291,10 +289,7 @@ class ResourceNotFoundError(SystemError):
     """资源未找到"""
 
     def __init__(self, resource_type: str, resource_name: str):
-        super().__init__(
-            f"{resource_type} not found: {resource_name}",
-            exit_code=2
-        )
+        super().__init__(f"{resource_type} not found: {resource_name}", exit_code=2)
         self.resource_type = resource_type
         self.resource_name = resource_name
 
@@ -308,6 +303,7 @@ class PermissionError(SystemError):
 
 
 # ============= 辅助函数 =============
+
 
 def get_exit_code(error: Exception) -> int:
     """

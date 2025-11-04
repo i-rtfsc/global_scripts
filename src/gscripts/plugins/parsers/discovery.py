@@ -30,10 +30,14 @@ class ParserDiscovery:
 
     def __init__(self):
         """初始化发现机制"""
-        self._cache: Dict[str, Tuple[Type[FunctionParser], Optional[ParserMetadata]]] = {}
+        self._cache: Dict[
+            str, Tuple[Type[FunctionParser], Optional[ParserMetadata]]
+        ] = {}
         self._cache_valid = False
 
-    def discover_from_entry_points(self) -> List[Tuple[Type[FunctionParser], Optional[ParserMetadata]]]:
+    def discover_from_entry_points(
+        self,
+    ) -> List[Tuple[Type[FunctionParser], Optional[ParserMetadata]]]:
         """
         从 Python Entry Points 自动发现解析器
 
@@ -50,7 +54,7 @@ class ParserDiscovery:
             # Python 3.9 使用 entry_points().get()
             entry_points = importlib.metadata.entry_points()
 
-            if hasattr(entry_points, 'select'):
+            if hasattr(entry_points, "select"):
                 # Python 3.10+
                 parsers = entry_points.select(group=self.ENTRY_POINT_GROUP)
             else:
@@ -64,11 +68,13 @@ class ParserDiscovery:
 
                     # 验证是 FunctionParser 子类
                     if not issubclass(parser_class, FunctionParser):
-                        logger.warning(f"Entry point {ep.name} is not a FunctionParser subclass, skipping")
+                        logger.warning(
+                            f"Entry point {ep.name} is not a FunctionParser subclass, skipping"
+                        )
                         continue
 
                     # 提取元数据
-                    metadata = getattr(parser_class, '_metadata', None)
+                    metadata = getattr(parser_class, "_metadata", None)
 
                     # 缓存
                     self._cache[ep.name] = (parser_class, metadata)
@@ -77,7 +83,9 @@ class ParserDiscovery:
                     logger.info(f"Discovered parser from entry point: {ep.name}")
 
                 except Exception as e:
-                    logger.warning(f"Failed to load parser from entry point {ep.name}: {e}")
+                    logger.warning(
+                        f"Failed to load parser from entry point {ep.name}: {e}"
+                    )
 
         except Exception as e:
             logger.error(f"Failed to discover parsers from entry points: {e}")
@@ -85,7 +93,9 @@ class ParserDiscovery:
         self._cache_valid = True
         return discovered
 
-    def discover_from_directory(self, directory: Path) -> List[Tuple[Type[FunctionParser], Optional[ParserMetadata]]]:
+    def discover_from_directory(
+        self, directory: Path
+    ) -> List[Tuple[Type[FunctionParser], Optional[ParserMetadata]]]:
         """
         从指定目录加载自定义解析器
 
@@ -121,14 +131,18 @@ class ParserDiscovery:
                     attr = getattr(module, attr_name)
 
                     # 检查是否是类，并且是 FunctionParser 的子类（但不是 FunctionParser 本身）
-                    if (isinstance(attr, type) and
-                        issubclass(attr, FunctionParser) and
-                        attr is not FunctionParser):
+                    if (
+                        isinstance(attr, type)
+                        and issubclass(attr, FunctionParser)
+                        and attr is not FunctionParser
+                    ):
 
-                        metadata = getattr(attr, '_metadata', None)
+                        metadata = getattr(attr, "_metadata", None)
                         discovered.append((attr, metadata))
 
-                        logger.info(f"Discovered parser from directory: {attr.__name__} in {py_file.name}")
+                        logger.info(
+                            f"Discovered parser from directory: {attr.__name__} in {py_file.name}"
+                        )
 
             except Exception as e:
                 logger.warning(f"Failed to load parser from {py_file}: {e}")
@@ -148,8 +162,8 @@ class ParserDiscovery:
         if not config:
             return []
 
-        enabled = config.get('enabled', [])
-        disabled = config.get('disabled', [])
+        enabled = config.get("enabled", [])
+        disabled = config.get("disabled", [])
 
         # 计算最终启用的解析器列表
         if isinstance(enabled, list):
@@ -168,7 +182,7 @@ class ParserDiscovery:
         Returns:
             自定义解析器目录列表
         """
-        custom_paths = config.get('custom_paths', [])
+        custom_paths = config.get("custom_paths", [])
 
         paths = []
         for path_str in custom_paths:
@@ -190,7 +204,7 @@ class ParserDiscovery:
         Returns:
             解析器名称到优先级的映射
         """
-        return config.get('priority_overrides', {})
+        return config.get("priority_overrides", {})
 
     def clear_cache(self) -> None:
         """清除缓存"""

@@ -17,20 +17,19 @@ from .parser_command import ParserCommand
 
 __all__ = [
     # Base classes
-    'Command',
-    'CommandRegistry',
-    'CommandFactory',
-    'create_command_registry',
-
+    "Command",
+    "CommandRegistry",
+    "CommandFactory",
+    "create_command_registry",
     # Concrete commands
-    'HelpCommand',
-    'VersionCommand',
-    'PluginListCommand',
-    'PluginInfoCommand',
-    'PluginEnableCommand',
-    'PluginDisableCommand',
-    'StatusCommand',
-    'DoctorCommand',
-    'RefreshCommand',
-    'ParserCommand',
+    "HelpCommand",
+    "VersionCommand",
+    "PluginListCommand",
+    "PluginInfoCommand",
+    "PluginEnableCommand",
+    "PluginDisableCommand",
+    "StatusCommand",
+    "DoctorCommand",
+    "RefreshCommand",
+    "ParserCommand",
 ]

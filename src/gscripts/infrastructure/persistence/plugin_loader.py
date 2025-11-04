@@ -5,7 +5,7 @@ Implements IPluginLoader using repository pattern
 
 import asyncio
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Dict, Optional, Any
 
 from ...domain.interfaces import IPluginLoader, IPluginRepository
 from ...models.plugin import PluginMetadata
@@ -25,11 +25,7 @@ class PluginLoader(IPluginLoader):
     Separates plugin metadata from plugin loading logic
     """
 
-    def __init__(
-        self,
-        plugin_repository: IPluginRepository,
-        plugins_root: Path
-    ):
+    def __init__(self, plugin_repository: IPluginRepository, plugins_root: Path):
         """
         Initialize plugin loader
 
@@ -54,9 +50,9 @@ class PluginLoader(IPluginLoader):
 
     def _register_parsers(self) -> None:
         """Register all function parsers"""
-        self._parser_registry.register(PythonFunctionParser(), name='python')
-        self._parser_registry.register(ShellFunctionParser(), name='shell')
-        self._parser_registry.register(ConfigFunctionParser(), name='config')
+        self._parser_registry.register(PythonFunctionParser(), name="python")
+        self._parser_registry.register(ShellFunctionParser(), name="shell")
+        self._parser_registry.register(ConfigFunctionParser(), name="config")
 
     async def load_all_plugins(self, include_examples: bool = False) -> Dict[str, Any]:
         """
@@ -69,6 +65,7 @@ class PluginLoader(IPluginLoader):
             Dict[str, Any]: Loaded plugins dictionary
         """
         from ...core.logger import get_logger
+
         logger = get_logger(tag="INFRA.LOADER", name=__name__)
 
         # 1. Get plugin metadata from repository
@@ -77,11 +74,15 @@ class PluginLoader(IPluginLoader):
 
         # 2. Filter enabled plugins
         enabled_plugins = [p for p in plugins_meta if p.enabled]
-        logger.info(f"Found {len(enabled_plugins)} enabled plugins: {[p.name for p in enabled_plugins]}")
+        logger.info(
+            f"Found {len(enabled_plugins)} enabled plugins: {[p.name for p in enabled_plugins]}"
+        )
 
         # 3. Discover plugin directories
         plugin_dirs = self._discovery.discover_all_plugins(include_examples)
-        logger.info(f"Discovered {len(plugin_dirs)} plugin directories: {[d.name for d in plugin_dirs]}")
+        logger.info(
+            f"Discovered {len(plugin_dirs)} plugin directories: {[d.name for d in plugin_dirs]}"
+        )
 
         # 4. Load plugins in parallel
         # Track (plugin_dir, task) pairs to maintain alignment
@@ -93,7 +94,9 @@ class PluginLoader(IPluginLoader):
             meta = next((p for p in enabled_plugins if p.name == plugin_name), None)
 
             if meta:
-                task_pairs.append((plugin_dir, self._load_plugin_impl(plugin_dir, meta)))
+                task_pairs.append(
+                    (plugin_dir, self._load_plugin_impl(plugin_dir, meta))
+                )
             else:
                 logger.debug(f"No metadata found for {plugin_name}, skipping")
 
@@ -109,10 +112,12 @@ class PluginLoader(IPluginLoader):
                 self._failed_plugins[plugin_dir.name] = str(result)
                 logger.error(f"Failed to load {plugin_dir.name}: {result}")
             elif result:
-                self._loaded_plugins[result['name']] = result
+                self._loaded_plugins[result["name"]] = result
                 logger.debug(f"Successfully loaded {result['name']}")
 
-        logger.info(f"Final: loaded {len(self._loaded_plugins)} plugins, failed {len(self._failed_plugins)}")
+        logger.info(
+            f"Final: loaded {len(self._loaded_plugins)} plugins, failed {len(self._failed_plugins)}"
+        )
         return self._loaded_plugins
 
     async def load_plugin(self, plugin_name: str, **kwargs) -> Optional[Any]:
@@ -150,9 +155,7 @@ class PluginLoader(IPluginLoader):
             return None
 
     async def _load_plugin_impl(
-        self,
-        plugin_dir: Path,
-        meta: PluginMetadata
+        self, plugin_dir: Path, meta: PluginMetadata
     ) -> Optional[Dict[str, Any]]:
         """
         Internal plugin loading implementation
@@ -181,42 +184,44 @@ class PluginLoader(IPluginLoader):
 
         # Parse main plugin files
         if scan_result.has_python and scan_result.python_file:
-            python_parser = self._parser_registry.get('python')
+            python_parser = self._parser_registry.get("python")
             if python_parser:
                 python_funcs = await python_parser.parse(
                     scan_result.python_file,
                     plugin_name,
-                    ""  # subplugin_name - empty for main plugin
+                    "",  # subplugin_name - empty for main plugin
                 )
                 functions.extend(python_funcs)
 
         if scan_result.has_config and scan_result.config_files:
-            config_parser = self._parser_registry.get('config')
+            config_parser = self._parser_registry.get("config")
             if config_parser:
                 # Parse all config files (usually commands.json)
                 for config_file in scan_result.config_files:
-                    if config_file.name == 'commands.json':  # Skip plugin.json metadata
+                    if config_file.name == "commands.json":  # Skip plugin.json metadata
                         config_funcs = await config_parser.parse(
                             config_file,
                             plugin_name,
-                            ""  # subplugin_name - empty for main plugin
+                            "",  # subplugin_name - empty for main plugin
                         )
                         functions.extend(config_funcs)
 
         if scan_result.has_scripts and scan_result.script_files:
-            shell_parser = self._parser_registry.get('shell')
+            shell_parser = self._parser_registry.get("shell")
             if shell_parser:
                 for script_file in scan_result.script_files:
                     # Detect subplugin name from file path
                     # e.g., plugins/identity/anyrouter/plugin.sh -> subplugin = "anyrouter"
                     relative_path = script_file.relative_to(plugin_dir)
                     parts = relative_path.parts
-                    subplugin_name = parts[0] if len(parts) > 1 and parts[0] != script_file.name else ""
+                    subplugin_name = (
+                        parts[0]
+                        if len(parts) > 1 and parts[0] != script_file.name
+                        else ""
+                    )
 
                     shell_funcs = await shell_parser.parse(
-                        script_file,
-                        plugin_name,
-                        subplugin_name
+                        script_file, plugin_name, subplugin_name
                     )
                     functions.extend(shell_funcs)
 
@@ -227,37 +232,31 @@ class PluginLoader(IPluginLoader):
 
             # Parse subplugin Python files
             if subplugin_scan.has_python and subplugin_scan.python_file:
-                python_parser = self._parser_registry.get('python')
+                python_parser = self._parser_registry.get("python")
                 if python_parser:
                     python_funcs = await python_parser.parse(
-                        subplugin_scan.python_file,
-                        plugin_name,
-                        subplugin_name
+                        subplugin_scan.python_file, plugin_name, subplugin_name
                     )
                     functions.extend(python_funcs)
 
             # Parse subplugin config files
             if subplugin_scan.has_config and subplugin_scan.config_files:
-                config_parser = self._parser_registry.get('config')
+                config_parser = self._parser_registry.get("config")
                 if config_parser:
                     for config_file in subplugin_scan.config_files:
-                        if config_file.name == 'commands.json':
+                        if config_file.name == "commands.json":
                             config_funcs = await config_parser.parse(
-                                config_file,
-                                plugin_name,
-                                subplugin_name
+                                config_file, plugin_name, subplugin_name
                             )
                             functions.extend(config_funcs)
 
             # Parse subplugin shell scripts
             if subplugin_scan.has_scripts and subplugin_scan.script_files:
-                shell_parser = self._parser_registry.get('shell')
+                shell_parser = self._parser_registry.get("shell")
                 if shell_parser:
                     for script_file in subplugin_scan.script_files:
                         shell_funcs = await shell_parser.parse(
-                            script_file,
-                            plugin_name,
-                            subplugin_name
+                            script_file, plugin_name, subplugin_name
                         )
                         functions.extend(shell_funcs)
 
@@ -265,6 +264,7 @@ class PluginLoader(IPluginLoader):
         # Convert functions list to dict (key = function name or subplugin-function for subplugins)
         from ...core.logger import get_logger
         from dataclasses import asdict
+
         logger = get_logger(tag="INFRA.LOADER", name=__name__)
 
         logger.info(f"Plugin {meta.name}: parsed {len(functions)} total functions")
@@ -281,28 +281,35 @@ class PluginLoader(IPluginLoader):
             # Convert FunctionInfo to dict for compatibility with executor
             func_dict = asdict(func)
             # Convert Path objects to strings
-            for path_key in ['python_file', 'script_file', 'config_file', 'working_dir']:
+            for path_key in [
+                "python_file",
+                "script_file",
+                "config_file",
+                "working_dir",
+            ]:
                 if path_key in func_dict and func_dict[path_key] is not None:
                     func_dict[path_key] = str(func_dict[path_key])
             # Convert FunctionType enum to string value
-            if 'type' in func_dict and hasattr(func_dict['type'], 'value'):
-                func_dict['type'] = func_dict['type'].value
+            if "type" in func_dict and hasattr(func_dict["type"], "value"):
+                func_dict["type"] = func_dict["type"].value
 
             functions_dict[key] = func_dict
-            logger.debug(f"Added function with key: {key} (subplugin: {func.subplugin})")
+            logger.debug(
+                f"Added function with key: {key} (subplugin: {func.subplugin})"
+            )
 
         return {
-            'name': meta.name,
-            'version': meta.version,
-            'author': meta.author,
-            'description': meta.description,
-            'enabled': meta.enabled,
-            'priority': meta.priority,
-            'category': meta.category,
-            'plugin_type': scan_result.plugin_type.value,
-            'plugin_dir': str(plugin_dir),
-            'functions': functions_dict,  # Dict instead of list
-            'metadata': meta,
+            "name": meta.name,
+            "version": meta.version,
+            "author": meta.author,
+            "description": meta.description,
+            "enabled": meta.enabled,
+            "priority": meta.priority,
+            "category": meta.category,
+            "plugin_type": scan_result.plugin_type.value,
+            "plugin_dir": str(plugin_dir),
+            "functions": functions_dict,  # Dict instead of list
+            "metadata": meta,
         }
 
     def get_loaded_plugins(self) -> Dict[str, Any]:
@@ -319,4 +326,4 @@ class PluginLoader(IPluginLoader):
         self._failed_plugins.clear()
 
 
-__all__ = ['PluginLoader']
+__all__ = ["PluginLoader"]

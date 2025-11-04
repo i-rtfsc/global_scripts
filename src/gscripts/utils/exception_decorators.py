@@ -3,7 +3,7 @@ Exception handling decorators for plugin loading
 """
 
 import functools
-from typing import Optional, Any, Callable
+from typing import Any, Callable
 from ..core.logger import get_logger
 
 logger = get_logger(tag="UTILS.DECORATORS", name=__name__)
@@ -12,7 +12,7 @@ logger = get_logger(tag="UTILS.DECORATORS", name=__name__)
 def handle_plugin_error(
     error_message: str = "Plugin operation failed",
     return_value: Any = None,
-    log_level: str = "warning"
+    log_level: str = "warning",
 ):
     """
     Decorator to handle plugin-related exceptions with consistent logging
@@ -28,6 +28,7 @@ def handle_plugin_error(
             # ... code that might raise exceptions
             pass
     """
+
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -42,7 +43,7 @@ def handle_plugin_error(
                 if args:
                     # Try to extract meaningful context
                     for arg in args[1:]:  # Skip 'self'
-                        if hasattr(arg, 'name'):
+                        if hasattr(arg, "name"):
                             context = f" ({arg.name})"
                             break
                         elif isinstance(arg, str):
@@ -64,7 +65,7 @@ def handle_plugin_error(
                 context = ""
                 if args:
                     for arg in args[1:]:  # Skip 'self'
-                        if hasattr(arg, 'name'):
+                        if hasattr(arg, "name"):
                             context = f" ({arg.name})"
                             break
                         elif isinstance(arg, str):
@@ -92,12 +93,15 @@ def log_exceptions(func: Callable) -> Callable:
             # ... code that might raise exceptions
             pass
     """
+
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
         except Exception as e:
-            logger.error(f"Exception in {func.__name__}: {type(e).__name__}: {e}", exc_info=True)
+            logger.error(
+                f"Exception in {func.__name__}: {type(e).__name__}: {e}", exc_info=True
+            )
             raise
 
     @functools.wraps(func)
@@ -105,7 +109,9 @@ def log_exceptions(func: Callable) -> Callable:
         try:
             return await func(*args, **kwargs)
         except Exception as e:
-            logger.error(f"Exception in {func.__name__}: {type(e).__name__}: {e}", exc_info=True)
+            logger.error(
+                f"Exception in {func.__name__}: {type(e).__name__}: {e}", exc_info=True
+            )
             raise
 
     if asyncio.iscoroutinefunction(func):
@@ -117,4 +123,4 @@ def log_exceptions(func: Callable) -> Callable:
 import asyncio
 
 
-__all__ = ['handle_plugin_error', 'log_exceptions']
+__all__ = ["handle_plugin_error", "log_exceptions"]

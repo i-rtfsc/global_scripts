@@ -5,7 +5,7 @@ Version Command - 显示版本信息
 from typing import List
 
 from .base import SimpleCommand
-from ...core.config_manager import CommandResult
+from gscripts.models.result import CommandResult
 
 
 class VersionCommand(SimpleCommand):
@@ -30,5 +30,5 @@ class VersionCommand(SimpleCommand):
         return CommandResult(
             success=True,
             message=self.i18n.get_message("commands.version"),
-            output=version_text
+            output=version_text,
         )

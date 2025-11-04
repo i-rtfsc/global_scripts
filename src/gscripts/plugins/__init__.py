@@ -16,23 +16,19 @@ from .interfaces import (
     IFunctionParser,
     IConfigRepository,
     ICommandExecutor,
-
     # Observer 模式接口
     IPluginObserver,
     IObservablePluginManager,
-
     # 数据类型
     FunctionInfo,
     PluginMetadata,
     ValidationResult,
     PluginEvent,
     PluginEventData,
-
     # 类型别名
     PluginDict,
     FunctionDict,
     ConfigDict,
-
     # 辅助函数
     is_valid_plugin,
     is_valid_plugin_loader,
@@ -47,43 +43,37 @@ from .validators import PluginValidator
 
 __all__ = [
     # 接口
-    'IPlugin',
-    'IPluginLoader',
-    'IPluginManager',
-    'IPluginDiscovery',
-    'IPluginValidator',
-    'IFunctionParser',
-    'IConfigRepository',
-    'ICommandExecutor',
-
+    "IPlugin",
+    "IPluginLoader",
+    "IPluginManager",
+    "IPluginDiscovery",
+    "IPluginValidator",
+    "IFunctionParser",
+    "IConfigRepository",
+    "ICommandExecutor",
     # Observer 模式接口
-    'IPluginObserver',
-    'IObservablePluginManager',
-
+    "IPluginObserver",
+    "IObservablePluginManager",
     # 数据类型
-    'FunctionInfo',
-    'PluginMetadata',
-    'ValidationResult',
-    'PluginEvent',
-    'PluginEventData',
-
+    "FunctionInfo",
+    "PluginMetadata",
+    "ValidationResult",
+    "PluginEvent",
+    "PluginEventData",
     # 类型别名
-    'PluginDict',
-    'FunctionDict',
-    'ConfigDict',
-
+    "PluginDict",
+    "FunctionDict",
+    "ConfigDict",
     # 实现类
-    'BasePlugin',
-    'RefactoredPluginLoader',
-    'PluginDiscovery',
-    'PluginValidator',
-
+    "BasePlugin",
+    "RefactoredPluginLoader",
+    "PluginDiscovery",
+    "PluginValidator",
     # 装饰器
-    'plugin_function',
-    'FunctionMetadata',
-
+    "plugin_function",
+    "FunctionMetadata",
     # 辅助函数
-    'is_valid_plugin',
-    'is_valid_plugin_loader',
-    'is_valid_plugin_manager',
+    "is_valid_plugin",
+    "is_valid_plugin_loader",
+    "is_valid_plugin_manager",
 ]

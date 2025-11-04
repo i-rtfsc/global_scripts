@@ -89,7 +89,9 @@ class ColorHelper:
             color = self._subplugin_color_map[subplugin]
         else:
             # 分配新颜色
-            color = self.SUBPLUGIN_COLORS[self._color_index % len(self.SUBPLUGIN_COLORS)]
+            color = self.SUBPLUGIN_COLORS[
+                self._color_index % len(self.SUBPLUGIN_COLORS)
+            ]
             self._subplugin_color_map[subplugin] = color
             self._color_index += 1
 
@@ -113,13 +115,13 @@ class ColorHelper:
         result = usage
 
         # <必需参数> - 用红色
-        result = re.sub(r'(<[^>]+>)', r'[bright_red]\1[/bright_red]', result)
+        result = re.sub(r"(<[^>]+>)", r"[bright_red]\1[/bright_red]", result)
 
         # [可选参数] - 用黄色
-        result = re.sub(r'(\[[^\]]+\])', r'[bright_yellow]\1[/bright_yellow]', result)
+        result = re.sub(r"(\[[^\]]+\])", r"[bright_yellow]\1[/bright_yellow]", result)
 
         # {选项} - 用青色
-        result = re.sub(r'(\{[^}]+\})', r'[bright_cyan]\1[/bright_cyan]', result)
+        result = re.sub(r"(\{[^}]+\})", r"[bright_cyan]\1[/bright_cyan]", result)
 
         return result
 
@@ -137,7 +139,9 @@ class ColorHelper:
             return ""
 
         # 移除可能已有的 emoji
-        clean_status = status.replace("✅", "").replace("❌", "").replace("⚠️", "").strip()
+        clean_status = (
+            status.replace("✅", "").replace("❌", "").replace("⚠️", "").strip()
+        )
 
         color = self.STATUS_COLORS.get(clean_status, "white")
 

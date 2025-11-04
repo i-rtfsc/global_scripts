@@ -18,14 +18,16 @@ from enum import Enum
 
 # Use TYPE_CHECKING to avoid circular import at runtime
 if TYPE_CHECKING:
-    from ..core.config_manager import CommandResult
+    from gscripts.models.result import CommandResult
 
 
 # ============= 数据类型定义 =============
 
+
 @dataclass
 class FunctionInfo:
     """函数信息"""
+
     name: str
     description: str
     usage: str
@@ -40,6 +42,7 @@ class FunctionInfo:
 @dataclass
 class PluginMetadata:
     """插件元数据"""
+
     name: str
     version: str
     author: str
@@ -55,6 +58,7 @@ class PluginMetadata:
 @dataclass
 class ValidationResult:
     """验证结果"""
+
     valid: bool
     errors: List[str]
     warnings: List[str]
@@ -62,20 +66,22 @@ class ValidationResult:
 
 class PluginEvent(Enum):
     """插件生命周期事件"""
-    LOADING = "loading"         # 插件正在加载
-    LOADED = "loaded"           # 插件已加载
-    UNLOADED = "unloaded"       # 插件已卸载
-    ENABLED = "enabled"         # 插件已启用
-    DISABLED = "disabled"       # 插件已禁用
-    RELOADED = "reloaded"       # 插件已重新加载
-    EXECUTING = "executing"     # 函数正在执行
-    EXECUTED = "executed"       # 函数已执行
+
+    LOADING = "loading"  # 插件正在加载
+    LOADED = "loaded"  # 插件已加载
+    UNLOADED = "unloaded"  # 插件已卸载
+    ENABLED = "enabled"  # 插件已启用
+    DISABLED = "disabled"  # 插件已禁用
+    RELOADED = "reloaded"  # 插件已重新加载
+    EXECUTING = "executing"  # 函数正在执行
+    EXECUTED = "executed"  # 函数已执行
     FUNCTION_EXECUTED = "function_executed"  # 函数已执行 (deprecated, use EXECUTED)
 
 
 @dataclass
 class PluginEventData:
     """插件事件数据"""
+
     event: PluginEvent
     plugin_name: str
     plugin: Optional[Any] = None  # IPlugin instance
@@ -86,6 +92,7 @@ class PluginEventData:
 
 
 # ============= 核心接口定义 =============
+
 
 @runtime_checkable
 class IPlugin(Protocol):
@@ -107,11 +114,7 @@ class IPlugin(Protocol):
     description: Optional[str]
     priority: Optional[int]
 
-    async def execute_function(
-        self,
-        func_name: str,
-        args: List[str]
-    ) -> CommandResult:
+    async def execute_function(self, func_name: str, args: List[str]) -> CommandResult:
         """
         执行插件函数
 
@@ -138,9 +141,7 @@ class IPluginDiscovery(Protocol):
     """插件发现接口 - 负责扫描和发现插件"""
 
     def discover_all_plugins(
-        self,
-        plugins_root: Path,
-        include_examples: bool = False
+        self, plugins_root: Path, include_examples: bool = False
     ) -> List[Path]:
         """
         发现所有插件目录
@@ -176,17 +177,13 @@ class IPluginValidator(Protocol):
         ...
 
     def validate_plugin_metadata(
-        self,
-        metadata: Dict[str, Any],
-        plugin_name: str
+        self, metadata: Dict[str, Any], plugin_name: str
     ) -> ValidationResult:
         """验证插件元数据"""
         ...
 
     def validate_plugin_dependencies(
-        self,
-        plugin: IPlugin,
-        available_plugins: Dict[str, IPlugin]
+        self, plugin: IPlugin, available_plugins: Dict[str, IPlugin]
     ) -> ValidationResult:
         """验证插件依赖"""
         ...
@@ -200,11 +197,7 @@ class IFunctionParser(Protocol):
         """判断是否能解析该文件"""
         ...
 
-    async def parse(
-        self,
-        file: Path,
-        plugin_name: str
-    ) -> List[FunctionInfo]:
+    async def parse(self, file: Path, plugin_name: str) -> List[FunctionInfo]:
         """
         解析文件中的函数
 
@@ -235,9 +228,7 @@ class IPluginLoader(Protocol):
         ...
 
     async def load_all_plugins(
-        self,
-        plugins_root: Path,
-        include_examples: bool = False
+        self, plugins_root: Path, include_examples: bool = False
     ) -> Dict[str, IPlugin]:
         """
         加载所有插件
@@ -287,10 +278,7 @@ class IPluginManager(Protocol):
         ...
 
     async def execute_plugin_function(
-        self,
-        plugin_name: str,
-        function_name: str,
-        args: List[str]
+        self, plugin_name: str, function_name: str, args: List[str]
     ) -> CommandResult:
         """
         执行插件函数
@@ -340,16 +328,12 @@ class ICommandExecutor(Protocol):
         command: str | List[str],
         timeout: Optional[int] = None,
         cwd: Optional[Path] = None,
-        env: Optional[Dict[str, str]] = None
+        env: Optional[Dict[str, str]] = None,
     ) -> CommandResult:
         """执行命令"""
         ...
 
-    async def execute_safe(
-        self,
-        command: str | List[str],
-        **kwargs
-    ) -> CommandResult:
+    async def execute_safe(self, command: str | List[str], **kwargs) -> CommandResult:
         """安全执行命令（仅白名单）"""
         ...
 
@@ -362,6 +346,7 @@ ConfigDict = Dict[str, Any]
 
 
 # ============= 辅助函数 =============
+
 
 def is_valid_plugin(obj: Any) -> bool:
     """检查对象是否实现了IPlugin接口"""
@@ -379,6 +364,7 @@ def is_valid_plugin_manager(obj: Any) -> bool:
 
 
 # ============= Observer 模式接口 =============
+
 
 @runtime_checkable
 class IPluginObserver(Protocol):
@@ -444,4 +430,3 @@ class IObservablePluginManager(Protocol):
             event_data: 事件数据
         """
         ...
-

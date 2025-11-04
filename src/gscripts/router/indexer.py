@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Dict, Any
 
 
-
 def _get_meta_value(meta: Any, key: str, default: Any = None) -> Any:
     """Get value from meta (supports both dict and object)"""
     if hasattr(meta, "get"):  # Dict-like
@@ -91,7 +90,9 @@ def build_router_index(plugins: Dict[str, Any]) -> Dict[str, Any]:
                 "name": getattr(plugin, "name", plugin_name),
                 "version": getattr(plugin, "version", ""),
                 "author": getattr(plugin, "author", ""),
-                "description": _normalize_description(getattr(plugin, "description", "")),
+                "description": _normalize_description(
+                    getattr(plugin, "description", "")
+                ),
                 "homepage": getattr(plugin, "homepage", ""),
                 "license": getattr(plugin, "license", ""),
                 "enabled": enabled_map.get(plugin_name, True),
@@ -110,14 +111,17 @@ def build_router_index(plugins: Dict[str, Any]) -> Dict[str, Any]:
 
         # Build commands map
         if isinstance(plugin, dict):
-            func_map = plugin.get('functions', {})
+            func_map = plugin.get("functions", {})
         else:
-            func_map = getattr(plugin, "functions", {}) if hasattr(plugin, "functions") else {}
+            func_map = (
+                getattr(plugin, "functions", {}) if hasattr(plugin, "functions") else {}
+            )
         for func_key, meta in func_map.items():
             ftype = _get_meta_value(meta, "type")
 
             # Convert enum to string for comparison
             from ..models.plugin import FunctionType
+
             if isinstance(ftype, FunctionType):
                 ftype_str = ftype.value
             else:
@@ -301,10 +305,10 @@ def _get_subplugins_with_descriptions(plugin) -> list:
     """
     # Handle both dict and object plugin formats
     if isinstance(plugin, dict):
-        subplugins_full = plugin.get('subplugins_full')
+        subplugins_full = plugin.get("subplugins_full")
         if subplugins_full:
             return subplugins_full
-        subplugins = plugin.get('subplugins', [])
+        subplugins = plugin.get("subplugins", [])
     else:
         # Try to get full subplugins info (with descriptions)
         if hasattr(plugin, "subplugins_full") and plugin.subplugins_full:
@@ -321,16 +325,15 @@ def _get_subplugins_with_descriptions(plugin) -> list:
     for sp in subplugins:
         if isinstance(sp, dict):
             # Already a dict, extract name and description
-            result.append({
-                "name": sp.get("name", sp),
-                "description": _normalize_description(sp.get("description", ""))
-            })
+            result.append(
+                {
+                    "name": sp.get("name", sp),
+                    "description": _normalize_description(sp.get("description", "")),
+                }
+            )
         else:
             # String format, convert to dict
-            result.append({
-                "name": sp,
-                "description": {"zh": "", "en": ""}
-            })
+            result.append({"name": sp, "description": {"zh": "", "en": ""}})
     return result
 
 
@@ -364,7 +367,7 @@ def _determine_plugin_type(plugin) -> str:
     """Determine plugin type based on available functions."""
     # Handle both dict and object plugin formats
     if isinstance(plugin, dict):
-        func_map = plugin.get('functions', {})
+        func_map = plugin.get("functions", {})
     elif hasattr(plugin, "functions"):
         func_map = plugin.functions
     else:
@@ -379,6 +382,7 @@ def _determine_plugin_type(plugin) -> str:
 
         # Convert enum to string for comparison
         from ..models.plugin import FunctionType
+
         if isinstance(ftype, FunctionType):
             ftype_str = ftype.value
         else:

@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 from typing import List, Dict, Any
 
-from gscripts.core.config_manager import CommandResult, ConfigManager
+from gscripts.models.result import CommandResult, ConfigManager
 from gscripts.plugins.decorators import plugin_function
 
 THEMES_DIR = Path(__file__).resolve().parents[3] / 'themes' / 'prompt'
