@@ -20,5 +20,7 @@
     "development"
   ],
   "priority": 60,
-  "subplugins": []
+  "subplugins": [],
+  "requirements": {},
+  "tags": []
 }

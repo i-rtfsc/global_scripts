@@ -8,7 +8,9 @@ from pathlib import Path
 from typing import List
 
 from ...core.logger import get_logger
-from . import FunctionParser, FunctionInfo
+from ...models.function import FunctionInfo
+from ...models.plugin import FunctionType
+from . import FunctionParser
 
 logger = get_logger(tag="PLUGINS.PARSER.CONFIG", name=__name__)
 
@@ -56,7 +58,8 @@ class ConfigFunctionParser(FunctionParser):
                     cmd_key,
                     cmd_info,
                     plugin_name,
-                    subplugin_name
+                    subplugin_name,
+                    file
                 )
 
                 if func_info:
@@ -74,7 +77,8 @@ class ConfigFunctionParser(FunctionParser):
         cmd_key: str,
         cmd_info: dict,
         plugin_name: str,
-        subplugin_name: str
+        subplugin_name: str,
+        file: Path = None
     ) -> FunctionInfo:
         """
         解析单个命令配置
@@ -84,30 +88,34 @@ class ConfigFunctionParser(FunctionParser):
             cmd_info: 命令信息字典
             plugin_name: 插件名称
             subplugin_name: 子插件名称
+            file: 配置文件路径
 
         Returns:
             FunctionInfo: 函数信息
         """
-        # 提取描述
+        # 提取描述 - 保留完整的多语言字典结构
         description = cmd_info.get('description', '')
-        if isinstance(description, dict):
-            # 多语言描述
-            description = description.get('zh', description.get('en', ''))
+        # Don't extract, keep the dict structure if it's a dict
+        # FunctionInfo.description supports both str and Dict[str, str]
 
         # 提取命令
         command = cmd_info.get('command', cmd_key)
 
-        # 提取类型
-        cmd_type = cmd_info.get('kind', 'config')
+        # 提取示例
+        examples = cmd_info.get('examples', [])
+        if not isinstance(examples, list):
+            examples = []
+
+        # 提取usage
+        usage = cmd_info.get('usage', '')
 
         return FunctionInfo(
             name=cmd_key,
             description=description,
             command=command,
-            type=cmd_type,
-            args=cmd_info.get('args', []),
-            options=cmd_info.get('options', {}),
-            examples=cmd_info.get('examples', []),
-            plugin_name=plugin_name,
-            subplugin_name=subplugin_name
+            type=FunctionType.CONFIG,
+            subplugin=subplugin_name,
+            config_file=file,
+            examples=examples,
+            usage=usage
         )

@@ -66,41 +66,69 @@ def build_router_index(plugins: Dict[str, Any]) -> Dict[str, Any]:
     }
 
     for plugin_name, plugin in plugins.items():
-        # Extract plugin metadata
-        plugin_meta = {
-            "name": getattr(plugin, "name", plugin_name),
-            "version": getattr(plugin, "version", ""),
-            "author": getattr(plugin, "author", ""),
-            "description": _normalize_description(getattr(plugin, "description", "")),
-            "homepage": getattr(plugin, "homepage", ""),
-            "license": getattr(plugin, "license", ""),
-            "enabled": enabled_map.get(plugin_name, True),
-            "category": getattr(plugin, "category", ""),
-            "keywords": getattr(plugin, "keywords", []) or [],
-            "priority": getattr(plugin, "priority", 50),
-            "plugin_dir": (
-                str(getattr(plugin, "plugin_dir", ""))
-                if hasattr(plugin, "plugin_dir")
-                else ""
-            ),
-            "type": _determine_plugin_type(plugin),
-            "subplugins": _get_subplugins_with_descriptions(plugin),
-            "commands": {},
-        }
+        # Handle both dict and object plugin formats
+        if isinstance(plugin, dict):
+            # Plugin is already a dict
+            plugin_meta = {
+                "name": plugin.get("name", plugin_name),
+                "version": plugin.get("version", ""),
+                "author": plugin.get("author", ""),
+                "description": _normalize_description(plugin.get("description", "")),
+                "homepage": plugin.get("homepage", ""),
+                "license": plugin.get("license", ""),
+                "enabled": enabled_map.get(plugin_name, True),
+                "category": plugin.get("category", ""),
+                "keywords": plugin.get("keywords", []) or [],
+                "priority": plugin.get("priority", 50),
+                "plugin_dir": str(plugin.get("plugin_dir", "")),
+                "type": _determine_plugin_type(plugin),
+                "subplugins": _get_subplugins_with_descriptions(plugin),
+                "commands": {},
+            }
+        else:
+            # Plugin is an object
+            plugin_meta = {
+                "name": getattr(plugin, "name", plugin_name),
+                "version": getattr(plugin, "version", ""),
+                "author": getattr(plugin, "author", ""),
+                "description": _normalize_description(getattr(plugin, "description", "")),
+                "homepage": getattr(plugin, "homepage", ""),
+                "license": getattr(plugin, "license", ""),
+                "enabled": enabled_map.get(plugin_name, True),
+                "category": getattr(plugin, "category", ""),
+                "keywords": getattr(plugin, "keywords", []) or [],
+                "priority": getattr(plugin, "priority", 50),
+                "plugin_dir": (
+                    str(getattr(plugin, "plugin_dir", ""))
+                    if hasattr(plugin, "plugin_dir")
+                    else ""
+                ),
+                "type": _determine_plugin_type(plugin),
+                "subplugins": _get_subplugins_with_descriptions(plugin),
+                "commands": {},
+            }
 
         # Build commands map
-        func_map = (
-            getattr(plugin, "functions", {}) if hasattr(plugin, "functions") else {}
-        )
+        if isinstance(plugin, dict):
+            func_map = plugin.get('functions', {})
+        else:
+            func_map = getattr(plugin, "functions", {}) if hasattr(plugin, "functions") else {}
         for func_key, meta in func_map.items():
             ftype = _get_meta_value(meta, "type")
 
+            # Convert enum to string for comparison
+            from ..models.plugin import FunctionType
+            if isinstance(ftype, FunctionType):
+                ftype_str = ftype.value
+            else:
+                ftype_str = str(ftype) if ftype else ""
+
             # Normalize kind
-            if ftype in ("script", "shell_annotated"):
+            if ftype_str in ("shell", "shell_annotated"):
                 kind = "shell"
-            elif ftype == "config":
+            elif ftype_str == "config":
                 kind = "json"
-            elif ftype in ("python", "python_decorated"):
+            elif ftype_str in ("python", "python_decorated"):
                 kind = "python"
             else:
                 kind = ""
@@ -271,17 +299,39 @@ def _get_subplugins_with_descriptions(plugin) -> list:
 
     Tries to use subplugins_full if available, otherwise falls back to subplugins.
     """
-    # Try to get full subplugins info (with descriptions)
-    if hasattr(plugin, "subplugins_full") and plugin.subplugins_full:
-        return plugin.subplugins_full
+    # Handle both dict and object plugin formats
+    if isinstance(plugin, dict):
+        subplugins_full = plugin.get('subplugins_full')
+        if subplugins_full:
+            return subplugins_full
+        subplugins = plugin.get('subplugins', [])
+    else:
+        # Try to get full subplugins info (with descriptions)
+        if hasattr(plugin, "subplugins_full") and plugin.subplugins_full:
+            return plugin.subplugins_full
 
-    # Fallback: use old subplugins list (strings only)
-    subplugins = getattr(plugin, "subplugins", [])
+        # Fallback: use old subplugins list (strings only)
+        subplugins = getattr(plugin, "subplugins", [])
     if not subplugins:
         return []
 
-    # Convert string list to dict format
-    return [{"name": sp, "description": {"zh": "", "en": ""}} for sp in subplugins]
+    # Convert to proper format
+    # Handle both string list and dict list formats
+    result = []
+    for sp in subplugins:
+        if isinstance(sp, dict):
+            # Already a dict, extract name and description
+            result.append({
+                "name": sp.get("name", sp),
+                "description": _normalize_description(sp.get("description", ""))
+            })
+        else:
+            # String format, convert to dict
+            result.append({
+                "name": sp,
+                "description": {"zh": "", "en": ""}
+            })
+    return result
 
 
 def _normalize_subplugins(subplugins: Any) -> list:
@@ -312,21 +362,33 @@ def _normalize_subplugins(subplugins: Any) -> list:
 
 def _determine_plugin_type(plugin) -> str:
     """Determine plugin type based on available functions."""
-    if not hasattr(plugin, "functions"):
+    # Handle both dict and object plugin formats
+    if isinstance(plugin, dict):
+        func_map = plugin.get('functions', {})
+    elif hasattr(plugin, "functions"):
+        func_map = plugin.functions
+    else:
         return "unknown"
 
-    func_map = plugin.functions
     if not func_map:
         return "unknown"
 
     types = set()
     for meta in func_map.values():
         ftype = _get_meta_value(meta, "type", "")
-        if ftype in ("script", "shell_annotated"):
+
+        # Convert enum to string for comparison
+        from ..models.plugin import FunctionType
+        if isinstance(ftype, FunctionType):
+            ftype_str = ftype.value
+        else:
+            ftype_str = str(ftype) if ftype else ""
+
+        if ftype_str in ("shell", "shell_annotated"):
             types.add("shell")
-        elif ftype == "config":
+        elif ftype_str == "config":
             types.add("json")
-        elif ftype in ("python", "python_decorated"):
+        elif ftype_str in ("python", "python_decorated"):
             types.add("python")
 
     if len(types) > 1:
