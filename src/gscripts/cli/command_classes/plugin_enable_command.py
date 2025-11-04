@@ -4,11 +4,11 @@ PluginEnableCommand - 启用插件命令
 
 from typing import List
 
-from .base import SimpleCommand
+from .base import Command
 from ...core.config_manager import CommandResult
 
 
-class PluginEnableCommand(SimpleCommand):
+class PluginEnableCommand(Command):
     """启用插件命令"""
 
     @property
@@ -23,7 +23,7 @@ class PluginEnableCommand(SimpleCommand):
     def help_text(self) -> str:
         return self.i18n.get_message("commands.plugin_enable_help")
 
-    def _execute(self, args: List[str]) -> CommandResult:
+    async def execute(self, args: List[str]) -> CommandResult:
         """执行启用插件"""
         if not args:
             return CommandResult(
@@ -33,4 +33,10 @@ class PluginEnableCommand(SimpleCommand):
             )
 
         plugin_name = args[0]
-        return self.plugin_manager.enable_plugin(plugin_name)
+
+        # Check if adapter has async method
+        if hasattr(self.plugin_manager, 'enable_plugin_async'):
+            return await self.plugin_manager.enable_plugin_async(plugin_name)
+        else:
+            # Fallback to sync method
+            return self.plugin_manager.enable_plugin(plugin_name)

@@ -95,8 +95,12 @@ class GlobalScriptsCLI:
             loader = PluginLoader(plugins_root=plugins_dir)  # Legacy loader only takes plugins_root
             process_executor = ProcessExecutor()
 
-            # Create application services
-            plugin_service = PluginService(plugin_loader=loader, plugin_repository=repository)
+            # Create application services (inject config_manager)
+            plugin_service = PluginService(
+                plugin_loader=loader,
+                plugin_repository=repository,
+                config_manager=self.config_manager
+            )
             plugin_executor = PluginExecutor(
                 plugin_loader=loader,
                 process_executor=process_executor
