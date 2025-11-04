@@ -12,6 +12,7 @@ from enum import Enum
 
 class PluginType(Enum):
     """插件类型枚举"""
+
     PYTHON = "python"
     CONFIG = "config"
     SCRIPT = "script"
@@ -21,6 +22,7 @@ class PluginType(Enum):
 @dataclass
 class PluginScanResult:
     """插件扫描结果"""
+
     plugin_dir: Path
     plugin_type: PluginType
     has_python: bool = False
@@ -66,17 +68,19 @@ class PluginDiscovery:
 
         if not self.plugins_root.exists():
             # 尝试从环境变量获取
-            gs_root = os.environ.get('GS_ROOT')
+            gs_root = os.environ.get("GS_ROOT")
             if gs_root:
-                candidate = Path(gs_root) / 'plugins'
+                candidate = Path(gs_root) / "plugins"
                 if candidate.exists():
                     self.plugins_root = candidate
 
         # 如果指向项目根目录，切换到 plugins 子目录
-        if (self.plugins_root.exists() and
-            (self.plugins_root / 'plugins').exists() and
-            self.plugins_root.name != 'plugins'):
-            potential = self.plugins_root / 'plugins'
+        if (
+            self.plugins_root.exists()
+            and (self.plugins_root / "plugins").exists()
+            and self.plugins_root.name != "plugins"
+        ):
+            potential = self.plugins_root / "plugins"
             if potential.is_dir():
                 self.plugins_root = potential
 
@@ -93,12 +97,31 @@ class PluginDiscovery:
         if not self.plugins_root.exists():
             return []
 
-        plugin_dirs = [p for p in self.plugins_root.iterdir() if p.is_dir()]
+        # 过滤掉常见的非插件目录
+        exclude_dirs = {
+            "__pycache__",
+            ".git",
+            ".svn",
+            ".hg",
+            "node_modules",
+            ".venv",
+            "venv",
+        }
+
+        plugin_dirs = [
+            p
+            for p in self.plugins_root.iterdir()
+            if p.is_dir() and p.name not in exclude_dirs
+        ]
 
         if include_examples:
-            examples_root = self.plugins_root.parent / 'examples'
+            examples_root = self.plugins_root.parent / "examples"
             if examples_root.exists():
-                example_dirs = [p for p in examples_root.iterdir() if p.is_dir()]
+                example_dirs = [
+                    p
+                    for p in examples_root.iterdir()
+                    if p.is_dir() and p.name not in exclude_dirs
+                ]
                 plugin_dirs.extend(example_dirs)
 
         return plugin_dirs
@@ -114,8 +137,7 @@ class PluginDiscovery:
             PluginScanResult: 扫描结果
         """
         result = PluginScanResult(
-            plugin_dir=plugin_dir,
-            plugin_type=PluginType.CONFIG  # 默认类型
+            plugin_dir=plugin_dir, plugin_type=PluginType.CONFIG  # 默认类型
         )
 
         # 扫描文件
@@ -126,18 +148,18 @@ class PluginDiscovery:
             filename = file.name.lower()
 
             # Python 文件
-            if filename == 'plugin.py':
+            if filename == "plugin.py":
                 result.has_python = True
                 result.python_file = file
 
             # 配置文件
-            elif filename == 'plugin.json':
+            elif filename == "plugin.json":
                 result.has_config = True
                 result.config_files.append(file)
                 result.metadata_files.append(file)
 
             # Shell 脚本
-            elif filename.endswith('.sh'):
+            elif filename.endswith(".sh"):
                 result.has_scripts = True
                 result.script_files.append(file)
 
@@ -208,16 +230,15 @@ class PluginDiscovery:
                 continue
 
             # 检查是否为插件目录（包含 plugin.json 或 plugin.py）
-            has_plugin_json = (item / 'plugin.json').exists()
-            has_plugin_py = (item / 'plugin.py').exists()
+            has_plugin_json = (item / "plugin.json").exists()
+            has_plugin_py = (item / "plugin.py").exists()
 
             if has_plugin_json or has_plugin_py:
                 plugin_dirs.append(item)
             else:
                 # 递归查找子目录
                 sub_plugins = self._discover_recursive(
-                    item,
-                    f"{parent_path}/{item.name}" if parent_path else item.name
+                    item, f"{parent_path}/{item.name}" if parent_path else item.name
                 )
                 plugin_dirs.extend(sub_plugins)
 
@@ -240,7 +261,7 @@ class PluginDiscovery:
                 continue
 
             # 子插件也应该有 plugin.py 或配置文件
-            if (item / 'plugin.py').exists() or (item / 'plugin.json').exists():
+            if (item / "plugin.py").exists() or (item / "plugin.json").exists():
                 subplugins.append(item)
 
         return subplugins

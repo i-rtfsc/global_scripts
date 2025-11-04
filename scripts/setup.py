@@ -15,15 +15,21 @@ _SCRIPT_DIR = Path(__file__).parent.absolute()
 _PROJECT_ROOT = _SCRIPT_DIR.parent
 sys.path.insert(0, str(_PROJECT_ROOT / "src"))
 
-# Import utilities
+# Import utilities (after sys.path modification)
+# ruff: noqa: E402
 from gscripts.utils.shell_utils import detect_current_shell
 from gscripts.core.config_manager import ConfigManager
-from gscripts.infrastructure.persistence.plugin_loader import PluginLoader
-from gscripts.infrastructure.persistence.plugin_repository import PluginRepository
-from gscripts.infrastructure.filesystem.file_operations import RealFileSystem
 from gscripts.core.template_engine import get_template_engine
 from gscripts.shell_completion.generator import generate_completions_from_index
 from gscripts.router.indexer import build_router_index, write_router_index
+
+# Import Clean Architecture components for setup
+from gscripts.infrastructure.filesystem.file_operations import RealFileSystem
+from gscripts.infrastructure.persistence.plugin_repository import PluginRepository
+from gscripts.plugins.discovery import PluginDiscovery
+from gscripts.plugins.parsers.python_parser import PythonFunctionParser
+from gscripts.plugins.parsers.shell_parser import ShellFunctionParser
+from gscripts.plugins.parsers.config_parser import ConfigFunctionParser
 
 # Terminal colors
 BOLD = "\033[1m"
@@ -208,29 +214,108 @@ async def main():
     plugins_root = source_dir / "plugins"
     custom_root = source_dir / "custom"
 
-    # 使用 PluginLoader 加载插件 (Clean Architecture)
+    # 使用 PluginRepository 加载插件（创建 PluginMetadata 对象）
     filesystem = RealFileSystem()
+
+    # 系统插件
     system_repository = PluginRepository(
         filesystem=filesystem, plugins_dir=plugins_root
     )
-    loader = PluginLoader(
-        plugin_repository=system_repository, plugins_root=plugins_root
-    )
-    system_plugins = await loader.load_all_plugins()
-    system_count = len(system_plugins)
+    system_plugins_list = await system_repository.get_all()
 
-    # 加载自定义插件
-    custom_plugins = {}
-    custom_count = 0
+    # 自定义插件
+    custom_plugins_list = []
     if custom_root.exists():
         custom_repository = PluginRepository(
             filesystem=filesystem, plugins_dir=custom_root
         )
-        custom_loader = PluginLoader(
-            plugin_repository=custom_repository, plugins_root=custom_root
-        )
-        custom_plugins = await custom_loader.load_all_plugins()
-        custom_count = len(custom_plugins)
+        custom_plugins_list = await custom_repository.get_all()
+
+    # 为每个插件解析函数
+    discovery = PluginDiscovery(plugins_root)
+
+    async def load_plugin_functions(plugin_meta, plugin_dir):
+        """加载插件函数（包括主插件和子插件）"""
+        try:
+            functions = []
+            plugin_name = plugin_meta.name
+
+            # 1. 扫描主插件目录
+            scan_result = discovery.scan_plugin_directory(plugin_dir)
+
+            if scan_result.has_python and scan_result.python_file:
+                parser = PythonFunctionParser()
+                functions.extend(
+                    await parser.parse(scan_result.python_file, plugin_name)
+                )
+
+            if scan_result.has_config:
+                parser = ConfigFunctionParser()
+                for cfg_file in scan_result.config_files:
+                    if cfg_file.name == "commands.json":
+                        functions.extend(await parser.parse(cfg_file, plugin_name))
+
+            for script_file in scan_result.script_files:
+                parser = ShellFunctionParser()
+                functions.extend(await parser.parse(script_file, plugin_name))
+
+            # 2. 扫描子插件目录
+            # 遍历所有子目录查找.sh, .py等文件
+            for item in plugin_dir.iterdir():
+                if (
+                    not item.is_dir()
+                    or item.name.startswith("_")
+                    or item.name.startswith(".")
+                ):
+                    continue
+
+                # 扫描子目录
+                sub_scan = discovery.scan_plugin_directory(item)
+
+                if sub_scan.has_python and sub_scan.python_file:
+                    parser = PythonFunctionParser()
+                    functions.extend(
+                        await parser.parse(sub_scan.python_file, plugin_name)
+                    )
+
+                if sub_scan.has_config:
+                    parser = ConfigFunctionParser()
+                    for cfg_file in sub_scan.config_files:
+                        if cfg_file.name == "commands.json":
+                            functions.extend(await parser.parse(cfg_file, plugin_name))
+
+                for script_file in sub_scan.script_files:
+                    parser = ShellFunctionParser()
+                    functions.extend(await parser.parse(script_file, plugin_name))
+
+            # 将函数附加到 PluginMetadata 对象
+            plugin_meta.functions = {f.name: f for f in functions}
+
+            return plugin_meta
+        except Exception as e:
+            print(f"  ⚠️  Failed to load plugin {plugin_dir.name}: {e}")
+            return None
+
+    # 加载系统插件函数
+    system_tasks = [
+        load_plugin_functions(p, plugins_root / p.name) for p in system_plugins_list
+    ]
+    system_results = await asyncio.gather(*system_tasks, return_exceptions=True)
+    system_plugins = {
+        p.name: p for p in system_results if p and not isinstance(p, Exception)
+    }
+
+    # 加载自定义插件函数
+    custom_tasks = [
+        load_plugin_functions(p, custom_root / p.name) for p in custom_plugins_list
+    ]
+    custom_results = await asyncio.gather(*custom_tasks, return_exceptions=True)
+    custom_plugins = {
+        p.name: p for p in custom_results if p and not isinstance(p, Exception)
+    }
+
+    system_count = len(system_plugins)
+    custom_count = len(custom_plugins)
 
     # 合并所有插件
     plugins = {**system_plugins, **custom_plugins}
@@ -273,11 +358,14 @@ async def main():
     # 使用模板引擎生成环境文件
     template_engine = get_template_engine()
 
-    # 转换插件格式为模板引擎需要的格式
-    plugins_dict = {
-        name: plugin.__dict__ if hasattr(plugin, "__dict__") else {}
-        for name, plugin in plugins.items()
-    }
+    # 转换PluginMetadata对象为字典（template engine需要dict格式）
+    # 从刚生成的router.json读取（包含完整的plugin metadata）
+    import json
+
+    router_path_for_template = cache_dir / "cache" / "router.json"
+    with open(router_path_for_template, "r", encoding="utf-8") as f:
+        router_data = json.load(f)
+    plugins_dict = router_data.get("plugins", {})
 
     if current_shell == "fish":
         env_content = template_engine.render_env_fish(
@@ -370,9 +458,17 @@ async def main():
     disabled_plugins = {}
 
     for name, plugin in plugins.items():
-        enabled = config.get("system_plugins", {}).get(name, False) or config.get(
-            "custom_plugins", {}
-        ).get(name, False)
+        # 优先从配置文件读取，如果配置文件没有则使用插件自身的enabled字段
+        if name in system_plugins:
+            # 系统插件：从 system_plugins 配置读取
+            enabled = config.get("system_plugins", {}).get(name, plugin.enabled)
+        elif name in custom_plugins:
+            # 自定义插件：从 custom_plugins 配置读取
+            enabled = config.get("custom_plugins", {}).get(name, plugin.enabled)
+        else:
+            # 未在配置中：使用插件自身的enabled字段（默认True）
+            enabled = getattr(plugin, "enabled", True)
+
         if enabled:
             enabled_plugins[name] = plugin
         else:
