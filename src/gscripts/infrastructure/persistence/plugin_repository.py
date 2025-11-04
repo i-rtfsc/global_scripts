@@ -209,6 +209,15 @@ class PluginRepository(IPluginRepository):
         """Parse plugin metadata from JSON data"""
         # Parse type string to PluginType enum
         type_str = data.get('type', 'unknown').lower()
+
+        # Map alternate names to canonical types
+        type_mapping = {
+            "json": "config",
+            "script": "shell",
+            "sh": "shell",
+        }
+        type_str = type_mapping.get(type_str, type_str)
+
         try:
             plugin_type = PluginType(type_str)
         except ValueError:

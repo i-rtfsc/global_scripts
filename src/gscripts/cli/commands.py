@@ -184,16 +184,17 @@ class CommandHandler:
 
             if plugin_name in self.plugin_manager.plugins:
                 plugin = self.plugin_manager.plugins[plugin_name]
+                functions = plugin.get('functions', {})
 
-                # 尝试: sub-function 复合名
-                composite_function_name = f"{subplugin_name}-{function_name}"
-                if composite_function_name in plugin.functions:
+                # 尝试: "sub function" 复合名 (with space, like router.json)
+                composite_function_name = f"{subplugin_name} {function_name}"
+                if composite_function_name in functions:
                     return await self._execute_plugin_function(
                         plugin_name, composite_function_name, args[3:]
                     )
 
                 # 回退: sub 作为函数名，function 作为参数
-                if subplugin_name in plugin.functions:
+                if subplugin_name in functions:
                     logger.debug(
                         f"cid={cid} fallback=2layer plugin={plugin_name} func={subplugin_name}"
                     )

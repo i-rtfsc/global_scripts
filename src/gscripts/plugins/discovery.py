@@ -158,6 +158,11 @@ class PluginDiscovery:
                 result.config_files.append(file)
                 result.metadata_files.append(file)
 
+            # 命令配置文件
+            elif filename == "commands.json":
+                result.has_config = True
+                result.config_files.append(file)
+
             # Shell 脚本
             elif filename.endswith(".sh"):
                 result.has_scripts = True

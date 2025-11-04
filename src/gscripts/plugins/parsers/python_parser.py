@@ -9,7 +9,9 @@ from pathlib import Path
 from typing import List
 
 from ...core.logger import get_logger
-from . import FunctionParser, FunctionInfo
+from ...models.plugin import FunctionType
+from ...models.function import FunctionInfo
+from . import FunctionParser
 
 logger = get_logger(tag="PLUGINS.PARSER.PYTHON", name=__name__)
 
@@ -58,7 +60,8 @@ class PythonFunctionParser(FunctionParser):
                     decorator_content,
                     func_name,
                     plugin_name,
-                    subplugin_name
+                    subplugin_name,
+                    file  # Pass file path
                 )
 
                 if func_info:
@@ -74,7 +77,8 @@ class PythonFunctionParser(FunctionParser):
         decorator_content: str,
         func_name: str,
         plugin_name: str,
-        subplugin_name: str
+        subplugin_name: str,
+        file: Path
     ) -> FunctionInfo:
         """
         解析装饰器参数
@@ -84,6 +88,7 @@ class PythonFunctionParser(FunctionParser):
             func_name: 函数名称
             plugin_name: 插件名称
             subplugin_name: 子插件名称
+            file: Python file path
 
         Returns:
             FunctionInfo: 函数信息
@@ -112,12 +117,11 @@ class PythonFunctionParser(FunctionParser):
                 name=kwargs.get('name', func_name),
                 description=description.get('zh', description.get('en', '')),
                 command=kwargs.get('command', func_name),
-                type='python',
-                args=kwargs.get('args', []),
-                options=kwargs.get('options', {}),
+                type=FunctionType.PYTHON,
+                subplugin=subplugin_name,
                 examples=kwargs.get('examples', []),
-                plugin_name=plugin_name,
-                subplugin_name=subplugin_name
+                python_file=file,
+                method=func_name  # Set the actual Python method name
             )
 
         except Exception:
@@ -126,7 +130,8 @@ class PythonFunctionParser(FunctionParser):
                 decorator_content,
                 func_name,
                 plugin_name,
-                subplugin_name
+                subplugin_name,
+                file  # Pass file to simple parser
             )
 
     def _parse_decorator_simple(
@@ -134,7 +139,8 @@ class PythonFunctionParser(FunctionParser):
         decorator_content: str,
         func_name: str,
         plugin_name: str,
-        subplugin_name: str
+        subplugin_name: str,
+        file: Path
     ) -> FunctionInfo:
         """
         简单的装饰器解析（正则表达式）
@@ -144,6 +150,7 @@ class PythonFunctionParser(FunctionParser):
             func_name: 函数名称
             plugin_name: 插件名称
             subplugin_name: 子插件名称
+            file: Python file path
 
         Returns:
             FunctionInfo: 函数信息
@@ -164,7 +171,8 @@ class PythonFunctionParser(FunctionParser):
             name=name,
             description=description,
             command=command,
-            type='python',
-            plugin_name=plugin_name,
-            subplugin_name=subplugin_name
+            type=FunctionType.PYTHON,
+            subplugin=subplugin_name,
+            python_file=file,  # Set python_file
+            method=func_name  # Set the actual Python method name
         )
