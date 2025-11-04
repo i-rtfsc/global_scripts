@@ -5,10 +5,11 @@ Command pattern base classes
 
 from abc import ABC, abstractmethod
 from typing import List, Dict, Optional, Any
-from dataclasses import dataclass
 
 from ...core.config_manager import CommandResult, ConfigManager
-from ...core.plugin_manager import PluginManager
+from ...infrastructure.adapters.plugin_manager_adapter import (
+    PluginManagerAdapter as PluginManager,
+)
 from ...core.constants import GlobalConstants
 from ...utils.i18n import I18nManager
 from ..formatters import OutputFormatter
@@ -24,7 +25,7 @@ class Command(ABC):
         i18n: I18nManager,
         formatter: OutputFormatter,
         constants: GlobalConstants,
-        chinese: bool = True
+        chinese: bool = True,
     ):
         self.config_manager = config_manager
         self.plugin_manager = plugin_manager
@@ -142,7 +143,7 @@ class CommandFactory:
         self,
         config_manager: ConfigManager,
         plugin_manager: PluginManager,
-        chinese: bool = True
+        chinese: bool = True,
     ):
         """
         初始化命令工厂
@@ -178,16 +179,16 @@ class CommandFactory:
 
         # 注册系统命令创建器
         self._creators = {
-            'help': HelpCommand,
-            'version': VersionCommand,
-            'status': StatusCommand,
-            'doctor': DoctorCommand,
-            'refresh': RefreshCommand,
-            'parser': ParserCommand,
-            'plugin:list': PluginListCommand,
-            'plugin:info': PluginInfoCommand,
-            'plugin:enable': PluginEnableCommand,
-            'plugin:disable': PluginDisableCommand,
+            "help": HelpCommand,
+            "version": VersionCommand,
+            "status": StatusCommand,
+            "doctor": DoctorCommand,
+            "refresh": RefreshCommand,
+            "parser": ParserCommand,
+            "plugin:list": PluginListCommand,
+            "plugin:info": PluginInfoCommand,
+            "plugin:enable": PluginEnableCommand,
+            "plugin:disable": PluginDisableCommand,
         }
 
     def create(self, command_type: str) -> Command:
@@ -214,7 +215,7 @@ class CommandFactory:
             self.i18n,
             self.formatter,
             self.constants,
-            self.chinese
+            self.chinese,
         )
 
     def create_all(self) -> List[Command]:
@@ -243,9 +244,7 @@ class CommandFactory:
 
 # 命令工厂函数（兼容旧代码）
 def create_command_registry(
-    config_manager: ConfigManager,
-    plugin_manager: PluginManager,
-    chinese: bool = True
+    config_manager: ConfigManager, plugin_manager: PluginManager, chinese: bool = True
 ) -> CommandRegistry:
     """
     创建并配置命令注册表（使用 CommandFactory）

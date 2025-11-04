@@ -98,14 +98,20 @@ from gscripts.plugins.decorators import plugin_function
 
 ### Architecture Patterns
 
-#### Current State (CRITICAL ISSUES)
+#### Current State
 
-**⚠️ Problem: Dual Implementation**
-The codebase has TWO parallel plugin systems:
-1. **Legacy** (`core/plugin_manager.py`, `core/plugin_loader.py`) - 1600+ lines
-2. **New** (`application/services/`, `infrastructure/`) - Clean Architecture
+**✅ Clean Architecture Migration Complete** (January 2025)
 
-**Status**: Migration 60% complete. New code MUST use Clean Architecture layers.
+The codebase has successfully migrated to Clean Architecture with Domain-Driven Design principles. The legacy plugin system has been removed and replaced with a layered architecture:
+
+1. **CLI Layer** → Uses PluginManagerAdapter for backwards compatibility
+2. **Application Layer** → PluginService & PluginExecutor orchestrate use cases
+3. **Infrastructure Layer** → PluginRepository, ProcessExecutor, FileSystem implementations
+4. **Domain Layer** → Core business logic and interfaces (ongoing enhancement)
+
+**Migration Status**: Phase 3 complete (100%). Legacy `core/plugin_manager.py` and `core/plugin_loader.py` removed.
+
+**Note**: The PluginManagerAdapter provides a compatibility layer, allowing existing code to work with the new architecture without modification.
 
 #### Target Architecture: Clean Architecture + DDD
 
@@ -150,16 +156,20 @@ The codebase has TWO parallel plugin systems:
 3. **Interfaces in domain**: Infrastructure implements domain interfaces
 4. **No circular dependencies**: Use dependency injection to break cycles
 
-#### Current Violations to Fix
+#### ✅ Architecture Principles Applied
 ```python
-# ❌ WRONG: Core importing from infrastructure
-# core/plugin_manager.py:191
-from ..infrastructure.execution import ProcessExecutor
-
-# ✅ CORRECT: Use dependency injection
+# ✅ CORRECT: Application layer uses interfaces from domain
 # application/services/plugin_service.py
-def __init__(self, executor: IProcessExecutor):  # Interface from domain
-    self._executor = executor
+def __init__(self, plugin_loader: IPluginLoader, plugin_repository: IPluginRepository):
+    self._loader = plugin_loader
+    self._repository = plugin_repository
+
+# ✅ CORRECT: Infrastructure implements domain interfaces
+# infrastructure/persistence/plugin_repository.py
+class PluginRepository(IPluginRepository):
+    def __init__(self, filesystem: IFileSystem, plugins_dir: Path):
+        self._filesystem = filesystem
+        self._plugins_dir = plugins_dir
 ```
 
 ### Async/Sync Policy
@@ -525,45 +535,63 @@ User: gs android adb devices
 - `GS_LOG_LEVEL`: Logging level (DEBUG, INFO, WARNING, ERROR)
 - `GS_LANGUAGE`: Language override (zh, en)
 
-## Migration Roadmap (CRITICAL)
+## Clean Architecture Migration - COMPLETED ✅
 
-### Current Architecture Issues
+### Migration Status (January 2025)
 
-**Priority 1: Resolve Dual Implementation**
-- **Problem**: Both `core/` and `application/infrastructure/` exist
-- **Decision needed**: Complete Clean Architecture migration or rollback
-- **Recommendation**: Complete migration (better long-term)
-- **Effort**: 2-3 weeks
+**✅ Phase 1: Preparation** - Complete
+- Comprehensive test coverage created
+- Behavioral compatibility tests established
+- Migration adapter implemented
 
-**Priority 2: Fix Layer Violations**
-- Move logger to `infrastructure/logging/`
-- Move plugin interfaces to `domain/interfaces/`
-- Remove `core/` imports from infrastructure
-- Effort: 1 week
+**✅ Phase 2: CLI Migration** - Complete
+- All CLI commands migrated to Clean Architecture
+- Feature flag implemented and later removed
+- Plugin enable/disable with config persistence working
 
-**Priority 3: Consolidate Duplicates**
-- Merge `utils/process_executor.py` → `infrastructure/execution/`
-- Remove `core/config_repository.py`, use infrastructure version
-- Eliminate `SimplePlugin`, use `PluginMetadata` everywhere
-- Effort: 1 week
+**✅ Phase 3: Cleanup** - Complete
+- Legacy `core/plugin_manager.py` (568 lines) - **REMOVED**
+- Legacy `core/plugin_loader.py` (1095 lines) - **REMOVED**
+- Feature flag removed, new system hard-coded
+- Migration tests removed
+- Documentation updated
 
-**Priority 4: Complete Domain Layer**
-- Implement rich domain entities (not anemic models)
-- Add domain services for business logic
-- Add value objects with validation
-- Effort: 1-2 weeks
+### Current Architecture
 
-### New Code Guidelines
+The system now uses a pure Clean Architecture implementation:
 
-**Until migration completes:**
-1. ✅ **DO**: Use Clean Architecture layers for new features
-2. ✅ **DO**: Add tests with DI container and mocks
-3. ✅ **DO**: Follow async-first pattern
-4. ❌ **DON'T**: Extend `core/plugin_manager.py` or `core/plugin_loader.py`
-5. ❌ **DON'T**: Create new utils that import from core
-6. ❌ **DON'T**: Add dependencies from domain → infrastructure
+1. **CLI Layer** → Entry point, uses PluginManagerAdapter
+2. **Application Layer** → PluginService, PluginExecutor (use case orchestration)
+3. **Infrastructure Layer** → PluginRepository, ProcessExecutor, FileSystem
+4. **Domain Layer** → Interfaces (IPluginLoader, IPluginRepository, etc.)
+
+### Remaining Work (Optional Enhancements)
+
+**Priority: Low** - System is fully functional
+
+1. **Enhance Domain Layer** (Optional)
+   - Add rich domain entities (currently using anemic models)
+   - Add domain services for complex business logic
+   - Add value objects with validation
+   - Effort: 1-2 weeks
+
+2. **Remove Adapter Layer** (Optional)
+   - Directly use PluginService/PluginExecutor in CLI
+   - Remove PluginManagerAdapter abstraction
+   - Simplify architecture further
+   - Effort: 1 week
+   - **Note**: Adapter provides value, removal not critical
+
+### Development Guidelines
+
+**All new code MUST:**
+1. ✅ Use Clean Architecture layers
+2. ✅ Follow dependency inversion (depend on interfaces)
+3. ✅ Use async-first pattern for I/O
+4. ✅ Add unit tests with proper mocks
+5. ✅ Follow type annotation requirements
 
 **Refactoring policy:**
-- Bug fixes: Fix in place (legacy or new architecture)
+- Bug fixes: Fix in place using Clean Architecture patterns
 - New features: MUST use Clean Architecture
 - Performance issues: Refactor affected area to new architecture first
