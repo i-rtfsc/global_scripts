@@ -137,6 +137,16 @@ class PluginManagerAdapter:
         success = await self._service.enable_plugin(plugin_name)
 
         if success:
+            # Clear repository cache to force reload from filesystem
+            logger.info(f"Clearing repository cache before reloading")
+            self._service._repository.clear_cache()
+            self._service._loader.clear()
+
+            # Reload all plugins to reflect the change
+            logger.info(f"Reloading plugins after enabling {plugin_name}")
+            loaded = await self._service.load_all_plugins()
+            logger.info(f"Loaded {len(loaded)} plugins after enable: {list(loaded.keys())}")
+
             # Regenerate router index and completions (like legacy system)
             self._generate_router_index()
             self._regenerate_completions()
@@ -191,6 +201,15 @@ class PluginManagerAdapter:
         success = await self._service.disable_plugin(plugin_name)
 
         if success:
+            # Clear repository cache to force reload from filesystem
+            logger.info(f"Clearing repository cache before reloading")
+            self._service._repository.clear_cache()
+            self._service._loader.clear()
+
+            # Reload all plugins to reflect the change
+            logger.info(f"Reloading plugins after disabling {plugin_name}")
+            await self._service.load_all_plugins()
+
             # Regenerate router index and completions (like legacy system)
             self._generate_router_index()
             self._regenerate_completions()
