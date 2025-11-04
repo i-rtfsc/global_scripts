@@ -17,7 +17,7 @@ class IProcessExecutor(Protocol):
         timeout: int = 30,
         cwd: Optional[Path] = None,
         env: Optional[Dict[str, str]] = None,
-        capture_output: bool = True
+        capture_output: bool = True,
     ) -> Any:  # 返回 CommandResult
         """执行命令（列表形式）"""
         ...
@@ -27,7 +27,7 @@ class IProcessExecutor(Protocol):
         command: str,
         timeout: int = 30,
         cwd: Optional[Path] = None,
-        env: Optional[Dict[str, str]] = None
+        env: Optional[Dict[str, str]] = None,
     ) -> Any:  # 返回 CommandResult
         """执行 Shell 命令（字符串形式）"""
         ...
@@ -44,17 +44,14 @@ class ICommandExecutor(ABC):
         timeout: Optional[int] = None,
         cwd: Optional[Path] = None,
         env: Optional[Dict[str, str]] = None,
-        skip_security_check: bool = False
+        skip_security_check: bool = False,
     ) -> Any:  # 返回 CommandResult
         """执行命令（带安全检查）"""
         pass
 
     @abstractmethod
     async def execute_safe(
-        self,
-        command: List[str] | str,
-        args: Optional[List[str]] = None,
-        **kwargs
+        self, command: List[str] | str, args: Optional[List[str]] = None, **kwargs
     ) -> Any:  # 返回 CommandResult
         """安全执行命令（仅白名单）"""
         pass
@@ -69,12 +66,12 @@ class IFileSystem(ABC):
         pass
 
     @abstractmethod
-    def read_text(self, path: Path, encoding: str = 'utf-8') -> str:
+    def read_text(self, path: Path, encoding: str = "utf-8") -> str:
         """读取文本文件"""
         pass
 
     @abstractmethod
-    def write_text(self, path: Path, content: str, encoding: str = 'utf-8') -> None:
+    def write_text(self, path: Path, content: str, encoding: str = "utf-8") -> None:
         """写入文本文件"""
         pass
 
@@ -114,8 +111,8 @@ class IEnvironment(ABC):
 
 
 __all__ = [
-    'IProcessExecutor',
-    'ICommandExecutor',
-    'IFileSystem',
-    'IEnvironment',
+    "IProcessExecutor",
+    "ICommandExecutor",
+    "IFileSystem",
+    "IEnvironment",
 ]

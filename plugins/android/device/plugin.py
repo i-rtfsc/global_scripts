@@ -15,7 +15,7 @@ if str(project_root) not in sys.path:
 
 from gscripts.plugins.decorators import plugin_function, subplugin
 from gscripts.plugins.base import BasePlugin
-from gscripts.core.config_manager import CommandResult
+from gscripts.models.result import CommandResult
 from plugins.android.common import get_selected_device as _get_dev, set_selected_device as _set_dev
 
 

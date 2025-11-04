@@ -9,12 +9,12 @@ from .function import FunctionInfo, FunctionType
 from .config import ConfigSchema
 
 __all__ = [
-    'CommandResult',
-    'ExecutionMetadata',
-    'PluginMetadata',
-    'PluginType',
-    'PluginPaths',
-    'FunctionInfo',
-    'FunctionType',
-    'ConfigSchema',
+    "CommandResult",
+    "ExecutionMetadata",
+    "PluginMetadata",
+    "PluginType",
+    "PluginPaths",
+    "FunctionInfo",
+    "FunctionType",
+    "ConfigSchema",
 ]

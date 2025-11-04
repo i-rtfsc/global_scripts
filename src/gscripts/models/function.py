@@ -14,6 +14,7 @@ class FunctionInfo:
 
     统一的函数元数据结构,支持所有类型的插件函数
     """
+
     name: str
     description: Union[str, Dict[str, str]]
     type: FunctionType
@@ -35,10 +36,15 @@ class FunctionInfo:
     working_dir: Optional[Path] = None
     env_vars: Dict[str, str] = field(default_factory=dict)
 
-    def get_description(self, language: str = 'zh') -> str:
+    def get_description(self, language: str = "zh") -> str:
         """获取指定语言的描述"""
         if isinstance(self.description, dict):
-            return self.description.get(language) or self.description.get('zh') or self.description.get('en') or ''
+            return (
+                self.description.get(language)
+                or self.description.get("zh")
+                or self.description.get("en")
+                or ""
+            )
         return str(self.description)
 
     @property

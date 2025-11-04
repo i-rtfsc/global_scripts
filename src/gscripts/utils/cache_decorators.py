@@ -31,11 +31,7 @@ class CacheManager:
 
     def set(self, key: str, value: Any, mtime: Optional[float] = None):
         """设置缓存"""
-        self._cache[key] = CacheEntry(
-            value=value,
-            timestamp=time.time(),
-            mtime=mtime
-        )
+        self._cache[key] = CacheEntry(value=value, timestamp=time.time(), mtime=mtime)
 
     def clear(self, key: Optional[str] = None):
         """清除缓存"""
@@ -44,7 +40,9 @@ class CacheManager:
         else:
             self._cache.clear()
 
-    def is_valid(self, key: str, ttl: Optional[float] = None, file_path: Optional[Path] = None) -> bool:
+    def is_valid(
+        self, key: str, ttl: Optional[float] = None, file_path: Optional[Path] = None
+    ) -> bool:
         """检查缓存是否有效"""
         entry = self.get(key)
         if not entry:
@@ -83,6 +81,7 @@ def file_cache(ttl: Optional[float] = 300):
             with open(file_path) as f:
                 return json.load(f)
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(file_path: Path, *args, **kwargs):
@@ -125,6 +124,7 @@ def memory_cache(ttl: Optional[float] = 300):
         def expensive_computation(n: int) -> int:
             return n ** 2
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -177,6 +177,7 @@ def async_file_cache(ttl: Optional[float] = 300):
                 content = await f.read()
                 return json.loads(content)
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         async def wrapper(file_path: Path, *args, **kwargs):
@@ -218,6 +219,6 @@ def get_cache_stats() -> Dict[str, Any]:
         Dict: 缓存统计
     """
     return {
-        'total_entries': len(_cache_manager._cache),
-        'entries': list(_cache_manager._cache.keys())
+        "total_entries": len(_cache_manager._cache),
+        "entries": list(_cache_manager._cache.keys()),
     }

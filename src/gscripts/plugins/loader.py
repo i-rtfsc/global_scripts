@@ -9,13 +9,12 @@ from pathlib import Path
 from typing import Dict, List, Optional, Union
 
 from ..core.logger import get_logger
-from .discovery import PluginDiscovery, PluginScanResult, PluginType
-from .validators import PluginValidator, ValidationResult
+from .discovery import PluginDiscovery, PluginScanResult
+from .validators import PluginValidator
 from .parsers import FunctionParserRegistry, ParserDiscovery
 from .parsers.python_parser import PythonFunctionParser
 from .parsers.shell_parser import ShellFunctionParser
 from .parsers.config_parser import ConfigFunctionParser
-from .interfaces import IPluginLoader, IPlugin
 
 logger = get_logger(tag="PLUGINS.LOADER", name=__name__)
 
@@ -31,7 +30,9 @@ class RefactoredPluginLoader:
     - 提供类型安全的插件加载
     """
 
-    def __init__(self, plugins_root: Union[str, Path], parser_config: Optional[Dict] = None):
+    def __init__(
+        self, plugins_root: Union[str, Path], parser_config: Optional[Dict] = None
+    ):
         """
         初始化插件加载器
 
@@ -79,16 +80,20 @@ class RefactoredPluginLoader:
                     parser_name = metadata.name if metadata else parser_class.__name__
 
                     # 检查配置中的启用/禁用状态
-                    enabled_parsers = self.parser_config.get('enabled', [])
-                    disabled_parsers = self.parser_config.get('disabled', [])
+                    enabled_parsers = self.parser_config.get("enabled", [])
+                    disabled_parsers = self.parser_config.get("disabled", [])
 
                     # 如果在禁用列表中，跳过
                     if parser_name in disabled_parsers:
-                        logger.info(f"Parser {parser_name} is disabled in config, skipping")
+                        logger.info(
+                            f"Parser {parser_name} is disabled in config, skipping"
+                        )
                         continue
 
                     # 获取优先级（配置覆盖 > 元数据）
-                    priority_overrides = self.parser_config.get('priority_overrides', {})
+                    priority_overrides = self.parser_config.get(
+                        "priority_overrides", {}
+                    )
                     priority = priority_overrides.get(parser_name)
 
                     # 注册（会自动使用元数据中的优先级或配置覆盖）
@@ -97,7 +102,9 @@ class RefactoredPluginLoader:
                     logger.info(f"Registered external parser: {parser_name}")
 
                 except Exception as e:
-                    logger.warning(f"Failed to register parser {parser_class.__name__}: {e}")
+                    logger.warning(
+                        f"Failed to register parser {parser_class.__name__}: {e}"
+                    )
 
             # 从自定义路径发现
             custom_paths = discovery.get_custom_paths(self.parser_config)
@@ -107,23 +114,31 @@ class RefactoredPluginLoader:
                 for parser_class, metadata in custom_parsers:
                     try:
                         parser = parser_class()
-                        parser_name = metadata.name if metadata else parser_class.__name__
+                        parser_name = (
+                            metadata.name if metadata else parser_class.__name__
+                        )
 
                         # 检查启用/禁用
-                        disabled_parsers = self.parser_config.get('disabled', [])
+                        disabled_parsers = self.parser_config.get("disabled", [])
                         if parser_name in disabled_parsers:
                             continue
 
                         # 获取优先级
-                        priority_overrides = self.parser_config.get('priority_overrides', {})
+                        priority_overrides = self.parser_config.get(
+                            "priority_overrides", {}
+                        )
                         priority = priority_overrides.get(parser_name)
 
                         self.parser_registry.register(parser, priority=priority)
 
-                        logger.info(f"Registered custom parser from {custom_path}: {parser_name}")
+                        logger.info(
+                            f"Registered custom parser from {custom_path}: {parser_name}"
+                        )
 
                     except Exception as e:
-                        logger.warning(f"Failed to register custom parser {parser_class.__name__}: {e}")
+                        logger.warning(
+                            f"Failed to register custom parser {parser_class.__name__}: {e}"
+                        )
 
         except Exception as e:
             logger.warning(f"Parser auto-discovery failed: {e}")
@@ -153,7 +168,7 @@ class RefactoredPluginLoader:
             if isinstance(result, Exception):
                 self.failed_plugins[plugin_dir.name] = str(result)
             elif result:
-                self.loaded_plugins[result['name']] = result
+                self.loaded_plugins[result["name"]] = result
 
         return self.loaded_plugins
 
@@ -180,24 +195,26 @@ class RefactoredPluginLoader:
         metadata = await self._load_metadata(plugin_dir, scan_result)
 
         # 4. 发现函数
-        functions = await self._discover_functions(scan_result, metadata['name'])
+        functions = await self._discover_functions(scan_result, metadata["name"])
 
         # 5. 构建插件信息
         plugin_info = {
-            'name': metadata['name'],
-            'version': metadata.get('version', '1.0.0'),
-            'author': metadata.get('author', 'Unknown'),
-            'description': metadata.get('description', {}),
-            'type': scan_result.plugin_type.value,
-            'enabled': metadata.get('enabled', True),
-            'priority': metadata.get('priority', 50),
-            'functions': {f.command: self._function_to_dict(f) for f in functions},
-            'dir': str(plugin_dir)
+            "name": metadata["name"],
+            "version": metadata.get("version", "1.0.0"),
+            "author": metadata.get("author", "Unknown"),
+            "description": metadata.get("description", {}),
+            "type": scan_result.plugin_type.value,
+            "enabled": metadata.get("enabled", True),
+            "priority": metadata.get("priority", 50),
+            "functions": {f.command: self._function_to_dict(f) for f in functions},
+            "dir": str(plugin_dir),
         }
 
         return plugin_info
 
-    async def _load_metadata(self, plugin_dir: Path, scan_result: PluginScanResult) -> dict:
+    async def _load_metadata(
+        self, plugin_dir: Path, scan_result: PluginScanResult
+    ) -> dict:
         """
         加载插件元数据
 
@@ -211,17 +228,17 @@ class RefactoredPluginLoader:
         import json
 
         metadata = {
-            'name': plugin_dir.name,
-            'version': '1.0.0',
-            'author': 'Unknown',
-            'description': {'en': f'{plugin_dir.name} plugin'},
+            "name": plugin_dir.name,
+            "version": "1.0.0",
+            "author": "Unknown",
+            "description": {"en": f"{plugin_dir.name} plugin"},
         }
 
         # 从 plugin.json 加载
-        plugin_json = plugin_dir / 'plugin.json'
+        plugin_json = plugin_dir / "plugin.json"
         if plugin_json.exists():
             try:
-                with open(plugin_json, 'r', encoding='utf-8') as f:
+                with open(plugin_json, "r", encoding="utf-8") as f:
                     config = json.load(f)
                     metadata.update(config)
             except Exception as e:
@@ -229,7 +246,9 @@ class RefactoredPluginLoader:
 
         return metadata
 
-    async def _discover_functions(self, scan_result: PluginScanResult, plugin_name: str) -> List:
+    async def _discover_functions(
+        self, scan_result: PluginScanResult, plugin_name: str
+    ) -> List:
         """
         发现插件中的函数
 
@@ -274,13 +293,13 @@ class RefactoredPluginLoader:
             dict: 函数信息字典
         """
         return {
-            'name': func_info.name,
-            'description': func_info.description,
-            'command': func_info.command,
-            'type': func_info.type,
-            'args': func_info.args,
-            'options': func_info.options,
-            'examples': func_info.examples
+            "name": func_info.name,
+            "description": func_info.description,
+            "command": func_info.command,
+            "type": func_info.type,
+            "args": func_info.args,
+            "options": func_info.options,
+            "examples": func_info.examples,
         }
 
     def get_plugin(self, plugin_name: str) -> Optional[dict]:

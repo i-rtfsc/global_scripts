@@ -9,15 +9,13 @@ import time
 from typing import List, Optional, Dict, Any, Union, Tuple
 from pathlib import Path
 
-from .config_manager import CommandResult
+from ..models.result import CommandResult
 from .constants import GlobalConstants
 from ..utils.i18n import get_i18n_manager
 from ..utils.process_executor import get_process_executor, ProcessConfig
 
 from ..core.logger import get_logger
-from ..utils.logging_utils import (
-    correlation_id, duration, safe_repr, format_exception
-)
+from ..utils.logging_utils import correlation_id, safe_repr, format_exception
 
 logger = get_logger(tag="CORE.COMMAND_EXECUTOR", name=__name__)
 
@@ -65,7 +63,7 @@ class CommandExecutor:
         env: Optional[Dict[str, str]] = None,
         capture_output: bool = True,
         shell: bool = False,
-        skip_security_check: bool = False
+        skip_security_check: bool = False,
     ) -> CommandResult:
         """
         执行命令（带安全检查和并发控制）
@@ -105,8 +103,10 @@ class CommandExecutor:
                 )
                 return CommandResult(
                     success=False,
-                    error=self.i18n.get_message('errors.command_not_safe', reason=security_msg),
-                    exit_code=self.constants.exit_security_violation
+                    error=self.i18n.get_message(
+                        "errors.command_not_safe", reason=security_msg
+                    ),
+                    exit_code=self.constants.exit_security_violation,
                 )
 
         # 并发控制
@@ -117,13 +117,17 @@ class CommandExecutor:
                 cwd=cwd,
                 env=env,
                 capture_output=capture_output,
-                shell=shell
+                shell=shell,
             )
 
             try:
                 if shell:
                     # Shell 执行
-                    cmd_str = full_command[0] if isinstance(full_command, list) else full_command
+                    cmd_str = (
+                        full_command[0]
+                        if isinstance(full_command, list)
+                        else full_command
+                    )
                     result = await self.process_executor.execute_shell(cmd_str, config)
                 else:
                     # 直接执行
@@ -146,13 +150,11 @@ class CommandExecutor:
                 return CommandResult(
                     success=False,
                     error=f"执行失败: {format_exception(e)}",
-                    exit_code=self.constants.exit_execution_error
+                    exit_code=self.constants.exit_execution_error,
                 )
 
     def _build_command(
-        self,
-        command: Union[str, List[str]],
-        args: List[str] = None
+        self, command: Union[str, List[str]], args: List[str] = None
     ) -> List[str]:
         """
         构建完整命令列表
@@ -188,12 +190,12 @@ class CommandExecutor:
             return False, "空命令"
 
         # 检查命令长度
-        cmd_str = ' '.join(command)
+        cmd_str = " ".join(command)
         if len(cmd_str) > self.constants.max_command_length:
             return False, f"命令过长 (>{self.constants.max_command_length}字符)"
 
         # 获取基础命令
-        base_command = command[0].split('/')[-1]  # 去掉路径
+        base_command = command[0].split("/")[-1]  # 去掉路径
 
         # 检查危险命令
         if base_command in self.dangerous_commands:
@@ -208,10 +210,7 @@ class CommandExecutor:
         return True, ""
 
     async def execute_safe(
-        self,
-        command: Union[str, List[str]],
-        args: List[str] = None,
-        **kwargs
+        self, command: Union[str, List[str]], args: List[str] = None, **kwargs
     ) -> CommandResult:
         """
         安全执行命令（仅允许白名单命令）
@@ -226,21 +225,19 @@ class CommandExecutor:
         """
         # 检查是否在白名单中
         base_cmd = command[0] if isinstance(command, list) else command.split()[0]
-        base_cmd = base_cmd.split('/')[-1]  # 去掉路径
+        base_cmd = base_cmd.split("/")[-1]  # 去掉路径
 
         if base_cmd not in self.allowed_commands:
             cid = correlation_id()
             logger.warning(
-                f"cid={cid} exec_safe.blocked cmd={base_cmd} "
-                f"not in whitelist"
+                f"cid={cid} exec_safe.blocked cmd={base_cmd} " f"not in whitelist"
             )
             return CommandResult(
                 success=False,
                 error=self.i18n.get_message(
-                    'errors.command_not_allowed',
-                    command=base_cmd
+                    "errors.command_not_allowed", command=base_cmd
                 ),
-                exit_code=self.constants.exit_security_violation
+                exit_code=self.constants.exit_security_violation,
             )
 
         return await self.execute(command, args, **kwargs)

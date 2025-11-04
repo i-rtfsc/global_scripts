@@ -6,7 +6,8 @@ Command pattern base classes
 from abc import ABC, abstractmethod
 from typing import List, Dict, Optional, Any
 
-from ...core.config_manager import CommandResult, ConfigManager
+from gscripts.models.result import CommandResult
+from gscripts.core.config_manager import ConfigManager
 from ...infrastructure.adapters.plugin_manager_adapter import (
     PluginManagerAdapter as PluginManager,
 )

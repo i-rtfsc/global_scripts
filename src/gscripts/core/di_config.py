@@ -24,7 +24,7 @@ from ..plugins.validators import PluginValidator
 def configure_container(
     container: Optional[Container] = None,
     plugins_root: Optional[Path] = None,
-    chinese: bool = True
+    chinese: bool = True,
 ) -> Container:
     """
     配置依赖注入容器
@@ -75,7 +75,9 @@ def configure_container(
     def create_plugin_loader():
         return RefactoredPluginLoader(plugins_root)
 
-    container.register_factory(RefactoredPluginLoader, create_plugin_loader, singleton=True)
+    container.register_factory(
+        RefactoredPluginLoader, create_plugin_loader, singleton=True
+    )
     container.register_factory(IPluginLoader, create_plugin_loader, singleton=True)
 
     # 插件发现器
@@ -92,10 +94,7 @@ def configure_container(
 
     # 插件管理器
     def create_plugin_manager():
-        return PluginManager(
-            config_manager=config_manager,
-            plugins_root=plugins_root
-        )
+        return PluginManager(config_manager=config_manager, plugins_root=plugins_root)
 
     container.register_factory(PluginManager, create_plugin_manager, singleton=True)
     container.register_factory(IPluginManager, create_plugin_manager, singleton=True)
@@ -123,6 +122,7 @@ def get_configured_container() -> Container:
 
 # ============= 便捷函数 =============
 
+
 def resolve(interface):
     """
     便捷解析函数
@@ -146,8 +146,8 @@ def resolve_optional(interface):
 
 
 __all__ = [
-    'configure_container',
-    'get_configured_container',
-    'resolve',
-    'resolve_optional',
+    "configure_container",
+    "get_configured_container",
+    "resolve",
+    "resolve_optional",
 ]

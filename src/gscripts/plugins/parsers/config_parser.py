@@ -26,9 +26,11 @@ class ConfigFunctionParser(FunctionParser):
 
     def can_parse(self, file: Path) -> bool:
         """检查是否为 JSON 配置文件"""
-        return file.suffix == '.json' and file.name == 'plugin.json'
+        return file.suffix == ".json" and file.name == "plugin.json"
 
-    async def parse(self, file: Path, plugin_name: str, subplugin_name: str = "") -> List[FunctionInfo]:
+    async def parse(
+        self, file: Path, plugin_name: str, subplugin_name: str = ""
+    ) -> List[FunctionInfo]:
         """
         解析配置文件中的函数
 
@@ -43,11 +45,11 @@ class ConfigFunctionParser(FunctionParser):
         functions = []
 
         try:
-            with open(file, 'r', encoding='utf-8') as f:
+            with open(file, "r", encoding="utf-8") as f:
                 config = json.load(f)
 
             # 提取 commands 定义
-            commands = config.get('commands', {})
+            commands = config.get("commands", {})
 
             for cmd_key, cmd_info in commands.items():
                 if not isinstance(cmd_info, dict):
@@ -55,11 +57,7 @@ class ConfigFunctionParser(FunctionParser):
 
                 # 提取命令信息
                 func_info = self._parse_command_config(
-                    cmd_key,
-                    cmd_info,
-                    plugin_name,
-                    subplugin_name,
-                    file
+                    cmd_key, cmd_info, plugin_name, subplugin_name, file
                 )
 
                 if func_info:
@@ -78,7 +76,7 @@ class ConfigFunctionParser(FunctionParser):
         cmd_info: dict,
         plugin_name: str,
         subplugin_name: str,
-        file: Path = None
+        file: Path = None,
     ) -> FunctionInfo:
         """
         解析单个命令配置
@@ -94,20 +92,20 @@ class ConfigFunctionParser(FunctionParser):
             FunctionInfo: 函数信息
         """
         # 提取描述 - 保留完整的多语言字典结构
-        description = cmd_info.get('description', '')
+        description = cmd_info.get("description", "")
         # Don't extract, keep the dict structure if it's a dict
         # FunctionInfo.description supports both str and Dict[str, str]
 
         # 提取命令
-        command = cmd_info.get('command', cmd_key)
+        command = cmd_info.get("command", cmd_key)
 
         # 提取示例
-        examples = cmd_info.get('examples', [])
+        examples = cmd_info.get("examples", [])
         if not isinstance(examples, list):
             examples = []
 
         # 提取usage
-        usage = cmd_info.get('usage', '')
+        usage = cmd_info.get("usage", "")
 
         return FunctionInfo(
             name=cmd_key,
@@ -117,5 +115,5 @@ class ConfigFunctionParser(FunctionParser):
             subplugin=subplugin_name,
             config_file=file,
             examples=examples,
-            usage=usage
+            usage=usage,
         )

@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 @dataclass
 class ProjectConfig:
     """项目基本信息"""
+
     name: str = "Global Scripts"
     version: str = "unknown"
     default_author: str = "Unknown"
@@ -21,6 +22,7 @@ class ProjectConfig:
 @dataclass
 class PathsConfig:
     """目录路径配置"""
+
     gs_home: str = ".config/global-scripts"
     config_dir: str = "config"
     cache_dir: str = "cache"
@@ -36,6 +38,7 @@ class PathsConfig:
 @dataclass
 class FilesConfig:
     """文件名配置"""
+
     main_config: str = "gs.json"
     i18n_config: str = "i18n.json"
     plugin_schema: str = "plugin-schema.json"
@@ -52,23 +55,25 @@ class FilesConfig:
 @dataclass
 class PluginsConfig:
     """插件配置"""
-    supported_types: Dict[str, str] = field(default_factory=lambda: {
-        'python': 'Python',
-        'shell': 'Shell',
-        'hybrid': 'Hybrid',
-        'config': 'Config',
-        'json': 'JSON'
-    })
-    priority: Dict[str, int] = field(default_factory=lambda: {
-        'default': 10,
-        'min': 1,
-        'max': 100
-    })
+
+    supported_types: Dict[str, str] = field(
+        default_factory=lambda: {
+            "python": "Python",
+            "shell": "Shell",
+            "hybrid": "Hybrid",
+            "config": "Config",
+            "json": "JSON",
+        }
+    )
+    priority: Dict[str, int] = field(
+        default_factory=lambda: {"default": 10, "min": 1, "max": 100}
+    )
 
 
 @dataclass
 class TimeoutsConfig:
     """超时配置"""
+
     default: int = 30
     short: int = 10
     long: int = 300
@@ -77,6 +82,7 @@ class TimeoutsConfig:
 @dataclass
 class ExecutionLimitsConfig:
     """执行限制配置"""
+
     max_output_size: int = 1048576  # 1MB
     max_concurrent: int = 10
     max_command_length: int = 1000
@@ -85,6 +91,7 @@ class ExecutionLimitsConfig:
 @dataclass
 class SafeCommandsConfig:
     """安全命令配置"""
+
     filesystem: List[str] = field(default_factory=list)
     system: List[str] = field(default_factory=list)
     network: List[str] = field(default_factory=list)
@@ -97,20 +104,21 @@ class SafeCommandsConfig:
     def get_all(self) -> List[str]:
         """获取所有安全命令的扁平列表"""
         return (
-            self.filesystem +
-            self.system +
-            self.network +
-            self.vcs +
-            self.development +
-            self.containers +
-            self.mobile +
-            self.compression
+            self.filesystem
+            + self.system
+            + self.network
+            + self.vcs
+            + self.development
+            + self.containers
+            + self.mobile
+            + self.compression
         )
 
 
 @dataclass
 class ExecutionConfig:
     """命令执行配置"""
+
     timeouts: TimeoutsConfig = field(default_factory=TimeoutsConfig)
     limits: ExecutionLimitsConfig = field(default_factory=ExecutionLimitsConfig)
     safe_commands: SafeCommandsConfig = field(default_factory=SafeCommandsConfig)
@@ -121,6 +129,7 @@ class ExecutionConfig:
 @dataclass
 class LanguageConfig:
     """语言配置"""
+
     default: str = "en"
     supported: List[str] = field(default_factory=lambda: ["en", "zh"])
 
@@ -128,6 +137,7 @@ class LanguageConfig:
 @dataclass
 class CommandsConfig:
     """命令配置 - 仅列出命令名称"""
+
     system: List[str] = field(default_factory=list)
     plugin_management: List[str] = field(default_factory=list)
 
@@ -135,6 +145,7 @@ class CommandsConfig:
 @dataclass
 class CacheConfig:
     """缓存配置"""
+
     default_ttl: int = 300
     max_entries: int = 100
     max_file_age: int = 3600
@@ -143,23 +154,28 @@ class CacheConfig:
 @dataclass
 class LoggingConfig:
     """日志配置"""
-    levels: Dict[str, int] = field(default_factory=lambda: {
-        'DEBUG': 10,
-        'INFO': 20,
-        'WARNING': 30,
-        'ERROR': 40,
-        'CRITICAL': 50,
-        'VERBOSE': 15,
-        'NONE': 1000
-    })
-    level_aliases: Dict[str, str] = field(default_factory=lambda: {
-        'E': 'ERROR',
-        'W': 'WARNING',
-        'I': 'INFO',
-        'D': 'DEBUG',
-        'V': 'VERBOSE',
-        'NANO': 'NONE'
-    })
+
+    levels: Dict[str, int] = field(
+        default_factory=lambda: {
+            "DEBUG": 10,
+            "INFO": 20,
+            "WARNING": 30,
+            "ERROR": 40,
+            "CRITICAL": 50,
+            "VERBOSE": 15,
+            "NONE": 1000,
+        }
+    )
+    level_aliases: Dict[str, str] = field(
+        default_factory=lambda: {
+            "E": "ERROR",
+            "W": "WARNING",
+            "I": "INFO",
+            "D": "DEBUG",
+            "V": "VERBOSE",
+            "NANO": "NONE",
+        }
+    )
     max_file_size: int = 10485760  # 10MB
     backup_count: int = 3
     format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -169,6 +185,7 @@ class LoggingConfig:
 @dataclass
 class ExitCodesConfig:
     """退出码配置"""
+
     success: int = 0
     general_error: int = 1
     misuse: int = 2
@@ -184,6 +201,7 @@ class ExitCodesConfig:
 @dataclass
 class StatusConfig:
     """状态常量配置"""
+
     enabled: str = "enabled"
     disabled: str = "disabled"
     error: str = "error"
@@ -194,21 +212,23 @@ class StatusConfig:
 @dataclass
 class ColorsConfig:
     """颜色配置"""
-    red: str = '\033[91m'
-    green: str = '\033[92m'
-    yellow: str = '\033[93m'
-    blue: str = '\033[94m'
-    magenta: str = '\033[95m'
-    cyan: str = '\033[96m'
-    white: str = '\033[97m'
-    reset: str = '\033[0m'
-    bold: str = '\033[1m'
-    underline: str = '\033[4m'
+
+    red: str = "\033[91m"
+    green: str = "\033[92m"
+    yellow: str = "\033[93m"
+    blue: str = "\033[94m"
+    magenta: str = "\033[95m"
+    cyan: str = "\033[96m"
+    white: str = "\033[97m"
+    reset: str = "\033[0m"
+    bold: str = "\033[1m"
+    underline: str = "\033[4m"
 
 
 @dataclass
 class IconsConfig:
     """图标配置"""
+
     success: str = "✅"
     error: str = "❌"
     warning: str = "⚠️"
@@ -223,6 +243,7 @@ class IconsConfig:
 @dataclass
 class UIConfig:
     """UI配置"""
+
     colors: ColorsConfig = field(default_factory=ColorsConfig)
     icons: IconsConfig = field(default_factory=IconsConfig)
 
@@ -230,6 +251,7 @@ class UIConfig:
 @dataclass
 class NetworkConfig:
     """网络配置"""
+
     request_timeout: int = 30
     max_retry_attempts: int = 3
     retry_delay: int = 1
@@ -239,24 +261,31 @@ class NetworkConfig:
 @dataclass
 class ShellConfig:
     """Shell配置"""
+
     reload_alias: str = "gsreload"
     supported_shells: List[str] = field(default_factory=lambda: ["bash", "zsh", "fish"])
-    prompt_themes: List[str] = field(default_factory=lambda: ["minimalist", "bitstream", "powerline", "simple"])
+    prompt_themes: List[str] = field(
+        default_factory=lambda: ["minimalist", "bitstream", "powerline", "simple"]
+    )
 
 
 @dataclass
 class SecurityConfig:
     """安全配置"""
+
     enable_sandbox: bool = True
     allow_network_access: bool = True
     max_subprocess_depth: int = 3
     require_confirmation_for_destructive: bool = True
-    confirmation_required: List[str] = field(default_factory=lambda: ["sudo", "rm", "format", "dd"])
+    confirmation_required: List[str] = field(
+        default_factory=lambda: ["sudo", "rm", "format", "dd"]
+    )
 
 
 @dataclass
 class FeaturesConfig:
     """特性开关配置"""
+
     enable_auto_update: bool = False
     enable_telemetry: bool = False
     enable_plugin_marketplace: bool = False
@@ -269,6 +298,7 @@ class FeaturesConfig:
 @dataclass
 class PerformanceConfig:
     """性能配置"""
+
     lazy_load_plugins: bool = True
     cache_plugin_metadata: bool = True
     parallel_plugin_load: bool = True
@@ -279,6 +309,7 @@ class PerformanceConfig:
 @dataclass
 class SystemConfig:
     """系统配置总容器"""
+
     project: ProjectConfig = field(default_factory=ProjectConfig)
     paths: PathsConfig = field(default_factory=PathsConfig)
     files: FilesConfig = field(default_factory=FilesConfig)
@@ -314,7 +345,9 @@ class SystemConfigLoader:
             # parent: src/gscripts/core/
             # parent.parent: src/gscripts/
             current_dir = Path(__file__).parent
-            config_path = current_dir.parent / "resources" / "config" / "system_config.yaml"
+            config_path = (
+                current_dir.parent / "resources" / "config" / "system_config.yaml"
+            )
 
         self.config_path = config_path
         self._config: Optional[SystemConfig] = None
@@ -337,7 +370,7 @@ class SystemConfigLoader:
         if not self.config_path.exists():
             raise FileNotFoundError(f"配置文件不存在: {self.config_path}")
 
-        with open(self.config_path, 'r', encoding='utf-8') as f:
+        with open(self.config_path, "r", encoding="utf-8") as f:
             raw_config = yaml.safe_load(f)
 
         self._config = self._parse_config(raw_config)
@@ -356,56 +389,56 @@ class SystemConfigLoader:
         config = SystemConfig()
 
         # 解析各个配置段
-        if 'project' in raw:
-            config.project = self._parse_project(raw['project'])
+        if "project" in raw:
+            config.project = self._parse_project(raw["project"])
 
-        if 'paths' in raw:
-            config.paths = self._parse_paths(raw['paths'])
+        if "paths" in raw:
+            config.paths = self._parse_paths(raw["paths"])
 
-        if 'files' in raw:
-            config.files = self._parse_files(raw['files'])
+        if "files" in raw:
+            config.files = self._parse_files(raw["files"])
 
-        if 'plugins' in raw:
-            config.plugins = self._parse_plugins(raw['plugins'])
+        if "plugins" in raw:
+            config.plugins = self._parse_plugins(raw["plugins"])
 
-        if 'execution' in raw:
-            config.execution = self._parse_execution(raw['execution'])
+        if "execution" in raw:
+            config.execution = self._parse_execution(raw["execution"])
 
-        if 'language' in raw:
-            config.language = self._parse_language(raw['language'])
+        if "language" in raw:
+            config.language = self._parse_language(raw["language"])
 
-        if 'commands' in raw:
-            config.commands = self._parse_commands(raw['commands'])
+        if "commands" in raw:
+            config.commands = self._parse_commands(raw["commands"])
 
-        if 'cache' in raw:
-            config.cache = self._parse_cache(raw['cache'])
+        if "cache" in raw:
+            config.cache = self._parse_cache(raw["cache"])
 
-        if 'logging' in raw:
-            config.logging = self._parse_logging(raw['logging'])
+        if "logging" in raw:
+            config.logging = self._parse_logging(raw["logging"])
 
-        if 'exit_codes' in raw:
-            config.exit_codes = self._parse_exit_codes(raw['exit_codes'])
+        if "exit_codes" in raw:
+            config.exit_codes = self._parse_exit_codes(raw["exit_codes"])
 
-        if 'status' in raw:
-            config.status = self._parse_status(raw['status'])
+        if "status" in raw:
+            config.status = self._parse_status(raw["status"])
 
-        if 'ui' in raw:
-            config.ui = self._parse_ui(raw['ui'])
+        if "ui" in raw:
+            config.ui = self._parse_ui(raw["ui"])
 
-        if 'network' in raw:
-            config.network = self._parse_network(raw['network'])
+        if "network" in raw:
+            config.network = self._parse_network(raw["network"])
 
-        if 'shell' in raw:
-            config.shell = self._parse_shell(raw['shell'])
+        if "shell" in raw:
+            config.shell = self._parse_shell(raw["shell"])
 
-        if 'security' in raw:
-            config.security = self._parse_security(raw['security'])
+        if "security" in raw:
+            config.security = self._parse_security(raw["security"])
 
-        if 'features' in raw:
-            config.features = self._parse_features(raw['features'])
+        if "features" in raw:
+            config.features = self._parse_features(raw["features"])
 
-        if 'performance' in raw:
-            config.performance = self._parse_performance(raw['performance'])
+        if "performance" in raw:
+            config.performance = self._parse_performance(raw["performance"])
 
         return config
 
@@ -418,7 +451,7 @@ class SystemConfigLoader:
         if version_file.exists():
             try:
                 self._version = version_file.read_text().strip()
-                data = {**data, 'version': self._version}  # 覆盖配置文件中的版本
+                data = {**data, "version": self._version}  # 覆盖配置文件中的版本
             except Exception:
                 pass  # 如果读取失败，使用配置文件中的版本
         return ProjectConfig(**data)
@@ -435,30 +468,30 @@ class SystemConfigLoader:
     def _parse_execution(self, data: Dict) -> ExecutionConfig:
         config = ExecutionConfig()
 
-        if 'timeouts' in data:
-            config.timeouts = TimeoutsConfig(**data['timeouts'])
+        if "timeouts" in data:
+            config.timeouts = TimeoutsConfig(**data["timeouts"])
 
-        if 'limits' in data:
-            config.limits = ExecutionLimitsConfig(**data['limits'])
+        if "limits" in data:
+            config.limits = ExecutionLimitsConfig(**data["limits"])
 
-        if 'safe_commands' in data:
-            safe_cmds = data['safe_commands']
+        if "safe_commands" in data:
+            safe_cmds = data["safe_commands"]
             config.safe_commands = SafeCommandsConfig(
-                filesystem=safe_cmds.get('filesystem', []),
-                system=safe_cmds.get('system', []),
-                network=safe_cmds.get('network', []),
-                vcs=safe_cmds.get('vcs', []),
-                development=safe_cmds.get('development', []),
-                containers=safe_cmds.get('containers', []),
-                mobile=safe_cmds.get('mobile', []),
-                compression=safe_cmds.get('compression', [])
+                filesystem=safe_cmds.get("filesystem", []),
+                system=safe_cmds.get("system", []),
+                network=safe_cmds.get("network", []),
+                vcs=safe_cmds.get("vcs", []),
+                development=safe_cmds.get("development", []),
+                containers=safe_cmds.get("containers", []),
+                mobile=safe_cmds.get("mobile", []),
+                compression=safe_cmds.get("compression", []),
             )
 
-        if 'dangerous_commands' in data:
-            config.dangerous_commands = data['dangerous_commands']
+        if "dangerous_commands" in data:
+            config.dangerous_commands = data["dangerous_commands"]
 
-        if 'forbidden_patterns' in data:
-            config.forbidden_patterns = data['forbidden_patterns']
+        if "forbidden_patterns" in data:
+            config.forbidden_patterns = data["forbidden_patterns"]
 
         return config
 
@@ -467,8 +500,8 @@ class SystemConfigLoader:
 
     def _parse_commands(self, data: Dict) -> CommandsConfig:
         return CommandsConfig(
-            system=data.get('system', []),
-            plugin_management=data.get('plugin_management', [])
+            system=data.get("system", []),
+            plugin_management=data.get("plugin_management", []),
         )
 
     def _parse_cache(self, data: Dict) -> CacheConfig:
@@ -486,18 +519,18 @@ class SystemConfigLoader:
     def _parse_ui(self, data: Dict) -> UIConfig:
         config = UIConfig()
 
-        if 'colors' in data:
-            config.colors = ColorsConfig(**data['colors'])
+        if "colors" in data:
+            config.colors = ColorsConfig(**data["colors"])
 
-        if 'icons' in data:
-            config.icons = IconsConfig(**data['icons'])
+        if "icons" in data:
+            config.icons = IconsConfig(**data["icons"])
 
         return config
 
     def _parse_network(self, data: Dict) -> NetworkConfig:
         # 动态生成 user_agent（覆盖配置文件中的值）
         if self._version:
-            data = {**data, 'user_agent': f"Global-Scripts/{self._version}"}
+            data = {**data, "user_agent": f"Global-Scripts/{self._version}"}
         return NetworkConfig(**data)
 
     def _parse_shell(self, data: Dict) -> ShellConfig:

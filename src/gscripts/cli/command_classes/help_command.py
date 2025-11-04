@@ -5,7 +5,7 @@ Help Command - 显示帮助信息
 from typing import List
 
 from .base import SimpleCommand
-from ...core.config_manager import CommandResult
+from gscripts.models.result import CommandResult
 
 
 class HelpCommand(SimpleCommand):
@@ -29,5 +29,5 @@ class HelpCommand(SimpleCommand):
         return CommandResult(
             success=True,
             message=self.i18n.get_message("commands.help"),
-            output=help_text
+            output=help_text,
         )

@@ -15,7 +15,8 @@ from typing import List, Optional
 
 from .command_classes import create_command_registry
 from .formatters import OutputFormatter
-from ..core.config_manager import ConfigManager, CommandResult
+from ..core.config_manager import ConfigManager
+from ..models.result import CommandResult
 from ..infrastructure.adapters.plugin_manager_adapter import (
     PluginManagerAdapter as PluginManager,
 )
@@ -184,7 +185,7 @@ class CommandHandler:
 
             if plugin_name in self.plugin_manager.plugins:
                 plugin = self.plugin_manager.plugins[plugin_name]
-                functions = plugin.get('functions', {})
+                functions = plugin.get("functions", {})
 
                 # 尝试: "sub function" 复合名 (with space, like router.json)
                 composite_function_name = f"{subplugin_name} {function_name}"

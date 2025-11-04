@@ -10,7 +10,6 @@ from rich.console import Console
 from rich.table import Table
 from rich import box
 from rich.panel import Panel
-import time
 
 from ..core.logger import get_logger
 
@@ -23,16 +22,16 @@ class RichTableFormatter:
 
     # 预定义的表格样式
     BOX_STYLES = {
-        'rounded': box.ROUNDED,           # 圆角边框（默认，推荐）
-        'heavy': box.HEAVY,               # 粗线边框
-        'simple_heavy': box.SIMPLE_HEAVY, # 简单粗线
-        'double': box.DOUBLE,             # 双线边框
-        'simple': box.SIMPLE,             # 简单边框
-        'minimal': box.MINIMAL,           # 最小边框
-        'minimal_heavy_head': box.MINIMAL_HEAVY_HEAD,  # 最小粗表头
+        "rounded": box.ROUNDED,  # 圆角边框（默认，推荐）
+        "heavy": box.HEAVY,  # 粗线边框
+        "simple_heavy": box.SIMPLE_HEAVY,  # 简单粗线
+        "double": box.DOUBLE,  # 双线边框
+        "simple": box.SIMPLE,  # 简单边框
+        "minimal": box.MINIMAL,  # 最小边框
+        "minimal_heavy_head": box.MINIMAL_HEAVY_HEAD,  # 最小粗表头
     }
 
-    def __init__(self, console: Optional[Console] = None, style: str = 'rounded'):
+    def __init__(self, console: Optional[Console] = None, style: str = "rounded"):
         """
         初始化 Rich 表格格式化器
 
@@ -72,7 +71,8 @@ class RichTableFormatter:
         """
         # 创建表格（不带 title）
         table = self.create_table(
-            headers, rows,
+            headers,
+            rows,
             title=None,  # title 将显示在 Panel 上
             caption=caption,
             show_footer=show_footer,
@@ -89,7 +89,7 @@ class RichTableFormatter:
                 title_align="left",
                 border_style="dim cyan",  # 统一使用淡色，突出内层表格
                 expand=True,
-                padding=(0, 1)
+                padding=(0, 1),
             )
             return panel
 
@@ -150,7 +150,9 @@ class RichTableFormatter:
         for i, header in enumerate(headers):
             style = column_styles[i] if i < len(column_styles) else ""
             justify = column_justifies[i] if i < len(column_justifies) else "left"
-            footer = footer_values[i] if footer_values and i < len(footer_values) else ""
+            footer = (
+                footer_values[i] if footer_values and i < len(footer_values) else ""
+            )
 
             table.add_column(
                 header,
@@ -158,7 +160,7 @@ class RichTableFormatter:
                 justify=justify,
                 footer=footer,
                 footer_style="bold green",
-                no_wrap=False
+                no_wrap=False,
             )
 
         # 添加行
@@ -179,13 +181,13 @@ class RichTableFormatter:
         """
         # 默认彩色方案
         colors = [
-            "cyan",           # 第1列：青色
-            "green",          # 第2列：绿色
-            "yellow",         # 第3列：黄色
-            "magenta",        # 第4列：洋红
-            "blue",           # 第5列：蓝色
-            "bright_cyan",    # 第6列：亮青色
-            "bright_green",   # 第7列：亮绿色
+            "cyan",  # 第1列：青色
+            "green",  # 第2列：绿色
+            "yellow",  # 第3列：黄色
+            "magenta",  # 第4列：洋红
+            "blue",  # 第5列：蓝色
+            "bright_cyan",  # 第6列：亮青色
+            "bright_green",  # 第7列：亮绿色
             "bright_yellow",  # 第8列：亮黄色
         ]
 
@@ -197,7 +199,7 @@ class RichTableFormatter:
         headers: List[str],
         rows: List[List[str]],
         title: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ) -> str:
         """
         绘制表格并返回字符串（兼容旧接口）
@@ -218,11 +220,15 @@ class RichTableFormatter:
 
         # 使用 Console 的 capture 功能获取字符串
         from io import StringIO
+
         string_io = StringIO()
         # 获取当前终端宽度，如果无法获取则使用默认值
         import shutil
+
         terminal_width = shutil.get_terminal_size().columns
-        temp_console = Console(file=string_io, force_terminal=True, width=terminal_width)
+        temp_console = Console(
+            file=string_io, force_terminal=True, width=terminal_width
+        )
         temp_console.print(table)
         return string_io.getvalue().rstrip()
 
@@ -236,7 +242,7 @@ class RichTableFormatter:
         column_styles: Optional[List[str]] = None,
         column_justifies: Optional[List[str]] = None,
         footer_values: Optional[List[str]] = None,
-        **kwargs
+        **kwargs,
     ) -> None:
         """
         直接打印表格到终端
@@ -256,14 +262,15 @@ class RichTableFormatter:
             return
 
         table = self.create_table(
-            headers, rows,
+            headers,
+            rows,
             title=title,
             caption=caption,
             show_footer=show_footer,
             column_styles=column_styles,
             column_justifies=column_justifies,
             footer_values=footer_values,
-            **kwargs
+            **kwargs,
         )
         self.console.print(table)
 
@@ -273,7 +280,7 @@ class RichTableFormatter:
         rows: List[List[str]],
         title: str = "Table",
         subtitle: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ) -> None:
         """
         在 Panel 中打印表格
@@ -294,11 +301,13 @@ class RichTableFormatter:
             title=title,
             subtitle=subtitle,
             border_style="blue",
-            expand=True  # 自动扩展到终端宽度
+            expand=True,  # 自动扩展到终端宽度
         )
         self.console.print(panel)
 
-    def create_info_table(self, data: Dict[str, Any], title: Optional[str] = None) -> Table:
+    def create_info_table(
+        self, data: Dict[str, Any], title: Optional[str] = None
+    ) -> Table:
         """
         创建信息表格（键值对格式）
 
@@ -313,7 +322,9 @@ class RichTableFormatter:
         rows = [[str(key), str(value)] for key, value in data.items()]
         return self.create_table(headers, rows, title=title)
 
-    def print_info_table(self, data: Dict[str, Any], title: Optional[str] = None) -> None:
+    def print_info_table(
+        self, data: Dict[str, Any], title: Optional[str] = None
+    ) -> None:
         """
         打印信息表格
 
@@ -330,8 +341,8 @@ def draw_rich_table(
     headers: List[str],
     rows: List[List[str]],
     title: Optional[str] = None,
-    style: str = 'rounded',
-    **kwargs
+    style: str = "rounded",
+    **kwargs,
 ) -> str:
     """
     绘制 Rich 表格的便捷函数
@@ -354,8 +365,8 @@ def print_rich_table(
     headers: List[str],
     rows: List[List[str]],
     title: Optional[str] = None,
-    style: str = 'rounded',
-    **kwargs
+    style: str = "rounded",
+    **kwargs,
 ) -> None:
     """
     打印 Rich 表格的便捷函数

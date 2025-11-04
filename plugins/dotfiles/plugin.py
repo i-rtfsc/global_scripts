@@ -18,7 +18,7 @@ if str(project_root) not in sys.path:
 
 from gscripts.plugins.base import BasePlugin
 from gscripts.plugins.decorators import plugin_function
-from gscripts.core.config_manager import CommandResult
+from gscripts.models.result import CommandResult
 
 
 class DotfilesPlugin(BasePlugin):

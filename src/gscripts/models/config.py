@@ -3,7 +3,7 @@
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict
 
 
 @dataclass
@@ -12,6 +12,7 @@ class ConfigSchema:
 
     明确定义config/gs.json的数据结构
     """
+
     # 插件启用状态映射
     system_plugins: Dict[str, bool] = field(default_factory=dict)
     custom_plugins: Dict[str, bool] = field(default_factory=dict)
@@ -31,26 +32,26 @@ class ConfigSchema:
     def to_dict(self) -> Dict:
         """转换为字典"""
         return {
-            'system_plugins': self.system_plugins,
-            'custom_plugins': self.custom_plugins,
-            'logging_level': self.logging_level,
-            'language': self.language,
-            'prompt_theme': self.prompt_theme,
-            'show_examples': self.show_examples,
-            'max_concurrent_commands': self.max_concurrent_commands,
-            'default_timeout': self.default_timeout,
+            "system_plugins": self.system_plugins,
+            "custom_plugins": self.custom_plugins,
+            "logging_level": self.logging_level,
+            "language": self.language,
+            "prompt_theme": self.prompt_theme,
+            "show_examples": self.show_examples,
+            "max_concurrent_commands": self.max_concurrent_commands,
+            "default_timeout": self.default_timeout,
         }
 
     @classmethod
-    def from_dict(cls, data: Dict) -> 'ConfigSchema':
+    def from_dict(cls, data: Dict) -> "ConfigSchema":
         """从字典创建"""
         return cls(
-            system_plugins=data.get('system_plugins', {}),
-            custom_plugins=data.get('custom_plugins', {}),
-            logging_level=data.get('logging_level', 'INFO'),
-            language=data.get('language', 'zh'),
-            prompt_theme=data.get('prompt_theme', 'minimalist'),
-            show_examples=data.get('show_examples', False),
-            max_concurrent_commands=data.get('max_concurrent_commands', 10),
-            default_timeout=data.get('default_timeout', 30),
+            system_plugins=data.get("system_plugins", {}),
+            custom_plugins=data.get("custom_plugins", {}),
+            logging_level=data.get("logging_level", "INFO"),
+            language=data.get("language", "zh"),
+            prompt_theme=data.get("prompt_theme", "minimalist"),
+            show_examples=data.get("show_examples", False),
+            max_concurrent_commands=data.get("max_concurrent_commands", 10),
+            default_timeout=data.get("default_timeout", 30),
         )
