@@ -8,9 +8,7 @@ from typing import List, Dict, Optional, Any
 
 from gscripts.models.result import CommandResult
 from gscripts.core.config_manager import ConfigManager
-from ...infrastructure.adapters.plugin_manager_adapter import (
-    PluginManagerAdapter as PluginManager,
-)
+from gscripts.application.services import PluginService, PluginExecutor
 from ...core.constants import GlobalConstants
 from ...utils.i18n import I18nManager
 from ..formatters import OutputFormatter
@@ -22,14 +20,16 @@ class Command(ABC):
     def __init__(
         self,
         config_manager: ConfigManager,
-        plugin_manager: PluginManager,
+        plugin_service: PluginService,
+        plugin_executor: PluginExecutor,
         i18n: I18nManager,
         formatter: OutputFormatter,
         constants: GlobalConstants,
         chinese: bool = True,
     ):
         self.config_manager = config_manager
-        self.plugin_manager = plugin_manager
+        self.plugin_service = plugin_service
+        self.plugin_executor = plugin_executor
         self.i18n = i18n
         self.formatter = formatter
         self.constants = constants
@@ -143,7 +143,8 @@ class CommandFactory:
     def __init__(
         self,
         config_manager: ConfigManager,
-        plugin_manager: PluginManager,
+        plugin_service: PluginService,
+        plugin_executor: PluginExecutor,
         chinese: bool = True,
     ):
         """
@@ -151,11 +152,13 @@ class CommandFactory:
 
         Args:
             config_manager: 配置管理器
-            plugin_manager: 插件管理器
+            plugin_service: 插件服务
+            plugin_executor: 插件执行器
             chinese: 是否使用中文
         """
         self.config_manager = config_manager
-        self.plugin_manager = plugin_manager
+        self.plugin_service = plugin_service
+        self.plugin_executor = plugin_executor
         self.chinese = chinese
         self.i18n = I18nManager(chinese=chinese)
         self.formatter = OutputFormatter(chinese=chinese)
@@ -212,7 +215,8 @@ class CommandFactory:
         # 使用统一的依赖注入创建命令
         return creator(
             self.config_manager,
-            self.plugin_manager,
+            self.plugin_service,
+            self.plugin_executor,
             self.i18n,
             self.formatter,
             self.constants,
@@ -245,20 +249,24 @@ class CommandFactory:
 
 # 命令工厂函数（兼容旧代码）
 def create_command_registry(
-    config_manager: ConfigManager, plugin_manager: PluginManager, chinese: bool = True
+    config_manager: ConfigManager,
+    plugin_service: PluginService,
+    plugin_executor: PluginExecutor,
+    chinese: bool = True,
 ) -> CommandRegistry:
     """
     创建并配置命令注册表（使用 CommandFactory）
 
     Args:
         config_manager: 配置管理器
-        plugin_manager: 插件管理器
+        plugin_service: 插件服务
+        plugin_executor: 插件执行器
         chinese: 是否使用中文
 
     Returns:
         CommandRegistry: 配置好的命令注册表
     """
-    factory = CommandFactory(config_manager, plugin_manager, chinese)
+    factory = CommandFactory(config_manager, plugin_service, plugin_executor, chinese)
 
     registry = CommandRegistry()
     commands = factory.create_all()

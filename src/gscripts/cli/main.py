@@ -35,10 +35,8 @@ from gscripts.utils.logging_utils import (
 # 模块级别的logger - 提前初始化以支持后续日志
 logger = get_logger(tag="CLI.MAIN", name=__name__)
 
-# Clean Architecture system via adapter
-from gscripts.infrastructure.adapters.plugin_manager_adapter import (
-    PluginManagerAdapter as PluginManager,
-)
+# Clean Architecture system - direct use of services
+from gscripts.application.services import PluginService, PluginExecutor
 
 
 class GlobalScriptsCLI:
@@ -91,33 +89,31 @@ class GlobalScriptsCLI:
 
         # Create infrastructure components
         filesystem = RealFileSystem()
-        repository = PluginRepository(filesystem=filesystem, plugins_dir=plugins_dir)
+        repository = PluginRepository(
+            filesystem=filesystem,
+            plugins_dir=plugins_dir,
+            config_manager=self.config_manager,
+        )
         loader = PluginLoader(plugin_repository=repository, plugins_root=plugins_dir)
         process_executor = ProcessExecutor()
 
         # Create application services (inject config_manager)
-        plugin_service = PluginService(
+        self.plugin_service = PluginService(
             plugin_loader=loader,
             plugin_repository=repository,
             config_manager=self.config_manager,
         )
-        plugin_executor = PluginExecutor(
+        self.plugin_executor = PluginExecutor(
             plugin_loader=loader, process_executor=process_executor
         )
 
-        # Create adapter that provides legacy interface
-        self.plugin_manager = PluginManager(
-            plugin_service=plugin_service,
-            plugin_executor=plugin_executor,
-            plugins_root=plugins_dir,
-            config_manager=self.config_manager,
-        )
-        logger.info("Clean Architecture system initialized via adapter")
+        logger.info("Clean Architecture system initialized (no adapter)")
 
         logger.debug("Initializing CommandHandler")
         self.command_handler = CommandHandler(
             config_manager=self.config_manager,
-            plugin_manager=self.plugin_manager,
+            plugin_service=self.plugin_service,
+            plugin_executor=self.plugin_executor,
             chinese=self.chinese,
         )
 
@@ -143,13 +139,14 @@ class GlobalScriptsCLI:
         logger.info("Starting CLI system initialization")
 
         try:
-            await self.plugin_manager.initialize()
+            await self.plugin_service.load_all_plugins()
             self._initialized = True
 
             elapsed_ms = duration(start_time)
+            plugins = self.plugin_service.get_loaded_plugins()
             logger.info(
                 f"CLI system initialization completed, duration_ms={elapsed_ms}, "
-                f"plugins_loaded={len(self.plugin_manager.plugins)}"
+                f"plugins_loaded={len(plugins)}"
             )
         except Exception as e:
             logger.exception(f"Failed to initialize CLI system: {e}")

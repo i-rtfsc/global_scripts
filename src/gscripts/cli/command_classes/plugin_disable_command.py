@@ -34,9 +34,18 @@ class PluginDisableCommand(Command):
 
         plugin_name = args[0]
 
-        # Check if adapter has async method
-        if hasattr(self.plugin_manager, "disable_plugin_async"):
-            return await self.plugin_manager.disable_plugin_async(plugin_name)
+        # Use plugin_service to disable plugin
+        success = await self.plugin_service.disable_plugin(plugin_name)
+
+        if success:
+            return CommandResult(
+                success=True,
+                output=f"Plugin '{plugin_name}' disabled successfully",
+                exit_code=0,
+            )
         else:
-            # Fallback to sync method
-            return self.plugin_manager.disable_plugin(plugin_name)
+            return CommandResult(
+                success=False,
+                error=f"Failed to disable plugin '{plugin_name}'",
+                exit_code=1,
+            )

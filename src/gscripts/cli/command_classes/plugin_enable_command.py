@@ -34,9 +34,18 @@ class PluginEnableCommand(Command):
 
         plugin_name = args[0]
 
-        # Check if adapter has async method
-        if hasattr(self.plugin_manager, "enable_plugin_async"):
-            return await self.plugin_manager.enable_plugin_async(plugin_name)
+        # Use plugin_service to enable plugin
+        success = await self.plugin_service.enable_plugin(plugin_name)
+
+        if success:
+            return CommandResult(
+                success=True,
+                output=f"Plugin '{plugin_name}' enabled successfully",
+                exit_code=0,
+            )
         else:
-            # Fallback to sync method
-            return self.plugin_manager.enable_plugin(plugin_name)
+            return CommandResult(
+                success=False,
+                error=f"Failed to enable plugin '{plugin_name}'",
+                exit_code=1,
+            )

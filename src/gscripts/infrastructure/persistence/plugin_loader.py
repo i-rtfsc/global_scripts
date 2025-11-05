@@ -320,6 +320,22 @@ class PluginLoader(IPluginLoader):
         """Get all failed plugins"""
         return self._failed_plugins.copy()
 
+    def update_plugin_enabled_status(self, plugin_name: str, enabled: bool) -> bool:
+        """
+        Update the enabled status of a loaded plugin in cache
+
+        Args:
+            plugin_name: Name of the plugin
+            enabled: New enabled status
+
+        Returns:
+            bool: True if plugin was found and updated, False otherwise
+        """
+        if plugin_name in self._loaded_plugins:
+            self._loaded_plugins[plugin_name]["enabled"] = enabled
+            return True
+        return False
+
     def clear(self) -> None:
         """Clear loaded plugins cache"""
         self._loaded_plugins.clear()

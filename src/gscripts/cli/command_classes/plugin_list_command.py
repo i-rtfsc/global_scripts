@@ -9,7 +9,6 @@ from typing import List, Dict, Any, Optional
 from .base import Command
 from gscripts.models.result import CommandResult
 from ...core.constants import GlobalConstants
-from ...application.services import PluginService
 from ...models.plugin import PluginMetadata
 
 
@@ -25,69 +24,35 @@ class PluginListCommand(Command):
 
     def __init__(
         self,
-        config_manager=None,
-        plugin_manager=None,
-        i18n=None,
-        formatter=None,
-        constants=None,
+        config_manager,
+        plugin_service,
+        plugin_executor,
+        i18n,
+        formatter,
+        constants,
         chinese=True,
-        plugin_service=None,
     ):
         """
         Initialize command with dependency injection
 
         Args:
-            config_manager: Config manager (for backward compatibility)
-            plugin_manager: Plugin manager (for backward compatibility)
+            config_manager: Config manager
+            plugin_service: Plugin service
+            plugin_executor: Plugin executor
             i18n: I18n manager
             formatter: Output formatter
             constants: Constants
             chinese: Use Chinese language
-            plugin_service: Plugin service (optional, will be created if not provided)
         """
         super().__init__(
-            config_manager=config_manager,
-            plugin_manager=plugin_manager,
-            formatter=formatter,
-            i18n=i18n,
-            constants=constants,
-            chinese=chinese,
+            config_manager,
+            plugin_service,
+            plugin_executor,
+            i18n,
+            formatter,
+            constants,
+            chinese,
         )
-
-        # Create plugin_service if not provided (for backward compatibility)
-        if plugin_service is None:
-            from ...infrastructure import get_container, configure_services
-            from ...application.services import PluginService
-            from pathlib import Path
-            import os
-
-            container = get_container()
-
-            # Try to resolve, configure if needed
-            try:
-                plugin_service = container.resolve(PluginService)
-            except KeyError:
-                # Service not registered, configure now
-                # Use GS_ROOT for plugins directory (development/installed location)
-                gs_root = Path(os.environ.get("GS_ROOT", os.getcwd()))
-                plugins_dir = gs_root / "plugins"
-                config_path = gs_root / "gs.json"
-
-                # Try to use router.json cache from GS_HOME
-                from ...core.constants import GlobalConstants
-
-                router_cache_path = GlobalConstants.gs_home / "cache" / "router.json"
-
-                configure_services(
-                    container,
-                    use_mocks=False,
-                    plugins_dir=plugins_dir,
-                    config_path=config_path,
-                    router_cache_path=router_cache_path,
-                )
-                plugin_service = container.resolve(PluginService)
-
-        self.plugin_service = plugin_service
 
     @property
     def name(self) -> str:
@@ -189,12 +154,8 @@ class PluginListCommand(Command):
     async def execute(self, args: List[str]) -> CommandResult:
         """Display plugin list using PluginService"""
         try:
-            # Use plugin_manager's list_all_plugins if available (Clean Architecture adapter)
-            if hasattr(self.plugin_manager, "list_all_plugins"):
-                all_plugins = await self.plugin_manager.list_all_plugins()
-            else:
-                # Fallback: Use plugin_service (legacy or standalone)
-                all_plugins = await self.plugin_service.list_all_plugins()
+            # Use plugin_service to list all plugins
+            all_plugins = await self.plugin_service.list_all_plugins()
 
             if not all_plugins:
                 return CommandResult(
@@ -207,12 +168,7 @@ class PluginListCommand(Command):
             router_plugins = self._load_router_index()
 
             # Get loaded plugin info for command counts (fallback)
-            # Use plugin_manager.plugins directly (works for both legacy and adapter)
-            loaded_plugins = (
-                self.plugin_manager.plugins
-                if hasattr(self.plugin_manager, "plugins")
-                else {}
-            )
+            loaded_plugins = self.plugin_service.get_loaded_plugins()
 
             # Separate enabled and disabled plugins
             enabled_plugins = []
@@ -249,29 +205,3 @@ class PluginListCommand(Command):
                 error=f"Failed to list plugins: {str(e)}",
                 exit_code=self.constants.exit_general_error,
             )
-
-
-# Factory function to create command with DI
-def create_plugin_list_command(
-    plugin_service: PluginService, **kwargs
-) -> PluginListCommand:
-    """
-    Factory function to create PluginListCommand with injected dependencies
-
-    Usage:
-        from gscripts.infrastructure import get_container
-        from gscripts.application.services import PluginService
-
-        container = get_container()
-        plugin_service = container.resolve(PluginService)
-
-        command = create_plugin_list_command(
-            plugin_service=plugin_service,
-            formatter=formatter,
-            i18n=i18n,
-            chinese=True
-        )
-
-        result = await command.execute([])
-    """
-    return PluginListCommand(plugin_service=plugin_service, **kwargs)

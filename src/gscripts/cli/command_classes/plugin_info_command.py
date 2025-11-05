@@ -25,67 +25,35 @@ class PluginInfoCommand(Command):
 
     def __init__(
         self,
-        config_manager=None,
-        plugin_manager=None,
-        i18n=None,
-        formatter=None,
-        constants=None,
+        config_manager,
+        plugin_service,
+        plugin_executor,
+        i18n,
+        formatter,
+        constants,
         chinese=True,
-        plugin_service=None,
     ):
         """
         Initialize command with dependency injection
 
         Args:
-            config_manager: Config manager (for backward compatibility)
-            plugin_manager: Plugin manager (for backward compatibility)
+            config_manager: Config manager
+            plugin_service: Plugin service
+            plugin_executor: Plugin executor
             i18n: I18n manager
             formatter: Output formatter
             constants: Constants
             chinese: Use Chinese language
-            plugin_service: Plugin service (optional, will be created if not provided)
         """
         super().__init__(
-            config_manager=config_manager,
-            plugin_manager=plugin_manager,
-            formatter=formatter,
-            i18n=i18n,
-            constants=constants,
-            chinese=chinese,
+            config_manager,
+            plugin_service,
+            plugin_executor,
+            i18n,
+            formatter,
+            constants,
+            chinese,
         )
-
-        # Create plugin_service if not provided (for backward compatibility)
-        if plugin_service is None:
-            from ...infrastructure import get_container, configure_services
-            from ...application.services import PluginService
-            from pathlib import Path
-            import os
-
-            container = get_container()
-
-            # Try to resolve, configure if needed
-            try:
-                plugin_service = container.resolve(PluginService)
-            except KeyError:
-                # Service not registered, configure now
-                # Use GS_ROOT for plugins directory (development/installed location)
-                gs_root = Path(os.environ.get("GS_ROOT", os.getcwd()))
-                plugins_dir = gs_root / "plugins"
-                config_path = gs_root / "gs.json"
-
-                # Try to use router.json cache from GS_HOME
-                from ...core.constants import GlobalConstants
-
-                router_cache_path = GlobalConstants.gs_home / "cache" / "router.json"
-
-                configure_services(
-                    container,
-                    use_mocks=False,
-                    plugins_dir=plugins_dir,
-                    config_path=config_path,
-                    router_cache_path=router_cache_path,
-                )
-                plugin_service = container.resolve(PluginService)
 
         self.plugin_service = plugin_service
 
