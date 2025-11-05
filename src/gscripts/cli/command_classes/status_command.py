@@ -16,12 +16,30 @@ logger = get_logger(tag="CLI.COMMANDS.STATUS", name=__name__)
 class StatusCommand(Command):
     """状态命令"""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        config_manager,
+        plugin_service,
+        plugin_executor,
+        i18n,
+        formatter,
+        constants,
+        chinese=True,
+    ):
+        super().__init__(
+            config_manager,
+            plugin_service,
+            plugin_executor,
+            i18n,
+            formatter,
+            constants,
+            chinese,
+        )
         # 复用 SystemCommands 的实现
         self.system_commands = SystemCommands(
             self.config_manager,
-            self.plugin_manager,
+            plugin_service,
+            plugin_executor,
             chinese=self.i18n.current_language == "zh",
         )
 

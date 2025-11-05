@@ -147,5 +147,7 @@
         "en": "Build - Android system and module compilation"
       }
     }
-  ]
+  ],
+  "requirements": {},
+  "tags": []
 }

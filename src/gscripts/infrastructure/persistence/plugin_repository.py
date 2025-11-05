@@ -18,6 +18,7 @@ class PluginRepository(IPluginRepository):
         filesystem: IFileSystem,
         plugins_dir: Path,
         router_cache_path: Optional[Path] = None,
+        config_manager=None,
     ):
         """
         Initialize plugin repository
@@ -26,10 +27,12 @@ class PluginRepository(IPluginRepository):
             filesystem: Filesystem abstraction
             plugins_dir: Base directory containing plugins
             router_cache_path: Path to router.json cache file (optional)
+            config_manager: Config manager for enabled status (optional)
         """
         self._fs = filesystem
         self._plugins_dir = plugins_dir
         self._router_cache_path = router_cache_path
+        self._config_manager = config_manager
         self._cache: Dict[str, PluginMetadata] = {}
 
     async def get_all(self) -> List[PluginMetadata]:
@@ -38,7 +41,7 @@ class PluginRepository(IPluginRepository):
 
         Strategy:
         1. Try to load from router.json cache first
-        2. If cache doesn't exist or fails, scan plugin directories
+        2. If cache doesn't exist or fails, scan plugin directories (plugins/ and custom/)
         """
         # Try router.json cache first
         if self._router_cache_path and self._fs.exists(self._router_cache_path):
@@ -62,22 +65,65 @@ class PluginRepository(IPluginRepository):
                 # Cache read failed, fall through to directory scan
                 pass
 
-        # Fallback: Scan plugin directories
+        # Fallback: Scan plugin directories (both plugins/ and custom/)
         plugins = []
-        if not self._fs.exists(self._plugins_dir):
-            return plugins
 
-        for plugin_dir in self._fs.list_dir(self._plugins_dir):
-            plugin_json = plugin_dir / "plugin.json"
-            if self._fs.exists(plugin_json):
-                try:
-                    data = self._fs.read_json(plugin_json)
-                    plugin = self._parse_plugin_metadata(data, plugin_dir.name)
-                    plugins.append(plugin)
-                    self._cache[plugin.name] = plugin
-                except Exception:
-                    # Skip invalid plugins
+        # Scan system plugins directory
+        if self._fs.exists(self._plugins_dir):
+            for plugin_dir in self._fs.list_dir(self._plugins_dir):
+                plugin_json = plugin_dir / "plugin.json"
+                if self._fs.exists(plugin_json):
+                    try:
+                        data = self._fs.read_json(plugin_json)
+                        plugin = self._parse_plugin_metadata(data, plugin_dir.name)
+                        plugins.append(plugin)
+                        self._cache[plugin.name] = plugin
+                    except Exception:
+                        # Skip invalid plugins
+                        continue
+
+        # Scan custom plugins directory
+        custom_dir = self._plugins_dir.parent / "custom"
+        if self._fs.exists(custom_dir):
+            plugins.extend(self._scan_custom_plugins_recursive(custom_dir))
+
+        return plugins
+
+    def _scan_custom_plugins_recursive(self, custom_dir: Path) -> List[PluginMetadata]:
+        """
+        Recursively scan custom directory for plugins
+
+        Args:
+            custom_dir: Custom plugins root directory
+
+        Returns:
+            List[PluginMetadata]: List of custom plugins found
+        """
+        plugins = []
+
+        try:
+            for item in custom_dir.iterdir():
+                if not item.is_dir():
                     continue
+
+                # Check if this directory has a plugin.json
+                plugin_json = item / "plugin.json"
+                if self._fs.exists(plugin_json):
+                    try:
+                        data = self._fs.read_json(plugin_json)
+                        plugin = self._parse_plugin_metadata(data, item.name)
+                        plugins.append(plugin)
+                        self._cache[plugin.name] = plugin
+                    except Exception:
+                        # Skip invalid plugins
+                        pass
+
+                # Recursively scan subdirectories
+                if item.is_dir() and item.name not in {"__pycache__", ".git", "node_modules"}:
+                    plugins.extend(self._scan_custom_plugins_recursive(item))
+
+        except Exception:
+            pass
 
         return plugins
 
@@ -229,6 +275,15 @@ class PluginRepository(IPluginRepository):
         except ValueError:
             plugin_type = PluginType.UNKNOWN
 
+        # Get enabled status - prioritize config file over plugin.json
+        enabled = data.get("enabled", True)
+
+        # Override with config file if available
+        if self._config_manager:
+            config_enabled = self._get_enabled_from_config(name)
+            if config_enabled is not None:
+                enabled = config_enabled
+
         return PluginMetadata(
             name=data.get("name", name),
             version=data.get("version", "1.0.0"),
@@ -236,7 +291,7 @@ class PluginRepository(IPluginRepository):
             description=data.get("description", ""),
             homepage=data.get("homepage", ""),
             license=data.get("license", ""),
-            enabled=data.get("enabled", True),
+            enabled=enabled,
             priority=data.get("priority", 50),
             category=data.get("category", ""),
             keywords=data.get("keywords", []),
@@ -245,6 +300,35 @@ class PluginRepository(IPluginRepository):
             subplugins=data.get("subplugins", []),
             type=plugin_type,
         )
+
+    def _get_enabled_from_config(self, plugin_name: str) -> Optional[bool]:
+        """
+        Get plugin enabled status from config file
+
+        Args:
+            plugin_name: Name of the plugin
+
+        Returns:
+            Optional[bool]: Enabled status from config, or None if not found
+        """
+        try:
+            config = self._config_manager.get_config()
+            if not config:
+                return None
+
+            # Check system_plugins first
+            system_plugins = config.get("system_plugins", {})
+            if plugin_name in system_plugins:
+                return system_plugins[plugin_name]
+
+            # Check custom_plugins
+            custom_plugins = config.get("custom_plugins", {})
+            if plugin_name in custom_plugins:
+                return custom_plugins[plugin_name]
+
+            return None
+        except Exception:
+            return None
 
     def clear_cache(self) -> None:
         """Clear the internal cache (useful for testing)"""

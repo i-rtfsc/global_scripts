@@ -11,15 +11,13 @@ Phase 2.5: 拆分 CommandHandler
 - 保留核心路由和插件执行逻辑
 """
 
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 from .command_classes import create_command_registry
 from .formatters import OutputFormatter
 from ..core.config_manager import ConfigManager
 from ..models.result import CommandResult
-from ..infrastructure.adapters.plugin_manager_adapter import (
-    PluginManagerAdapter as PluginManager,
-)
+from ..application.services import PluginService, PluginExecutor
 from ..core.constants import GlobalConstants
 from ..utils.i18n import I18nManager
 
@@ -33,7 +31,7 @@ logger = get_logger(tag="CLI.COMMANDS", name=__name__)
 class CommandHandler:
     """
     命令处理器 - 核心职责：
-    1. 路由命令到 CommandRegistry 或 PluginManager
+    1. 路由命令到 CommandRegistry 或 PluginExecutor
     2. 处理插件函数执行
     3. 处理命令未找到的情况
 
@@ -46,11 +44,13 @@ class CommandHandler:
     def __init__(
         self,
         config_manager: ConfigManager,
-        plugin_manager: PluginManager,
+        plugin_service: PluginService,
+        plugin_executor: PluginExecutor,
         chinese: bool = True,
     ):
         self.config_manager = config_manager
-        self.plugin_manager = plugin_manager
+        self.plugin_service = plugin_service
+        self.plugin_executor = plugin_executor
         self.chinese = chinese
         self.formatter = OutputFormatter(chinese=chinese)
         self.constants = GlobalConstants()
@@ -58,7 +58,7 @@ class CommandHandler:
 
         # 初始化 CommandRegistry
         self.command_registry = create_command_registry(
-            config_manager, plugin_manager, chinese
+            config_manager, plugin_service, plugin_executor, chinese
         )
 
     async def handle_command(self, args: List[str]) -> CommandResult:
@@ -174,6 +174,7 @@ class CommandHandler:
         - gs plugin sub function arg1 arg2
         """
         cid = correlation_id()
+        plugins = self.plugin_service.get_loaded_plugins()
 
         # 3层: plugin sub function
         if len(args) >= 3:
@@ -183,8 +184,8 @@ class CommandHandler:
                 f"sub={subplugin_name} func={function_name}"
             )
 
-            if plugin_name in self.plugin_manager.plugins:
-                plugin = self.plugin_manager.plugins[plugin_name]
+            if plugin_name in plugins:
+                plugin = plugins[plugin_name]
                 functions = plugin.get("functions", {})
 
                 # 尝试: "sub function" 复合名 (with space, like router.json)
@@ -210,7 +211,7 @@ class CommandHandler:
                 f"cid={cid} try_plugin depth=2 plugin={plugin_name} func={function_name}"
             )
 
-            if plugin_name in self.plugin_manager.plugins:
+            if plugin_name in plugins:
                 return await self._execute_plugin_function(
                     plugin_name, function_name, args[2:]
                 )
@@ -220,14 +221,14 @@ class CommandHandler:
     async def _execute_plugin_function(
         self, plugin_name: str, function_name: str, args: List[str]
     ) -> CommandResult:
-        """执行插件函数 - 委托给 PluginManager"""
+        """执行插件函数 - 委托给 PluginExecutor"""
         cid = correlation_id()
         logger.debug(
             f"cid={cid} exec_plugin plugin={plugin_name} "
             f"func={function_name} args={args}"
         )
 
-        return await self.plugin_manager.execute_plugin_function(
+        return await self.plugin_executor.execute_plugin_function(
             plugin_name, function_name, args
         )
 
@@ -237,9 +238,10 @@ class CommandHandler:
         可能是插件名，尝试执行默认函数或显示插件信息
         """
         cid = correlation_id()
+        plugins = self.plugin_service.get_loaded_plugins()
 
         # 如果是插件名，可以显示插件信息或执行默认函数
-        if command in self.plugin_manager.plugins:
+        if command in plugins:
             logger.debug(f"cid={cid} single_command is_plugin={command}")
             # 可以选择执行插件的默认函数或显示信息
             # 这里选择显示信息

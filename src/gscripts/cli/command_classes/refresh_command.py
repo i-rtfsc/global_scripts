@@ -101,7 +101,9 @@ class RefreshCommand(Command):
             # Create filesystem and repository for system plugins
             filesystem = RealFileSystem()
             repository = PluginRepository(
-                filesystem=filesystem, plugins_dir=plugins_root
+                filesystem=filesystem,
+                plugins_dir=plugins_root,
+                config_manager=self.config_manager,  # Pass config_manager for enabled status
             )
 
             # Load system plugins
@@ -113,7 +115,9 @@ class RefreshCommand(Command):
             # Load custom plugins if directory exists
             if custom_root.exists():
                 custom_repository = PluginRepository(
-                    filesystem=filesystem, plugins_dir=custom_root
+                    filesystem=filesystem,
+                    plugins_dir=custom_root,
+                    config_manager=self.config_manager,  # Pass config_manager
                 )
                 custom_loader = PluginLoader(
                     plugin_repository=custom_repository, plugins_root=custom_root
