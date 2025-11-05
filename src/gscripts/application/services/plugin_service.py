@@ -125,6 +125,13 @@ class PluginService:
         if self._config_manager:
             self._save_plugin_state_to_config(plugin_name, True)
 
+        # Update loader cache
+        if hasattr(self._loader, "update_plugin_enabled_status"):
+            self._loader.update_plugin_enabled_status(plugin_name, True)
+
+        # Regenerate router.json to update shell integration
+        await self._regenerate_router_index()
+
         # Notify observers
         self.notify_observers_enabled(plugin_name)
 
@@ -150,6 +157,13 @@ class PluginService:
         # Persist to config file (system_plugins or custom_plugins)
         if self._config_manager:
             self._save_plugin_state_to_config(plugin_name, False)
+
+        # Update loader cache
+        if hasattr(self._loader, "update_plugin_enabled_status"):
+            self._loader.update_plugin_enabled_status(plugin_name, False)
+
+        # Regenerate router.json to update shell integration
+        await self._regenerate_router_index()
 
         # Notify observers
         self.notify_observers_disabled(plugin_name)
@@ -412,6 +426,32 @@ class PluginService:
                 observer.on_plugin_error(plugin_name, error)
             except Exception:
                 pass
+
+    async def _regenerate_router_index(self) -> None:
+        """
+        Regenerate router.json after plugin enable/disable
+
+        This ensures shell integration stays in sync with config file changes.
+        We must reload all plugins to get the latest enabled status.
+        """
+        try:
+            from ...router.indexer import build_router_index, write_router_index
+            from pathlib import Path
+
+            # Reload all plugins from disk to get latest enabled status
+            # This is necessary because the loader cache may be stale
+            all_plugins = await self.load_all_plugins(include_examples=False)
+
+            if not all_plugins:
+                return
+
+            # Build and write router index
+            index = build_router_index(all_plugins)
+            write_router_index(index)
+
+        except Exception as e:
+            # Log but don't fail the enable/disable operation
+            print(f"Warning: Failed to regenerate router index: {e}")
 
 
 __all__ = ["PluginService", "IPluginObserver"]
