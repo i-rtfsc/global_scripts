@@ -85,7 +85,6 @@ class GlobalScriptsCLI:
         )
         from gscripts.infrastructure.persistence.plugin_loader import PluginLoader
         from gscripts.infrastructure.execution.process_executor import ProcessExecutor
-        from gscripts.application.services import PluginService, PluginExecutor
 
         # Create infrastructure components
         filesystem = RealFileSystem()

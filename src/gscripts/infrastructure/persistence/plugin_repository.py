@@ -119,7 +119,11 @@ class PluginRepository(IPluginRepository):
                         pass
 
                 # Recursively scan subdirectories
-                if item.is_dir() and item.name not in {"__pycache__", ".git", "node_modules"}:
+                if item.is_dir() and item.name not in {
+                    "__pycache__",
+                    ".git",
+                    "node_modules",
+                }:
                     plugins.extend(self._scan_custom_plugins_recursive(item))
 
         except Exception:

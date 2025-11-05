@@ -436,7 +436,6 @@ class PluginService:
         """
         try:
             from ...router.indexer import build_router_index, write_router_index
-            from pathlib import Path
 
             # Reload all plugins from disk to get latest enabled status
             # This is necessary because the loader cache may be stale
