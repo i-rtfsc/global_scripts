@@ -654,9 +654,7 @@ class SystemCommands:
             plugins = self.plugin_service.get_loaded_plugins()
             total_plugins = len(plugins)
             enabled_count = sum(
-                1
-                for p_name, p_data in plugins.items()
-                if p_data.get("enabled", True)
+                1 for p_name, p_data in plugins.items() if p_data.get("enabled", True)
             )
 
             if total_plugins == 0:

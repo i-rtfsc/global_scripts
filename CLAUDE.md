@@ -106,8 +106,8 @@ gs <plugin> <subplugin> <function> [args]
 ### Core Execution Flow
 
 ```
-User Command → CLI Layer → Command Handler → Adapter → Application Services → Domain/Infrastructure
-              (main.py)   (commands.py)      (adapter)   (PluginService)      (repositories)
+User Command → CLI Layer → Command Handler → Application Services → Domain/Infrastructure
+              (main.py)   (commands.py)      (PluginService)      (repositories)
 ```
 
 ### Clean Architecture Layers
@@ -130,7 +130,6 @@ User Command → CLI Layer → Command Handler → Adapter → Application Servi
    - Defines plugin models and rules
 
 4. **Infrastructure Layer** (`src/gscripts/infrastructure/`)
-   - `adapters/plugin_manager_adapter.py`: Legacy API compatibility adapter
    - `persistence/plugin_loader.py`: Plugin discovery and loading implementation
    - `persistence/plugin_repository.py`: Plugin data access
    - `execution/process_executor.py`: Subprocess execution
