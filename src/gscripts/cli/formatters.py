@@ -440,7 +440,6 @@ class OutputFormatter:
 
     def format_command_result(self, result) -> str:
         """格式化命令结果"""
-        lang = "zh" if self.chinese else "en"
         status_ok = self._m("cli.success", "成功", "Success")
         status_fail = self._m("cli.failed", "失败", "Failed")
         status = ("✅ " + status_ok) if result.success else ("❌ " + status_fail)
