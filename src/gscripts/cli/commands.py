@@ -11,7 +11,7 @@ Phase 2.5: 拆分 CommandHandler
 - 保留核心路由和插件执行逻辑
 """
 
-from typing import List, Optional, Dict
+from typing import List, Optional
 
 from .command_classes import create_command_registry
 from .formatters import OutputFormatter
