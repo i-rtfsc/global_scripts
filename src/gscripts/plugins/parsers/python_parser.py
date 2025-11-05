@@ -117,10 +117,11 @@ class PythonFunctionParser(FunctionParser):
 
             return FunctionInfo(
                 name=kwargs.get("name", func_name),
-                description=description.get("zh", description.get("en", "")),
+                description=description,  # Store full dict, not just zh
                 command=kwargs.get("command", func_name),
                 type=FunctionType.PYTHON,
                 subplugin=subplugin_name,
+                usage=kwargs.get("usage", ""),  # Extract usage field
                 examples=kwargs.get("examples", []),
                 python_file=file,
                 method=func_name,  # Set the actual Python method name
@@ -161,13 +162,24 @@ class PythonFunctionParser(FunctionParser):
         name_match = re.search(r'name\s*=\s*["\'](.+?)["\']', decorator_content)
         name = name_match.group(1) if name_match else func_name
 
-        # 提取 description
-        desc_match = re.search(r'description\s*=\s*["\'](.+?)["\']', decorator_content)
-        description = desc_match.group(1) if desc_match else ""
+        # 提取 description (try dict format first, fallback to string)
+        desc_dict_match = re.search(
+            r'description\s*=\s*\{[^}]*"zh"\s*:\s*["\']([^"\']+)["\'][^}]*"en"\s*:\s*["\']([^"\']+)["\'][^}]*\}',
+            decorator_content,
+        )
+        if desc_dict_match:
+            description = {"zh": desc_dict_match.group(1), "en": desc_dict_match.group(2)}
+        else:
+            desc_match = re.search(r'description\s*=\s*["\'](.+?)["\']', decorator_content)
+            description = desc_match.group(1) if desc_match else ""
 
         # 提取 command
         cmd_match = re.search(r'command\s*=\s*["\'](.+?)["\']', decorator_content)
         command = cmd_match.group(1) if cmd_match else func_name
+
+        # 提取 usage
+        usage_match = re.search(r'usage\s*=\s*["\'](.+?)["\']', decorator_content)
+        usage = usage_match.group(1) if usage_match else ""
 
         return FunctionInfo(
             name=name,
@@ -175,6 +187,7 @@ class PythonFunctionParser(FunctionParser):
             command=command,
             type=FunctionType.PYTHON,
             subplugin=subplugin_name,
+            usage=usage,  # Include usage
             python_file=file,  # Set python_file
             method=func_name,  # Set the actual Python method name
         )
