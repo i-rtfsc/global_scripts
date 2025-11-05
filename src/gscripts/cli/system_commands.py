@@ -15,9 +15,7 @@ from typing import Dict, Any
 from .formatters import OutputFormatter
 from ..core.config_manager import ConfigManager
 from ..models.result import CommandResult
-from ..infrastructure.adapters.plugin_manager_adapter import (
-    PluginManagerAdapter as PluginManager,
-)
+from ..application.services import PluginService, PluginExecutor
 from ..core.constants import GlobalConstants
 from ..utils.i18n import I18nManager
 from ..utils.shell_utils import detect_current_shell
@@ -37,11 +35,13 @@ class SystemCommands:
     def __init__(
         self,
         config_manager: ConfigManager,
-        plugin_manager: PluginManager,
+        plugin_service: PluginService,
+        plugin_executor: PluginExecutor,
         chinese: bool = True,
     ):
         self.config_manager = config_manager
-        self.plugin_manager = plugin_manager
+        self.plugin_service = plugin_service
+        self.plugin_executor = plugin_executor
         self.chinese = chinese
         self.formatter = OutputFormatter(chinese=chinese)
         self.constants = GlobalConstants()
@@ -99,9 +99,9 @@ class SystemCommands:
                     "issues": [],
                 }
             else:
-                # 回退到plugin_manager
-                logger.debug(f"cid={cid} status fallback to plugin_manager")
-                health_result = await self.plugin_manager.health_check()
+                # 回退到plugin_service
+                logger.debug(f"cid={cid} status fallback to plugin_service")
+                health_result = await self.plugin_service.health_check()
 
             # i18n labels with graceful fallback
             def _label(key: str, zh_fallback: str, en_fallback: str) -> str:
@@ -651,11 +651,12 @@ class SystemCommands:
                 }
 
             # 统计插件
-            total_plugins = len(self.plugin_manager.plugins)
+            plugins = self.plugin_service.get_loaded_plugins()
+            total_plugins = len(plugins)
             enabled_count = sum(
                 1
-                for p in self.plugin_manager.plugins
-                if self.plugin_manager.is_plugin_enabled(p)
+                for p_name, p_data in plugins.items()
+                if p_data.get("enabled", True)
             )
 
             if total_plugins == 0:
@@ -784,7 +785,8 @@ class SystemCommands:
             from ..router.indexer import build_router_index, write_router_index
 
             # 构建 router index
-            index = build_router_index(self.plugin_manager.plugins)
+            plugins = self.plugin_service.get_loaded_plugins()
+            index = build_router_index(plugins)
 
             # 写入 router index
             index_path = write_router_index(index)
