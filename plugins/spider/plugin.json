@@ -9,7 +9,7 @@
   },
   "type": "python",
   "entry": "plugin.py",
-  "enabled": true,
+  "enabled": false,
   "license": "Apache-2.0",
   "category": "tools",
   "keywords": [
@@ -48,5 +48,7 @@
         "en": "CSDN spider - Crawl articles from CSDN"
       }
     }
-  ]
+  ],
+  "requirements": {},
+  "tags": []
 }

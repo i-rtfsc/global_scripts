@@ -59,17 +59,20 @@ class PluginService:
         self._config_manager = config_manager
         self._observers: List[IPluginObserver] = []
 
-    async def load_all_plugins(self, include_examples: bool = False) -> Dict[str, Any]:
+    async def load_all_plugins(
+        self, include_examples: bool = False, only_enabled: bool = True
+    ) -> Dict[str, Any]:
         """
-        Load all enabled plugins
+        Load all plugins
 
         Args:
             include_examples: Whether to include example plugins
+            only_enabled: If True, only load enabled plugins. If False, load all plugins.
 
         Returns:
             Dict[str, Any]: Loaded plugins
         """
-        return await self._loader.load_all_plugins(include_examples)
+        return await self._loader.load_all_plugins(include_examples, only_enabled)
 
     async def load_plugin(self, plugin_name: str) -> Optional[Any]:
         """
@@ -432,14 +435,16 @@ class PluginService:
         Regenerate router.json after plugin enable/disable
 
         This ensures shell integration stays in sync with config file changes.
-        We must reload all plugins to get the latest enabled status.
+        We must load ALL plugins (including disabled) to match setup.py behavior.
         """
         try:
             from ...router.indexer import build_router_index, write_router_index
 
-            # Reload all plugins from disk to get latest enabled status
-            # This is necessary because the loader cache may be stale
-            all_plugins = await self.load_all_plugins(include_examples=False)
+            # Load ALL plugins from disk (including disabled ones) to get latest status
+            # This matches the behavior of setup.py which includes all plugins in router.json
+            all_plugins = await self.load_all_plugins(
+                include_examples=False, only_enabled=False
+            )
 
             if not all_plugins:
                 return

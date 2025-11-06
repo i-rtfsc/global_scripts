@@ -219,7 +219,7 @@ async def main():
 
     # 系统插件 - 直接扫描 plugins/ 目录
     system_repository = PluginRepository(
-        filesystem=filesystem, plugins_dir=plugins_root
+        filesystem=filesystem, plugins_dir=plugins_root, config_manager=config_manager
     )
     system_plugins_list = await system_repository.get_all()
 
@@ -282,13 +282,25 @@ async def main():
                         # Invalid type, default to PYTHON
                         plugin_type = PluginType.PYTHON
 
+                    # 获取enabled状态 - 优先从配置文件读取
+                    enabled = plugin_data.get("enabled", True)
+                    # 从配置文件覆盖enabled状态（优先级：用户配置 > 项目配置 > plugin.json）
+                    plugin_name = plugin_data.get("name", plugin_dir.name)
+                    custom_config = config.get("custom_plugins", {})
+                    if plugin_name in custom_config:
+                        enabled = custom_config[plugin_name]
+
                     plugin_meta = PluginMetadata(
-                        name=plugin_data.get("name", plugin_dir.name),
+                        name=plugin_name,
                         version=plugin_data.get("version", "1.0.0"),
                         author=plugin_data.get("author", ""),
                         description=plugin_data.get("description", {}),
-                        enabled=plugin_data.get("enabled", True),
+                        homepage=plugin_data.get("homepage", ""),
+                        license=plugin_data.get("license", ""),
+                        enabled=enabled,
                         priority=plugin_data.get("priority", 50),
+                        category=plugin_data.get("category", ""),
+                        keywords=plugin_data.get("keywords", []),
                         type=plugin_type,
                         subplugins=plugin_data.get("subplugins", []),
                     )
@@ -356,7 +368,7 @@ async def main():
 
                 for script_file in sub_scan.script_files:
                     parser = ShellFunctionParser()
-                    functions.extend(await parser.parse(script_file, plugin_name))
+                    functions.extend(await parser.parse(script_file, plugin_name, subplugin_name))
 
             # 将函数附加到 PluginMetadata 对象
             # 使用唯一键：对于子插件函数使用 "subplugin name" 格式，否则使用函数名
@@ -368,6 +380,7 @@ async def main():
                     key = f.name
                 function_dict[key] = f
             plugin_meta.functions = function_dict
+            plugin_meta.plugin_dir = str(plugin_dir)  # 添加plugin_dir属性
 
             return plugin_meta
         except Exception as e:
