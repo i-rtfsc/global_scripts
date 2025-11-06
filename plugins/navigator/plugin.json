@@ -9,7 +9,7 @@
   },
   "type": "json",
   "entry": "commands.json",
-  "enabled": false,
+  "enabled": true,
   "license": "Apache-2.0",
   "category": "development",
   "keywords": [
