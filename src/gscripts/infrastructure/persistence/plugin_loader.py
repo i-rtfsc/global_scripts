@@ -54,12 +54,15 @@ class PluginLoader(IPluginLoader):
         self._parser_registry.register(ShellFunctionParser(), name="shell")
         self._parser_registry.register(ConfigFunctionParser(), name="config")
 
-    async def load_all_plugins(self, include_examples: bool = False) -> Dict[str, Any]:
+    async def load_all_plugins(
+        self, include_examples: bool = False, only_enabled: bool = True
+    ) -> Dict[str, Any]:
         """
         Load all plugins
 
         Args:
             include_examples: Whether to include example plugins
+            only_enabled: If True, only load enabled plugins. If False, load all plugins.
 
         Returns:
             Dict[str, Any]: Loaded plugins dictionary
@@ -72,16 +75,31 @@ class PluginLoader(IPluginLoader):
         plugins_meta = await self._repository.get_all()
         logger.info(f"Repository returned {len(plugins_meta)} plugins metadata")
 
-        # 2. Filter enabled plugins
-        enabled_plugins = [p for p in plugins_meta if p.enabled]
-        logger.info(
-            f"Found {len(enabled_plugins)} enabled plugins: {[p.name for p in enabled_plugins]}"
-        )
+        # 2. Filter enabled plugins (if only_enabled=True)
+        if only_enabled:
+            plugins_to_load = [p for p in plugins_meta if p.enabled]
+            logger.info(
+                f"Found {len(plugins_to_load)} enabled plugins: {[p.name for p in plugins_to_load]}"
+            )
+        else:
+            plugins_to_load = plugins_meta
+            logger.info(
+                f"Loading all {len(plugins_to_load)} plugins (including disabled)"
+            )
 
-        # 3. Discover plugin directories
+        # 3. Discover plugin directories (both system and custom)
         plugin_dirs = self._discovery.discover_all_plugins(include_examples)
+
+        # Also discover custom plugins
+        custom_dir = self._plugins_root.parent / "custom"
+        if custom_dir.exists():
+            custom_discovery = PluginDiscovery(custom_dir)
+            custom_dirs = custom_discovery.discover_custom_plugins(custom_dir)
+            plugin_dirs.extend(custom_dirs)
+            logger.info(f"Discovered {len(custom_dirs)} custom plugin directories")
+
         logger.info(
-            f"Discovered {len(plugin_dirs)} plugin directories: {[d.name for d in plugin_dirs]}"
+            f"Total discovered {len(plugin_dirs)} plugin directories: {[d.name for d in plugin_dirs]}"
         )
 
         # 4. Load plugins in parallel
@@ -91,7 +109,7 @@ class PluginLoader(IPluginLoader):
             plugin_name = plugin_dir.name
 
             # Find matching metadata
-            meta = next((p for p in enabled_plugins if p.name == plugin_name), None)
+            meta = next((p for p in plugins_to_load if p.name == plugin_name), None)
 
             if meta:
                 task_pairs.append(
@@ -303,11 +321,15 @@ class PluginLoader(IPluginLoader):
             "version": meta.version,
             "author": meta.author,
             "description": meta.description,
+            "homepage": meta.homepage,
+            "license": meta.license,
             "enabled": meta.enabled,
             "priority": meta.priority,
             "category": meta.category,
+            "keywords": meta.keywords,
             "plugin_type": scan_result.plugin_type.value,
             "plugin_dir": str(plugin_dir),
+            "subplugins": meta.subplugins,
             "functions": functions_dict,  # Dict instead of list
             "metadata": meta,
         }

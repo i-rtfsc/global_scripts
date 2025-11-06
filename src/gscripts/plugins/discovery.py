@@ -265,8 +265,22 @@ class PluginDiscovery:
             if not item.is_dir():
                 continue
 
-            # 子插件也应该有 plugin.py 或配置文件
-            if (item / "plugin.py").exists() or (item / "plugin.json").exists():
+            # Skip hidden and special directories
+            if item.name.startswith("_") or item.name.startswith("."):
+                continue
+
+            # 子插件可以有以下任一文件:
+            # - plugin.py (Python subplugin)
+            # - plugin.json (Config subplugin)
+            # - plugin.sh (Shell subplugin)
+            # - Any other .sh files (Shell subplugin)
+            has_plugin_py = (item / "plugin.py").exists()
+            has_plugin_json = (item / "plugin.json").exists()
+            has_plugin_sh = (item / "plugin.sh").exists()
+            # Check for any .sh files in the directory
+            has_shell_scripts = any(f.suffix == ".sh" for f in item.iterdir() if f.is_file())
+
+            if has_plugin_py or has_plugin_json or has_plugin_sh or has_shell_scripts:
                 subplugins.append(item)
 
         return subplugins
