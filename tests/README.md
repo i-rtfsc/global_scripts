@@ -1,279 +1,202 @@
-# Parser Registry Tests
+# Testing Guide for Global Scripts
 
-This directory contains comprehensive tests for the Parser Registry Mechanism implementation.
+This document provides comprehensive guidance for testing the Global Scripts plugin system.
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Test Structure](#test-structure)
+- [Running Tests](#running-tests)
+- [Writing Tests](#writing-tests)
+- [Fixtures and Factories](#fixtures-and-factories)
+- [Common Patterns](#common-patterns)
+- [Coverage Requirements](#coverage-requirements)
+- [Troubleshooting](#troubleshooting)
+
+---
 
 ## Overview
 
-The Parser Registry Mechanism enables extensibility through:
-- Priority-based parser selection
-- Auto-discovery from Entry Points
-- Enable/disable functionality
-- Custom parser directories
-- Configuration-driven behavior
+### Testing Philosophy
+
+Global Scripts follows a **comprehensive testing strategy** with multiple test levels:
+
+1. **Unit Tests**: Test individual components in isolation
+2. **Integration Tests**: Test component interactions and data flow
+3. **E2E Tests**: Test complete user workflows with no mocks
+4. **Performance Tests**: Benchmark plugin loading, execution, and generation
+
+### Test Statistics
+
+- **Total Tests**: ~1,015 tests
+- **Test Files**: 80+ test files
+- **Coverage Target**: 80% overall, 75% minimum per module
+- **Current Coverage**: 19% (work in progress)
+
+---
 
 ## Test Structure
 
 ```
 tests/
-├── conftest.py                          # Shared fixtures
-├── run_parser_tests.sh                  # Test runner script
-├── unit/
-│   └── plugins/
-│       └── parsers/
-│           ├── test_registry.py         # FunctionParserRegistry tests
-│           └── test_discovery.py        # ParserDiscovery tests
-└── integration/
-    └── plugins/
-        └── test_parser_integration.py   # End-to-end integration tests
+├── conftest.py                 # Global fixtures and pytest configuration
+├── __init__.py
+│
+├── fixtures/                   # Shared test fixtures
+│   ├── sample_plugins.py      # Sample plugin metadata and content
+│   ├── config_fixtures.py     # Configuration fixtures
+│   ├── filesystem_fixtures.py # Filesystem mocks
+│   └── process_fixtures.py    # Process execution mocks
+│
+├── factories/                  # Test data factories
+│   ├── plugin_factory.py      # PluginFactory.create()
+│   ├── function_factory.py    # FunctionFactory.create()
+│   └── result_factory.py      # ResultFactory.success/failure()
+│
+├── helpers/                    # Test helper utilities
+│   ├── assertions.py          # Custom assertions
+│   ├── async_helpers.py       # Async test helpers
+│   └── mock_builders.py       # Mock object builders
+│
+├── unit/                       # Unit tests (mirror src structure)
+│   ├── cli/
+│   ├── application/
+│   ├── infrastructure/
+│   ├── core/
+│   ├── models/
+│   ├── plugins/
+│   ├── security/
+│   └── utils/
+│
+├── integration/                # Integration tests
+│   ├── test_plugin_loading_flow.py
+│   ├── test_plugin_execution_flow.py
+│   ├── test_cli_command_flow.py
+│   ├── test_config_management_flow.py
+│   └── test_router_generation.py
+│
+├── e2e/                        # End-to-end tests
+│   ├── test_full_command_execution.py
+│   ├── test_plugin_enable_disable.py
+│   ├── test_plugin_installation.py
+│   └── test_error_scenarios.py
+│
+├── performance/                # Performance benchmarks
+│   ├── test_plugin_loading_speed.py
+│   ├── test_command_execution_speed.py
+│   └── test_router_generation_speed.py
+│
+└── scripts/                    # Tests for installation scripts
+    └── test_setup.py
 ```
-
-## Running Tests
-
-### Run All Parser Tests
-
-```bash
-./tests/run_parser_tests.sh
-```
-
-### Run Specific Test Suites
-
-```bash
-# Unit tests only
-uv run pytest tests/unit/plugins/parsers/ -v
-
-# Integration tests only
-uv run pytest tests/integration/plugins/test_parser_integration.py -v
-
-# With coverage
-uv run pytest tests/unit/plugins/parsers/ \
-    --cov=src/gscripts/plugins/parsers \
-    --cov-report=html \
-    --cov-report=term-missing
-```
-
-### Run Individual Test Files
-
-```bash
-# Registry tests
-uv run pytest tests/unit/plugins/parsers/test_registry.py -v
-
-# Discovery tests
-uv run pytest tests/unit/plugins/parsers/test_discovery.py -v
-
-# Integration tests
-uv run pytest tests/integration/plugins/test_parser_integration.py -v
-```
-
-### Run Specific Test Cases
-
-```bash
-# Run single test
-uv run pytest tests/unit/plugins/parsers/test_registry.py::TestFunctionParserRegistry::test_register_parser_with_metadata -v
-
-# Run tests matching pattern
-uv run pytest tests/unit/plugins/parsers/ -k "priority" -v
-```
-
-## Test Coverage
-
-### Unit Tests: `test_registry.py`
-
-Tests for `FunctionParserRegistry`:
-- ✅ Parser registration with/without metadata
-- ✅ Custom names and priorities
-- ✅ `register_by_name` method
-- ✅ Unregister functionality
-- ✅ Enable/disable parsers
-- ✅ Parser aliases
-- ✅ Get parser by name
-- ✅ List parsers (sorted by priority)
-- ✅ Get parser info
-- ✅ Get parser by file
-- ✅ Priority-based selection
-- ✅ Disabled parser skipping
-- ✅ `parse_all` integration
-- ✅ Alias removal on unregister
-- ✅ Metadata property access
-
-**Coverage:** ~95% of FunctionParserRegistry code
-
-### Unit Tests: `test_discovery.py`
-
-Tests for `ParserDiscovery`:
-- ✅ Initialization
-- ✅ Discover from Entry Points
-- ✅ Caching mechanism
-- ✅ Cache clearing
-- ✅ Discover from directories
-- ✅ Handle non-existent paths
-- ✅ File naming convention (`*_parser.py`)
-- ✅ Error handling for malformed files
-- ✅ Config-based enable/disable
-- ✅ Custom paths discovery
-- ✅ Tilde expansion
-- ✅ Priority overrides
-- ✅ Subdirectory scanning
-- ✅ FunctionParser subclass filtering
-- ✅ Full integration flow
-
-**Coverage:** ~90% of ParserDiscovery code
-
-### Integration Tests: `test_parser_integration.py`
-
-End-to-end integration tests:
-- ✅ Parser registration in loader
-- ✅ Custom parser integration
-- ✅ Priority-based selection
-- ✅ Config-driven enable/disable
-- ✅ Priority overrides from config
-- ✅ Full plugin loading flow
-- ✅ Registry accessibility
-- ✅ Multiple parsers same priority
-- ✅ Error handling
-
-**Coverage:** Complete workflow from registration to plugin loading
-
-## Test Fixtures
-
-### Shared Fixtures (`conftest.py`)
-
-- `sample_yaml_content`: YAML plugin example
-- `sample_toml_content`: TOML plugin example
-- `sample_python_plugin`: Python plugin with decorators
-- `sample_shell_plugin`: Shell plugin with annotations
-- `mock_parser_config`: Basic parser configuration
-- `extended_parser_config`: Extended config with custom paths
-
-### Test-Specific Fixtures
-
-Each test file defines mock parsers for isolated testing:
-- `TestParser1/2/3`: Simple mock parsers
-- `TestDiscoveryParser`: Parser for discovery testing
-- `IntegrationYAMLParser`: YAML parser for integration tests
-
-## Writing New Tests
-
-### Unit Test Template
-
-```python
-import pytest
-from pathlib import Path
-from gscripts.plugins.parsers import FunctionParser, parser_metadata
-
-@parser_metadata(name="test", version="1.0.0")
-class TestParser(FunctionParser):
-    def can_parse(self, file: Path) -> bool:
-        return file.suffix == ".test"
-
-    async def parse(self, file, plugin_name, subplugin_name=""):
-        return []
-
-def test_my_feature():
-    """Test description"""
-    parser = TestParser()
-    # Test assertions
-    assert parser.metadata.name == "test"
-```
-
-### Integration Test Template
-
-```python
-import pytest
-from gscripts.plugins.loader import RefactoredPluginLoader
-
-@pytest.mark.asyncio
-async def test_my_integration(tmp_path):
-    """Integration test description"""
-    # Setup
-    plugins_dir = tmp_path / "plugins"
-    plugins_dir.mkdir()
-
-    config = {'enabled': ['python', 'shell']}
-
-    # Execute
-    loader = RefactoredPluginLoader(plugins_dir, parser_config=config)
-    plugins = await loader.load_all_plugins()
-
-    # Assert
-    assert plugins is not None
-```
-
-## Test Requirements
-
-Tests require the following packages:
-- `pytest>=7.0.0`
-- `pytest-asyncio>=0.20.0`
-- `pytest-cov>=4.0.0`
-
-Install with:
-```bash
-uv sync --dev
-```
-
-## Continuous Integration
-
-Tests are designed to run in CI/CD pipelines:
-
-```yaml
-# Example GitHub Actions
-- name: Run parser tests
-  run: |
-    uv sync --dev
-    uv run pytest tests/unit/plugins/parsers/ \
-                   tests/integration/plugins/test_parser_integration.py \
-      --cov=src/gscripts/plugins/parsers \
-      --cov-fail-under=80
-```
-
-## Debugging Tests
-
-### Enable Verbose Output
-
-```bash
-uv run pytest tests/unit/plugins/parsers/test_registry.py -vv
-```
-
-### Show Print Statements
-
-```bash
-uv run pytest tests/unit/plugins/parsers/ -s
-```
-
-### Run with PDB on Failure
-
-```bash
-uv run pytest tests/unit/plugins/parsers/ --pdb
-```
-
-### Show Slowest Tests
-
-```bash
-uv run pytest tests/unit/plugins/parsers/ --durations=10
-```
-
-## Known Issues
-
-None currently. All tests passing as of 2025-10-11.
-
-## Contributing
-
-When adding new parser features:
-
-1. Write unit tests first (TDD approach)
-2. Add integration tests for end-to-end scenarios
-3. Update fixtures in `conftest.py` if needed
-4. Ensure coverage stays above 80%
-5. Run all tests before submitting PR
-
-## Resources
-
-- [Parser Development Guide](../../docs/extensibility/custom-parsers.md)
-- [YAML Parser Example](../../docs/examples/custom_parser/)
-- [pytest Documentation](https://docs.pytest.org/)
-- [pytest-asyncio Guide](https://pytest-asyncio.readthedocs.io/)
 
 ---
 
-**Last Updated:** 2025-10-11
-**Test Suite Version:** 1.0.0
-**Coverage Target:** 80%+
+## Running Tests
+
+### Run All Tests
+
+```bash
+# Run complete test suite
+pytest tests/ -v
+
+# Run with coverage report
+pytest tests/ -v --cov=src/gscripts --cov-report=term-missing --cov-report=html
+
+# View HTML coverage report
+open htmlcov/index.html
+```
+
+### Run Specific Test Types
+
+```bash
+# Unit tests only
+pytest tests/unit/ -v
+
+# Integration tests only
+pytest tests/integration/ -v -m integration
+
+# E2E tests only
+pytest tests/e2e/ -v -m e2e
+
+# Performance tests (slow)
+pytest tests/performance/ -v -m performance
+
+# Skip slow tests
+pytest tests/ -v -m "not slow"
+```
+
+### Run Specific Test Files
+
+```bash
+# Single file
+pytest tests/unit/security/test_sanitizers.py -v
+
+# Multiple files
+pytest tests/integration/test_plugin_loading_flow.py tests/integration/test_plugin_execution_flow.py -v
+
+# Specific test class
+pytest tests/unit/security/test_sanitizers.py::TestCommandSanitization -v
+
+# Specific test function
+pytest tests/unit/security/test_sanitizers.py::TestCommandSanitization::test_sanitize_simple_command -v
+```
+
+---
+
+## Writing Tests
+
+### Unit Test Example
+
+```python
+"""Unit tests for PluginRepository"""
+
+import pytest
+from gscripts.infrastructure.persistence.plugin_repository import PluginRepository
+
+
+@pytest.mark.unit
+class TestPluginRepository:
+    """Unit tests for PluginRepository"""
+
+    def test_get_all_plugins(self, mock_filesystem):
+        """Test retrieving all plugins"""
+        # Arrange
+        repository = PluginRepository(
+            filesystem=mock_filesystem,
+            plugins_dir="/plugins"
+        )
+
+        # Act
+        plugins = repository.get_all()
+
+        # Assert
+        assert isinstance(plugins, list)
+        assert len(plugins) > 0
+```
+
+---
+
+## Coverage Requirements
+
+### Overall Targets
+
+- **Overall Coverage**: ≥80%
+- **Critical Modules**: ≥75% (security, core, application)
+- **Utilities**: ≥70%
+- **CLI**: ≥60%
+
+### Check Coverage
+
+```bash
+# Generate coverage report
+pytest tests/ --cov=src/gscripts --cov-report=term-missing --cov-report=html
+
+# View detailed report
+open htmlcov/index.html
+```
+
+---
+
+**Last Updated**: November 2024
+**Test Suite Version**: 5.0.0
