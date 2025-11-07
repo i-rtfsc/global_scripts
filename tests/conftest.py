@@ -1,185 +1,138 @@
 """
-Test configuration and fixtures
-Provides test fixtures and utility functions
+Root conftest.py - Global pytest configuration and fixtures
+
+This file configures pytest for the entire test suite including:
+- Async test support
+- Custom markers
+- Global fixtures
+- Test execution options
 """
+
+import sys
+from pathlib import Path
 
 import pytest
-from pathlib import Path
-from typing import Generator
 
-from src.gscripts.infrastructure import (
-    DIContainer,
-    get_container,
-    reset_container,
-    configure_services,
-)
-from src.gscripts.infrastructure.filesystem import (
-    InMemoryFileSystem,
-    MockEnvironment,
-)
+# Add src to Python path for imports
+project_root = Path(__file__).parent.parent
+src_path = project_root / "src"
+if str(src_path) not in sys.path:
+    sys.path.insert(0, str(src_path))
 
 
-@pytest.fixture
-def test_container() -> Generator[DIContainer, None, None]:
-    """Provide test DI container"""
-    reset_container()
-    container = get_container()
-    configure_services(container, use_mocks=True)
-    yield container
-    reset_container()
+def pytest_configure(config):
+    """Configure pytest with custom markers and settings."""
+    # Register custom markers
+    config.addinivalue_line(
+        "markers",
+        "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    )
+    config.addinivalue_line(
+        "markers",
+        "integration: marks tests as integration tests",
+    )
+    config.addinivalue_line(
+        "markers",
+        "e2e: marks tests as end-to-end tests",
+    )
+    config.addinivalue_line(
+        "markers",
+        "unit: marks tests as unit tests (fast, isolated)",
+    )
+    config.addinivalue_line(
+        "markers",
+        "asyncio: marks tests as async tests (auto-applied by pytest-asyncio)",
+    )
 
 
-@pytest.fixture
-def mock_filesystem(test_container: DIContainer) -> InMemoryFileSystem:
-    """Provide mock filesystem"""
-    from src.gscripts.domain.interfaces import IFileSystem
-
-    return test_container.resolve(IFileSystem)
+# Enable pytest-asyncio auto mode
+pytest_plugins = ("pytest_asyncio",)
 
 
-@pytest.fixture
-def mock_environment(test_container: DIContainer) -> MockEnvironment:
-    """Provide mock environment"""
-    from src.gscripts.domain.interfaces import IEnvironment
-
-    return test_container.resolve(IEnvironment)
+@pytest.fixture(scope="session")
+def project_root_dir() -> Path:
+    """Provide project root directory path."""
+    return Path(__file__).parent.parent
 
 
-@pytest.fixture
-def temp_plugin_dir(tmp_path: Path) -> Path:
-    """Provide temporary plugin directory"""
-    plugin_dir = tmp_path / "plugins"
-    plugin_dir.mkdir()
-    return plugin_dir
+@pytest.fixture(scope="session")
+def src_dir(project_root_dir: Path) -> Path:
+    """Provide src directory path."""
+    return project_root_dir / "src"
 
 
-@pytest.fixture
-def sample_plugin_config() -> dict:
-    """Provide sample plugin config"""
-    return {
-        "name": "test_plugin",
-        "version": "1.0.0",
-        "description": "Test plugin",
-        "type": "python",
-        "enabled": True,
-    }
+@pytest.fixture(scope="session")
+def tests_dir(project_root_dir: Path) -> Path:
+    """Provide tests directory path."""
+    return project_root_dir / "tests"
 
 
-# Parser-related fixtures
-@pytest.fixture
-def sample_yaml_content():
-    """Sample YAML plugin content for testing"""
-    return """
-functions:
-  - name: hello
-    description: Say hello to someone
-    command: echo "Hello, {{args[0]}}!"
-    type: shell
-    args:
-      - name
-    examples:
-      - hello world
-
-  - name: goodbye
-    description: Say goodbye
-    command: echo "Goodbye!"
-    type: shell
-"""
+@pytest.fixture(scope="session")
+def fixtures_dir(tests_dir: Path) -> Path:
+    """Provide test fixtures directory path."""
+    return tests_dir / "fixtures"
 
 
 @pytest.fixture
-def sample_toml_content():
-    """Sample TOML plugin content for testing"""
-    return """
-[functions.hello]
-description = "Say hello"
-command = "echo 'Hello'"
-type = "shell"
+def temp_dir(tmp_path: Path) -> Path:
+    """
+    Provide temporary directory for test isolation.
 
-[functions.goodbye]
-description = "Say goodbye"
-command = "echo 'Goodbye'"
-type = "shell"
-"""
+    This is an alias for pytest's tmp_path fixture with a more descriptive name.
+    Automatically cleaned up after each test.
+    """
+    return tmp_path
 
 
-@pytest.fixture
-def sample_python_plugin():
-    """Sample Python plugin content for testing"""
-    return """
-from gscripts.plugins.decorators import plugin_function
+# Async test configuration
+@pytest.fixture(scope="session")
+def event_loop_policy():
+    """
+    Configure asyncio event loop policy for tests.
 
-@plugin_function(
-    name="hello",
-    description="Say hello"
-)
-def hello_command(args):
-    return "Hello, " + args[0] if args else "Hello, World!"
+    This ensures consistent async behavior across all tests.
+    """
+    import asyncio
 
-@plugin_function(
-    name="goodbye",
-    description="Say goodbye"
-)
-def goodbye_command(args):
-    return "Goodbye!"
-"""
+    # Use default policy - can be customized if needed
+    return asyncio.get_event_loop_policy()
 
 
-@pytest.fixture
-def sample_shell_plugin():
-    """Sample Shell plugin content for testing"""
-    return """#!/bin/bash
+# Global test hooks
+def pytest_collection_modifyitems(config, items):
+    """
+    Modify test collection to add markers automatically.
 
-# @function: hello
-# @description: Say hello to someone
-# @args: name
-hello() {
-    echo "Hello, $1!"
-}
+    - Auto-mark async tests with @pytest.mark.asyncio
+    - Auto-mark tests in integration/ with @pytest.mark.integration
+    - Auto-mark tests in e2e/ with @pytest.mark.e2e
+    - Auto-mark tests in unit/ with @pytest.mark.unit
+    """
+    for item in items:
+        # Get test file path relative to tests directory
+        test_path = Path(item.fspath).relative_to(Path(__file__).parent)
 
-# @function: goodbye
-# @description: Say goodbye
-goodbye() {
-    echo "Goodbye!"
-}
-"""
+        # Auto-mark by directory
+        if "integration" in test_path.parts:
+            item.add_marker(pytest.mark.integration)
+        elif "e2e" in test_path.parts:
+            item.add_marker(pytest.mark.e2e)
+        elif "unit" in test_path.parts:
+            item.add_marker(pytest.mark.unit)
 
-
-@pytest.fixture
-def mock_parser_config():
-    """Mock parser configuration for testing"""
-    return {
-        "enabled": ["python", "shell", "config"],
-        "disabled": [],
-        "custom_paths": [],
-        "priority_overrides": {},
-    }
-
-
-@pytest.fixture
-def extended_parser_config(tmp_path):
-    """Extended parser config with custom paths"""
-    custom_dir = tmp_path / "custom_parsers"
-    custom_dir.mkdir()
-
-    return {
-        "enabled": ["python", "shell", "config", "yaml", "toml"],
-        "disabled": ["experimental"],
-        "custom_paths": [str(custom_dir)],
-        "priority_overrides": {"yaml": 15, "toml": 25},
-    }
+        # Auto-mark slow tests (integration and e2e)
+        if any(
+            marker in test_path.parts
+            for marker in ["integration", "e2e", "performance"]
+        ):
+            item.add_marker(pytest.mark.slow)
 
 
-__all__ = [
-    "test_container",
-    "mock_filesystem",
-    "mock_environment",
-    "temp_plugin_dir",
-    "sample_plugin_config",
-    "sample_yaml_content",
-    "sample_toml_content",
-    "sample_python_plugin",
-    "sample_shell_plugin",
-    "mock_parser_config",
-    "extended_parser_config",
-]
+def pytest_report_header(config):
+    """Add custom header to pytest output."""
+    return [
+        "Global Scripts Test Suite",
+        f"Project root: {Path(__file__).parent.parent}",
+        "Run 'pytest -v' for verbose output",
+        "Run 'pytest -m \"not slow\"' to skip slow tests",
+    ]
