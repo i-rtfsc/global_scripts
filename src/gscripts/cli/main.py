@@ -141,6 +141,9 @@ class GlobalScriptsCLI:
             await self.plugin_service.load_all_plugins()
             self._initialized = True
 
+            # Auto-start menu bar if enabled
+            self._ensure_menubar_started()
+
             elapsed_ms = duration(start_time)
             plugins = self.plugin_service.get_loaded_plugins()
             logger.info(
@@ -150,6 +153,20 @@ class GlobalScriptsCLI:
         except Exception as e:
             logger.exception(f"Failed to initialize CLI system: {e}")
             raise
+
+    def _ensure_menubar_started(self):
+        """Ensure menu bar is running if enabled"""
+        try:
+            from gscripts.menubar.utils import ensure_menubar_running
+
+            config = self.config_manager.get_config()  # Fixed: was .config, should be .get_config()
+            ensure_menubar_running(config)
+        except ImportError:
+            # menubar module not available (non-macOS or rumps not installed)
+            logger.debug("Menu bar module not available, skipping auto-start")
+        except Exception as e:
+            # Don't fail CLI if menu bar fails
+            logger.warning(f"Failed to auto-start menu bar: {e}")
 
     async def run(self, args: List[str] = None):
         """运行CLI命令"""
