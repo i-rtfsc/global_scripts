@@ -212,6 +212,8 @@ secrets.txt
 
 # Claude AI 相关
 .claude/
+openspec/
+AGENTS.md
 
 # 文档生成
 docs/ai/
