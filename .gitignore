@@ -222,6 +222,13 @@ AGENTS.md
 # # OpenSpec documentation (not tracked - working specs only)
 # openspec/
 
+# # AI Assistant guidance files (not tracked - use repo-specific versions)
+# CLAUDE.md
+# AGENTS.md
+
+# # OpenSpec documentation (not tracked - working specs only)
+# openspec/
+
 # 文档生成
 docs/ai/
 docs/build/

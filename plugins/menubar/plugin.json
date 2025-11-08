@@ -1,0 +1,13 @@
+{
+  "name": "menubar",
+  "version": "1.0.0",
+  "author": "Global Scripts",
+  "description": {
+    "zh": "macOS 菜单栏状态指示器管理",
+    "en": "macOS Menu Bar Status Indicator Manager"
+  },
+  "type": "python",
+  "entry": "plugin.py",
+  "enabled": true,
+  "platform": "darwin"
+}

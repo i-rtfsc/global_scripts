@@ -3,9 +3,7 @@
 ## Purpose
 
 This specification defines the directory structure, module organization, and file placement rules for Global Scripts V5.
-
 ## Requirements
-
 ### Requirement: Root Directory Structure
 
 The system SHALL organize source code and configuration files in a standard project layout.
@@ -43,35 +41,17 @@ The src/gscripts/ directory SHALL be organized into Clean Architecture layers.
 - **AND** infrastructure/ directory MUST exist for external concerns
 - **AND** models/ directory MUST exist for data transfer objects
 - **AND** plugins/ directory MUST exist for plugin system
+- **AND** menubar/ directory MUST exist for macOS menu bar application
 
-#### Scenario: CLI layer structure
-- **WHEN** organizing CLI code
-- **THEN** cli/main.py MUST be the entry point
-- **AND** cli/commands.py MUST handle command routing
-- **AND** cli/formatters.py MUST handle output formatting
-- **AND** cli/command_classes/ MUST contain command implementations
-
-#### Scenario: Application layer structure
-- **WHEN** organizing application services
-- **THEN** application/services/ MUST contain service classes
-- **AND** each service MUST be in its own file (e.g., `plugin_service.py`)
-- **AND** services MUST orchestrate use cases
-- **AND** services MUST NOT contain business logic
-
-#### Scenario: Domain layer structure
-- **WHEN** organizing domain code
-- **THEN** domain/entities/ MUST contain rich domain entities
-- **AND** domain/value_objects/ MUST contain value objects with validation
-- **AND** domain/services/ MUST contain domain services
-- **AND** domain/interfaces/ MUST contain interface definitions (repositories, services)
-
-#### Scenario: Infrastructure layer structure
-- **WHEN** organizing infrastructure code
-- **THEN** infrastructure/persistence/ MUST contain repository implementations
-- **AND** infrastructure/execution/ MUST contain process/command executors
-- **AND** infrastructure/filesystem/ MUST contain filesystem abstractions
-- **AND** infrastructure/logging/ MUST contain logging implementations
-- **AND** infrastructure/di/ MUST contain dependency injection container
+#### Scenario: Menu bar module structure
+- **WHEN** organizing menu bar code
+- **THEN** menubar/ directory MUST be at src/gscripts/menubar/
+- **AND** menubar/__init__.py MUST exist
+- **AND** menubar/app.py MUST contain the main rumps application
+- **AND** menubar/ipc.py MUST contain IPC socket server and client
+- **AND** menubar/monitors.py MUST contain CPU temperature and memory monitors
+- **AND** menubar/status_manager.py MUST manage command status display formatting
+- **AND** menubar/__main__.py MUST provide entry point for background process
 
 ### Requirement: Plugin Directory Structure
 
@@ -354,3 +334,4 @@ Log files SHALL be organized with rotation and cleanup policies.
 - **THEN** debug logs MAY use separate file
 - **AND** debug logs MUST NOT affect performance in production
 - **AND** debug logs MUST be opt-in via configuration
+

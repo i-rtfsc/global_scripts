@@ -5,6 +5,7 @@ Handles plugin command execution
 
 import asyncio
 import shlex
+from contextvars import ContextVar
 from pathlib import Path
 from typing import List, Optional
 from ...models import CommandResult
@@ -15,6 +16,9 @@ from ...utils.logging_utils import correlation_id, duration
 from ...plugins.interfaces import PluginEvent, PluginEventData
 
 logger = get_logger(tag="APP.PLUGIN_EXECUTOR", name=__name__)
+
+# Context variable to track command execution depth (prevent nested IPC)
+_execution_depth: ContextVar[int] = ContextVar("execution_depth", default=0)
 
 
 class PluginExecutor:
@@ -145,6 +149,37 @@ class PluginExecutor:
         Returns:
             CommandResult: Execution result
         """
+        # Increment execution depth to track nested calls
+        current_depth = _execution_depth.get()
+        _execution_depth.set(current_depth + 1)
+
+        try:
+            return await self._execute_plugin_function_internal_impl(
+                plugin_name, function_name, args, timeout
+            )
+        finally:
+            # Restore depth on exit
+            _execution_depth.set(current_depth)
+
+    async def _execute_plugin_function_internal_impl(
+        self,
+        plugin_name: str,
+        function_name: str,
+        args: List[str] = None,
+        timeout: Optional[int] = None,
+    ) -> CommandResult:
+        """
+        Internal execution implementation (actual logic)
+
+        Args:
+            plugin_name: Name of the plugin
+            function_name: Name of the function to execute
+            args: Command arguments
+            timeout: Timeout in seconds (defaults to self._default_timeout)
+
+        Returns:
+            CommandResult: Execution result
+        """
         cid = correlation_id()
         from time import monotonic
 
@@ -163,6 +198,9 @@ class PluginExecutor:
             f"cid={cid} exec enter plugin={plugin_name} function={function_name} "
             f"args_len={len(args)} timeout={timeout}s"
         )
+
+        # Send IPC command_start message to menu bar
+        self._send_ipc_command_start(plugin_name, function_name)
 
         # Notify EXECUTING event
         self._notify(
@@ -248,8 +286,8 @@ class PluginExecutor:
                 )
             elif function_type in ("python", "python_decorated"):
                 result = await self._execute_python_function(
-                    function_info, args
-                )  # Python functions get unsanitized args
+                    function_info, args, start_ts
+                )  # Python functions get unsanitized args, with start time for progress
             else:
                 took = duration(start_ts)
                 logger.error(
@@ -271,6 +309,9 @@ class PluginExecutor:
                     f"cid={cid} exec fail plugin={plugin_name} function={function_name} took_ms={took} error={result.error}"
                 )
 
+            # Send IPC command_complete message to menu bar
+            self._send_ipc_command_complete(result.success, took / 1000.0, result.error)
+
             # Notify EXECUTED event
             self._notify(
                 PluginEvent.EXECUTED,
@@ -290,6 +331,10 @@ class PluginExecutor:
             result = CommandResult(
                 success=False, error=f"Execution failed: {str(e)}", exit_code=1
             )
+
+            # Send IPC command_complete (failure)
+            self._send_ipc_command_complete(False, took / 1000.0, str(e))
+
             self._notify(PluginEvent.EXECUTED, plugin_name, success=False, error=str(e))
             return result
 
@@ -383,7 +428,7 @@ class PluginExecutor:
         return await self._executor.execute_shell(command_str, timeout=timeout)
 
     async def _execute_python_function(
-        self, function_info: dict, args: List[str]
+        self, function_info: dict, args: List[str], start_time: float = None
     ) -> CommandResult:
         """
         Execute Python function command - with full decorated function support
@@ -392,7 +437,16 @@ class PluginExecutor:
         1. Decorated functions in plugin.py (@plugin_function)
         2. Methods in BasePlugin subclasses
         3. Standalone Python scripts
+
+        Supports generator pattern for progress reporting:
+        - Functions can yield {"progress": 0-100} dicts for progress updates
+        - Final return value should be CommandResult
         """
+        from time import monotonic
+
+        if start_time is None:
+            start_time = monotonic()
+
         python_file = function_info.get("python_file")
 
         if not python_file:
@@ -460,14 +514,8 @@ class PluginExecutor:
                                     else attr(args)
                                 )
 
-                            # Normalize return value
-                            from ...models import CommandResult as CR
-
-                            if isinstance(ret, CR):
-                                return ret
-                            if ret is None:
-                                return CR(True)
-                            return CR(True, output=str(ret))
+                            # Process result (handles generators for progress reporting)
+                            return await self._process_generator_result(ret, start_time)
                         except Exception as e:
                             return CommandResult(
                                 False,
@@ -558,13 +606,8 @@ class PluginExecutor:
                             else method(args)
                         )
 
-                    from ...models import CommandResult as CR
-
-                    if isinstance(ret, CR):
-                        return ret
-                    if ret is None:
-                        return CR(True)
-                    return CR(True, output=str(ret))
+                    # Process result (handles generators for progress reporting)
+                    return await self._process_generator_result(ret, start_time)
                 except Exception as e:
                     return CommandResult(
                         False, error=f"Python method error: {str(e)}", exit_code=1
@@ -581,6 +624,147 @@ class PluginExecutor:
             return CommandResult(
                 success=False, error=f"Python execution error: {str(e)}", exit_code=1
             )
+
+    async def _process_generator_result(
+        self, result, start_time: float
+    ) -> CommandResult:
+        """
+        Process generator/async generator result with progress reporting
+
+        Args:
+            result: Generator, async generator, or regular return value
+            start_time: Execution start time for elapsed calculation
+
+        Returns:
+            CommandResult from final yield/return
+        """
+        import inspect
+        from time import monotonic
+        from ...models import CommandResult as CR
+
+        # Handle async generators
+        if inspect.isasyncgen(result):
+            final_result = None
+            async for item in result:
+                if isinstance(item, dict) and "progress" in item:
+                    # Progress update
+                    percentage = item.get("progress")
+                    if isinstance(percentage, (int, float)) and 0 <= percentage <= 100:
+                        elapsed = monotonic() - start_time
+                        self._send_ipc_progress_update(int(percentage), elapsed)
+                    else:
+                        logger.warning(
+                            f"Invalid progress value: {percentage} (must be 0-100)"
+                        )
+                elif isinstance(item, CR):
+                    # CommandResult yielded - use as final result
+                    final_result = item
+                else:
+                    # Other yielded value - keep as potential final result
+                    final_result = item
+
+            # Convert final result to CommandResult
+            if isinstance(final_result, CR):
+                return final_result
+            elif final_result is None:
+                return CR(success=True)
+            else:
+                return CR(success=True, output=str(final_result))
+
+        # Handle sync generators
+        elif inspect.isgenerator(result):
+            final_result = None
+            for item in result:
+                if isinstance(item, dict) and "progress" in item:
+                    # Progress update
+                    percentage = item.get("progress")
+                    if isinstance(percentage, (int, float)) and 0 <= percentage <= 100:
+                        elapsed = monotonic() - start_time
+                        self._send_ipc_progress_update(int(percentage), elapsed)
+                    else:
+                        logger.warning(
+                            f"Invalid progress value: {percentage} (must be 0-100)"
+                        )
+                elif isinstance(item, CR):
+                    # CommandResult yielded - use as final result
+                    final_result = item
+                else:
+                    # Other yielded value - keep as potential final result
+                    final_result = item
+
+            # Convert final result to CommandResult
+            if isinstance(final_result, CR):
+                return final_result
+            elif final_result is None:
+                return CR(success=True)
+            else:
+                return CR(success=True, output=str(final_result))
+
+        # Not a generator - return as-is (will be normalized by caller)
+        else:
+            if isinstance(result, CR):
+                return result
+            elif result is None:
+                return CR(success=True)
+            else:
+                return CR(success=True, output=str(result))
+
+    def _send_ipc_command_start(self, plugin_name: str, function_name: str) -> None:
+        """Send command_start IPC message to menu bar (only for top-level commands)"""
+        # Only send IPC for top-level command (depth == 1)
+        if _execution_depth.get() != 1:
+            return
+
+        try:
+            from ...menubar.ipc import IPCClient
+
+            client = IPCClient()
+            command = f"{plugin_name}.{function_name}"
+            client.send_command_start(command)
+        except ImportError:
+            # menubar module not available
+            pass
+        except Exception as e:
+            # Don't fail command execution if IPC fails
+            logger.debug(f"Failed to send IPC command_start: {e}")
+
+    def _send_ipc_progress_update(self, percentage: int, elapsed: float) -> None:
+        """Send progress_update IPC message to menu bar (only for top-level commands)"""
+        # Only send IPC for top-level command (depth == 1)
+        if _execution_depth.get() != 1:
+            return
+
+        try:
+            from ...menubar.ipc import IPCClient
+
+            client = IPCClient()
+            client.send_progress_update(percentage, elapsed)
+        except ImportError:
+            # menubar module not available
+            pass
+        except Exception as e:
+            # Don't fail command execution if IPC fails
+            logger.debug(f"Failed to send IPC progress_update: {e}")
+
+    def _send_ipc_command_complete(
+        self, success: bool, duration: float, error: Optional[str] = None
+    ) -> None:
+        """Send command_complete IPC message to menu bar (only for top-level commands)"""
+        # Only send IPC for top-level command (depth == 1)
+        if _execution_depth.get() != 1:
+            return
+
+        try:
+            from ...menubar.ipc import IPCClient
+
+            client = IPCClient()
+            client.send_command_complete(success, duration, error)
+        except ImportError:
+            # menubar module not available
+            pass
+        except Exception as e:
+            # Don't fail command execution if IPC fails
+            logger.debug(f"Failed to send IPC command_complete: {e}")
 
 
 __all__ = ["PluginExecutor"]
