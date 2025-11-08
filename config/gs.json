@@ -15,5 +15,11 @@
     "show_examples": false,
     "prompt_theme": "bitstream",
     "completion_show_descriptions": true,
-    "completion_show_subcommand_descriptions": true
+    "completion_show_subcommand_descriptions": true,
+    "menubar": {
+        "enabled": true,
+        "refresh_interval": 5,
+        "show_cpu_temp": true,
+        "show_memory": true
+    }
 }

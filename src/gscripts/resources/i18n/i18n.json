@@ -462,5 +462,95 @@
       "en": "Execution error: {error}",
       "zh": "执行错误: {error}"
     }
+  },
+  "menubar": {
+    "status": {
+      "idle": {
+        "en": "GS",
+        "zh": "GS"
+      },
+      "running": {
+        "en": "GS: {command}",
+        "zh": "GS: {command}"
+      },
+      "success": {
+        "en": "GS: ✓ {command} {duration}",
+        "zh": "GS: ✓ {command} {duration}"
+      },
+      "failure": {
+        "en": "GS: ✗ {command} {duration}",
+        "zh": "GS: ✗ {command} {duration}"
+      }
+    },
+    "menu": {
+      "cpu_temp": {
+        "en": "CPU: {temp}",
+        "zh": "CPU: {temp}"
+      },
+      "memory": {
+        "en": "Memory: {usage}",
+        "zh": "内存: {usage}"
+      },
+      "quit": {
+        "en": "Quit",
+        "zh": "退出"
+      }
+    },
+    "messages": {
+      "starting": {
+        "en": "Starting menu bar app",
+        "zh": "正在启动菜单栏应用"
+      },
+      "started": {
+        "en": "Menu bar started with PID: {pid}",
+        "zh": "菜单栏已启动，PID: {pid}"
+      },
+      "stopped": {
+        "en": "Menu bar stopped",
+        "zh": "菜单栏已停止"
+      },
+      "already_running": {
+        "en": "Menu bar already running",
+        "zh": "菜单栏已在运行"
+      },
+      "not_running": {
+        "en": "Menu bar not running",
+        "zh": "菜单栏未运行"
+      },
+      "auto_starting": {
+        "en": "Auto-starting menu bar",
+        "zh": "正在自动启动菜单栏"
+      },
+      "platform_not_supported": {
+        "en": "Menu bar not supported on non-macOS platform",
+        "zh": "菜单栏仅支持macOS平台"
+      },
+      "rumps_not_installed": {
+        "en": "rumps not installed. Install with: uv sync",
+        "zh": "rumps未安装。请使用: uv sync 安装"
+      },
+      "disabled_in_config": {
+        "en": "Menu bar disabled in config",
+        "zh": "菜单栏在配置中已禁用"
+      }
+    },
+    "errors": {
+      "start_failed": {
+        "en": "Failed to start menu bar: {error}",
+        "zh": "启动菜单栏失败: {error}"
+      },
+      "stop_failed": {
+        "en": "Failed to stop menu bar: {error}",
+        "zh": "停止菜单栏失败: {error}"
+      },
+      "ipc_failed": {
+        "en": "IPC communication failed: {error}",
+        "zh": "IPC通信失败: {error}"
+      },
+      "invalid_progress": {
+        "en": "Invalid progress value: {value} (must be 0-100)",
+        "zh": "无效的进度值: {value} (必须在0-100之间)"
+      }
+    }
   }
 }
