@@ -546,3 +546,168 @@ Coverage reports are uploaded to Codecov and available as artifacts.
 - [Contributing Guide](docs/contributing.md): Code standards and PR process
 - [CLI Reference](docs/cli-reference.md): Complete command documentation
 - [Test Suite Guide](tests/README.md): Detailed testing documentation
+- [Menu Bar Guide](docs/menubar-guide.md): macOS menu bar status monitor documentation
+
+## macOS Menu Bar Status Monitor
+
+### Overview
+
+Global Scripts includes a macOS-only menu bar status indicator that provides real-time visibility into command execution and system metrics.
+
+**Platform**: macOS 10.10+ only
+**Dependencies**: `rumps>=0.4.0`, `psutil>=5.9.0`
+
+### Features
+
+- **Auto-start**: Automatically launches when GS commands run (if enabled)
+- **Command Progress**: Shows command name, progress %, elapsed time
+- **Completion Status**: Displays success (✓) or failure (✗) with duration
+- **System Metrics**: CPU temperature and memory usage in dropdown
+- **IPC Communication**: Unix sockets for CLI → menu bar messaging
+
+### Quick Start
+
+1. **Enable in config** (`~/.config/global-scripts/config/gs.json`):
+   ```json
+   {
+     "menubar": {
+       "enabled": true,
+       "refresh_interval": 5,
+       "show_cpu_temp": true,
+       "show_memory": true
+     }
+   }
+   ```
+
+2. **Run any command** - menu bar auto-starts:
+   ```bash
+   gs android build aosp
+   ```
+
+3. **Menu bar shows**: `GS: android.build 45% 2m15s`
+
+### Development Guidelines
+
+#### Adding Progress Reporting to Plugins
+
+Plugin functions can report progress by yielding progress dicts:
+
+```python
+@plugin_function(name="download", description={"en": "Download with progress"})
+async def download_file(args):
+    """Download file and report progress"""
+    for i in range(0, 101, 10):
+        await asyncio.sleep(0.5)
+        yield {"progress": i}  # Sends to menu bar
+
+    return CommandResult(success=True, output="Download complete")
+```
+
+**Important**:
+- Yield `{"progress": 0-100}` for progress updates
+- Final return must be `CommandResult`
+- Works with both sync and async generators
+- Progress updates sent automatically via IPC
+
+#### Module Structure
+
+```
+src/gscripts/menubar/
+├── __init__.py          # Platform detection, exports
+├── __main__.py          # Entry point (python -m gscripts.menubar)
+├── app.py               # MenuBarApp (rumps.App subclass)
+├── ipc.py               # IPCServer & IPCClient (Unix sockets)
+├── status_manager.py    # CommandStatus dataclass
+├── monitors.py          # CPUTemperatureMonitor, MemoryMonitor
+└── utils.py             # Process management (start/stop/is_running)
+```
+
+#### IPC Protocol
+
+**Socket**: `~/.config/global-scripts/menubar.sock`
+
+**Messages** (JSON over socket):
+```json
+{"type": "command_start", "command": "plugin.function", "timestamp": 123456.0}
+{"type": "progress_update", "percentage": 45, "elapsed": 15.3}
+{"type": "command_complete", "success": true, "duration": 1.23, "error": null}
+```
+
+#### Integration Points
+
+**1. Auto-start** (`cli/main.py`):
+```python
+def _ensure_menubar_started(self):
+    """Ensure menu bar is running if enabled"""
+    from gscripts.menubar.utils import ensure_menubar_running
+    config = self.config_manager.config
+    ensure_menubar_running(config)
+```
+
+**2. Progress Reporting** (`application/services/plugin_executor.py`):
+```python
+async def _process_generator_result(self, result, start_time):
+    """Process generator/async generator with progress reporting"""
+    if inspect.isasyncgen(result):
+        async for item in result:
+            if isinstance(item, dict) and "progress" in item:
+                elapsed = time.time() - start_time
+                self._send_ipc_progress_update(item["progress"], elapsed)
+```
+
+**3. Nested Call Guard**:
+- Uses `ContextVar` to track execution depth
+- Only top-level commands send IPC (depth == 1)
+- Prevents duplicate status for nested calls
+
+#### Testing
+
+**Unit Tests**:
+```bash
+pytest tests/unit/menubar/ -v
+```
+
+**Integration Tests**:
+```bash
+pytest tests/integration/menubar/ -v
+```
+
+**Platform Skip**:
+- Tests auto-skip on non-macOS unless `FORCE_MENUBAR_TESTS=1`
+- Use `@pytest.mark.skipif(os.sys.platform != "darwin")` decorator
+
+#### Common Patterns
+
+**Check if supported**:
+```python
+from gscripts.menubar import is_supported
+
+if is_supported():
+    # Menu bar available
+    pass
+```
+
+**Send custom message**:
+```python
+from gscripts.menubar.ipc import IPCClient
+
+client = IPCClient()
+client.send_message({"type": "custom_message", "text": "Status"})
+```
+
+**Process management**:
+```python
+from gscripts.menubar.utils import is_menubar_running, start_menubar, stop_menubar
+
+if not is_menubar_running():
+    start_menubar()
+```
+
+#### Troubleshooting
+
+- **Menu bar not appearing**: Check platform (macOS only), rumps installed, enabled in config
+- **CPU temp shows "N/A"**: Normal on M1/M2 Macs (sensors not exposed)
+- **Progress not showing**: Ensure plugin yields `{"progress": int}` dicts
+- **IPC errors**: Check socket at `~/.config/global-scripts/menubar.sock`, check logs at `~/.config/global-scripts/logs/menubar.log`
+
+See [Menu Bar Guide](docs/menubar-guide.md) for complete documentation.
