@@ -20,6 +20,7 @@ class CommandStatus:
     command: str = ""  # e.g., "android.adb.devices"
     is_running: bool = False
     progress: Optional[int] = None  # 0-100 percentage
+    current_stage: Optional[str] = None  # Current execution stage (e.g., "compiling", "packaging")
     start_time: Optional[float] = None
     end_time: Optional[float] = None
     success: Optional[bool] = None
@@ -84,7 +85,10 @@ class CommandStatus:
             # Running state
             if self.progress is not None:
                 # With progress
-                if self.output:
+                if self.current_stage:
+                    # Show: icon + cmd + [stage] + progress + time
+                    status_text = f"{short_cmd} [{self.current_stage}] {self.progress}% {duration_str}"
+                elif self.output:
                     # Show: icon + cmd + progress + time + output
                     status_text = f"{short_cmd} {self.progress}% {duration_str} {self.output}"
                 else:
@@ -92,7 +96,10 @@ class CommandStatus:
                     status_text = f"{short_cmd} {self.progress}% {duration_str}"
             else:
                 # Without progress
-                if self.output:
+                if self.current_stage:
+                    # Show: icon + cmd + [stage] + time
+                    status_text = f"{short_cmd} [{self.current_stage}] {duration_str}"
+                elif self.output:
                     # Show: icon + cmd + time + output
                     status_text = f"{short_cmd} {duration_str} {self.output}"
                 else:
@@ -147,6 +154,7 @@ class CommandStatus:
         self.command = ""
         self.is_running = False
         self.progress = None
+        self.current_stage = None
         self.start_time = None
         self.end_time = None
         self.success = None

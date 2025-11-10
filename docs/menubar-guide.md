@@ -35,6 +35,158 @@ macOS 菜单栏状态监控提供了从 macOS 菜单栏直接查看 Global Scrip
 - **内存使用**: 显示内存使用百分比
 - **自动刷新**: 每 5 秒更新一次
 
+### 增强系统监控
+
+#### CPU 子菜单
+点击 CPU 菜单项查看详细信息：
+```
+┌────────────────────────────────┐
+│ CPU: 35% 52°C               ▶  │  ← 动态标题：总使用率 + 温度
+│   Overall: 35.2%               │  ← 整体 CPU 使用率
+│   Core 0: 45.1%                │  ← 每核心使用率
+│   Core 1: 32.3%                │
+│   Core 2: 28.5%                │
+│   Core 3: 39.0%                │
+│   ──────────────               │
+│   Temperature: 52.3°C ↑        │  ← 当前温度 + 趋势指示器
+│   Avg (5min): 48.7°C           │  ← 5分钟平均温度
+│   Peak (session): 58.1°C       │  ← 会话峰值温度
+│   ──────────────               │
+│   🟢 正常: 52.3°C              │  ← 温度警报状态
+│   阈值: 警告 60°C / 危险 75°C  │  ← 可配置阈值
+└────────────────────────────────┘
+```
+
+**温度趋势指示器**:
+- `↑` 上升（30秒内上升 > 2°C）
+- `↓` 下降（30秒内下降 > 2°C）
+- `→` 稳定（变化 ≤ 2°C）
+
+**温度警报状态** (Phase 6):
+- 🟢 正常: < 60°C（默认）
+- 🟡 警告: 60-75°C
+- 🔴 危险: ≥ 75°C
+
+#### Memory 子菜单
+点击 Memory 菜单项查看详细信息：
+```
+┌────────────────────────────────┐
+│ Memory: 12.3/16GB           ▶  │  ← 动态标题：已用/总量
+│   Used: 12.3 / 16.0 GB (77%)   │  ← 总使用量
+│   ──────────────               │
+│     App: 8.5 GB                │  ← 应用程序内存
+│     Wired: 2.1 GB              │  ← 固定内存（内核）
+│     Compressed: 1.2 GB         │  ← 压缩内存
+│     Cached: 0.5 GB             │  ← 缓存文件
+│   ──────────────               │
+│   Swap: None                   │  ← 交换空间使用
+│   Pressure: 🟡 Moderate        │  ← 内存压力等级
+│   ──────────────               │
+│   Top Processes: (可选)        │  ← Top 3 内存占用进程
+│     Chrome: 2.1 GB             │
+│     Code: 1.8 GB               │
+│     Slack: 0.9 GB              │
+└────────────────────────────────┘
+```
+
+**内存压力等级**:
+- 🟢 Normal (< 60%): 内存充足
+- 🟡 Moderate (60-80%): 内存适中
+- 🔴 High (> 80%): 内存紧张
+
+#### Disk 子菜单 (Phase 6.2)
+点击 Disk 菜单项查看详细信息：
+```
+┌────────────────────────────────┐
+│ Disk: 336/926GB (37%)       ▶  │  ← 动态标题：已用/总量（百分比）
+│   Used: 336.0 / 926.0 GB (37%) │  ← 总使用量
+│   Free: 590.0 GB               │  ← 可用空间
+│   Pressure: 🟢 正常            │  ← 磁盘压力等级
+│   ──────────────               │
+│   I/O Activity:                │  ← I/O 活动（可选）
+│   Read: 12.3 MB/s              │  ← 读取速度
+│   Write: 5.7 MB/s              │  ← 写入速度
+└────────────────────────────────┘
+```
+
+**磁盘压力等级**:
+- 🟢 正常 (< 80%): 磁盘空间充足
+- 🟡 中等 (80-90%): 磁盘空间适中
+- 🔴 高 (> 90%): 磁盘空间紧张
+
+**重要修复** (macOS APFS):
+- 修复了磁盘使用量显示错误（只显示11GB的问题）
+- 现在正确检测 `/System/Volumes/Data` 数据卷
+- macOS APFS 系统中，用户数据在数据卷而非系统快照
+
+#### Battery 子菜单 (Phase 3)
+点击 Battery 菜单项查看详细信息（仅笔记本）：
+```
+┌────────────────────────────────┐
+│ Battery: 98% (20h 0m)       ▶  │  ← 动态标题：电量（剩余时间）
+│   Charge: 98% (放电中)         │  ← 电量和状态
+│   Time Remaining: 20h 0m       │  ← 剩余时间
+│   ──────────────               │
+│   Health: 103% (极佳)          │  ← 电池健康度
+│   Cycle Count: 8 / 1000        │  ← 循环次数
+│   Temperature: 27.7°C          │  ← 电池温度
+│   ──────────────               │
+│   Power Source: Battery        │  ← 电源来源
+└────────────────────────────────┘
+```
+
+**电池健康等级**:
+- 极佳 (≥ 90%): 电池状态极佳
+- 良好 (80-90%): 电池状态良好
+- 一般 (60-80%): 电池有一定损耗
+- 较差 (40-60%): 电池明显老化
+- 建议更换 (< 40%): 需要更换电池
+
+**重要修复** (电池健康计算):
+- 修复了电池健康度显示错误（新电脑显示2%的问题）
+- 现在正确使用 `AppleRawMaxCapacity`（实际mAh容量）
+- 修复了温度单位转换（decikelvin → °C）
+
+**注意**: 台式机无电池，显示 "Battery: N/A (台式机)"
+
+#### Ports 子菜单 (Phase 5)
+点击 Ports 菜单项查看端口占用状态：
+```
+┌────────────────────────────────┐
+│ 端口: 2/8                    ▶  │  ← 动态标题：占用数/总数
+│   🟢 3000: Python (PID 61023)  │  ← 占用的端口
+│     ⏹ 结束进程                 │     ← 可点击终止进程
+│   🔴 8080: 未使用              │  ← 未占用的端口
+│   🔴 80: 未使用                │
+│   🔴 443: 未使用               │
+│   🔴 5432: 未使用              │
+│   🔴 3306: 未使用              │
+│   🟢 6379: redis-server (12345)│
+│     ⏹ 结束进程                 │
+│   🔴 27017: 未使用             │
+└────────────────────────────────┘
+```
+
+**功能特性**:
+- 实时检测常用开发端口占用情况
+- 显示占用进程名称和 PID
+- 可快速终止占用进程（带确认对话框）
+- 默认监控 8 个常用端口（可配置）
+
+**配置选项** (新增):
+| 选项 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `show_top_processes` | boolean | `false` | 在 Memory 子菜单显示 Top 3 进程 |
+| `high_cpu_threshold` | number | `80.0` | 高 CPU 警告阈值（%）|
+| `show_disk` | boolean | `true` | 显示磁盘监控 |
+| `show_battery` | boolean | `true` | 显示电池监控（笔记本）|
+| `show_ports` | boolean | `true` | 显示端口监控 |
+| `monitored_ports` | array | `[3000, 8080, ...]` | 监控的端口列表 |
+| `show_temp_alert` | boolean | `true` | 显示温度警报 |
+| `temp_warning_threshold` | number | `60.0` | 温度警告阈值（°C）|
+| `temp_critical_threshold` | number | `75.0` | 温度危险阈值（°C）|
+| `on_demand_monitoring` | boolean | `true` | 按需监控（仅在菜单打开时更新）|
+
 ### 显示格式
 
 #### 状态栏标题显示
@@ -49,8 +201,15 @@ macOS 菜单栏状态监控提供了从 macOS 菜单栏直接查看 Global Scrip
 点击菜单栏图标查看：
 ```
 ┌────────────────────────┐
-│ CPU: 52°C              │  ← 实时 CPU 温度
-│ Memory: 45%            │  ← 实时内存使用率
+│ 最近命令            ▶  │  ← 命令历史（可选）
+├────────────────────────┤
+│ 快捷方式            ▶  │  ← 自定义快捷方式（可选）
+├────────────────────────┤
+│ CPU: 35% 52°C       ▶  │  ← 点击查看 CPU 详细信息
+│ Memory: 12.3/16GB   ▶  │  ← 点击查看 Memory 详细信息
+│ Disk: 336/926GB     ▶  │  ← 点击查看 Disk 详细信息
+│ Battery: 98% (20h)  ▶  │  ← 点击查看 Battery 详细信息
+│ 端口: 2/8           ▶  │  ← 点击查看 Ports 详细信息
 ├────────────────────────┤
 │ Quit                   │  ← 退出应用
 └────────────────────────┘
@@ -74,9 +233,20 @@ uv sync
 {
   "menubar": {
     "enabled": true,
+    "on_demand_monitoring": true,
     "refresh_interval": 5,
     "show_cpu_temp": true,
     "show_memory": true,
+    "show_disk": true,
+    "show_battery": true,
+    "show_ports": true,
+    "monitored_ports": [3000, 8080, 80, 443, 5432, 3306, 6379, 27017],
+    "show_temp_alert": true,
+    "temp_warning_threshold": 60.0,
+    "temp_critical_threshold": 75.0,
+    "enable_history": true,
+    "history_max_entries": 50,
+    "enable_shortcuts": true,
     "sentence_type": "一言",
     "sentence_refresh_interval": 300,
     "marquee_update_interval": 0.3
@@ -101,9 +271,34 @@ gs version
 | 选项 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
 | `enabled` | boolean | `false` | 启用/禁用菜单栏功能 |
-| `refresh_interval` | number | `5` | 系统指标刷新间隔（秒） |
+| `on_demand_monitoring` | boolean | `true` | 按需监控（仅在菜单打开时更新）|
+| `refresh_interval` | number | `5` | 系统指标刷新间隔（秒，非按需模式）|
 | `show_cpu_temp` | boolean | `true` | 在菜单中显示 CPU 温度 |
 | `show_memory` | boolean | `true` | 在菜单中显示内存使用率 |
+| `show_disk` | boolean | `true` | 在菜单中显示磁盘使用率 |
+| `show_battery` | boolean | `true` | 在菜单中显示电池状态（笔记本）|
+| `show_ports` | boolean | `true` | 在菜单中显示端口监控 |
+
+### 监控配置
+
+| 选项 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `show_top_processes` | boolean | `false` | 在 Memory 子菜单显示 Top 3 进程 |
+| `high_cpu_threshold` | number | `80.0` | 高 CPU 警告阈值（%）|
+| `monitored_ports` | array | `[3000, 8080, ...]` | 监控的端口列表 |
+| `show_temp_alert` | boolean | `true` | 显示温度警报 |
+| `temp_warning_threshold` | number | `60.0` | 温度警告阈值（°C）|
+| `temp_critical_threshold` | number | `75.0` | 温度危险阈值（°C）|
+
+### 历史和快捷方式
+
+| 选项 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `enable_history` | boolean | `false` | 启用命令历史记录 |
+| `history_max_entries` | number | `50` | 历史记录最大条数 |
+| `history_execution_mode` | string | `"background"` | 历史命令执行模式（`terminal`/`background`）|
+| `enable_shortcuts` | boolean | `false` | 启用自定义快捷方式 |
+| `shortcuts` | object | `{}` | 自定义快捷方式定义 |
 
 ### 高级配置
 
@@ -112,6 +307,25 @@ gs version
 | `sentence_type` | string | `"一言"` | 一言类型（一言/毒鸡汤/社会语录/舔狗日记/诗词）|
 | `sentence_refresh_interval` | number | `300` | 一言刷新间隔（秒，默认 5 分钟）|
 | `marquee_update_interval` | number | `0.3` | 跑马灯滚动速度（秒）|
+
+### 多语言支持（i18n）
+
+菜单栏应用支持中文和英文界面，自动跟随系统 `language` 配置：
+
+```json
+{
+  "language": "zh",  // 或 "en"
+  "menubar": {
+    "enabled": true
+  }
+}
+```
+
+**支持的语言**:
+- `zh`: 中文（简体）
+- `en`: English
+
+所有菜单项、通知消息都会自动翻译。
 
 ### 配置示例
 
@@ -124,14 +338,32 @@ gs version
 }
 ```
 
-**完整配置**:
+**完整配置（推荐）**:
 ```json
 {
   "menubar": {
     "enabled": true,
-    "refresh_interval": 10,
+    "on_demand_monitoring": true,
+    "refresh_interval": 5,
     "show_cpu_temp": true,
     "show_memory": true,
+    "show_disk": true,
+    "show_battery": true,
+    "show_ports": true,
+    "monitored_ports": [3000, 8080, 80, 443, 5432, 3306, 6379, 27017],
+    "show_temp_alert": true,
+    "temp_warning_threshold": 60.0,
+    "temp_critical_threshold": 75.0,
+    "enable_history": true,
+    "history_max_entries": 50,
+    "history_execution_mode": "background",
+    "enable_shortcuts": true,
+    "shortcuts": {
+      "📊 状态检查": {
+        "command": "gs status",
+        "execution_mode": "terminal"
+      }
+    },
     "sentence_type": "诗词",
     "sentence_refresh_interval": 600,
     "marquee_update_interval": 0.2
@@ -361,6 +593,51 @@ print(f'CPU: {cpu}% → 估算温度: {temp:.1f}°C')
 tail -100 ~/.config/global-scripts/logs/menubar.log | grep -i temp
 ```
 
+### 电池健康显示错误
+
+如果电池健康度显示异常（如新电脑显示2%），请更新到最新版本。修复内容：
+- 使用正确的 `AppleRawMaxCapacity` 字段（实际mAh容量）
+- 修正温度单位转换（decikelvin → °C）
+
+```bash
+# 查看电池信息
+ioreg -rn AppleSmartBattery | grep -E "(MaxCapacity|AppleRawMaxCapacity|DesignCapacity|CycleCount)"
+
+# 预期输出：
+# "AppleRawMaxCapacity" = 6428    ← 实际容量（mAh）
+# "MaxCapacity" = 100              ← 百分比（非容量！）
+# "DesignCapacity" = 6249          ← 设计容量（mAh）
+```
+
+### 磁盘使用量显示错误
+
+如果磁盘使用量显示过小（如11GB），请更新到最新版本。修复内容：
+- macOS APFS 系统现在正确检测 `/System/Volumes/Data` 数据卷
+- 自动比较系统快照和数据卷，使用更大值
+
+```bash
+# 验证修复
+df -h /
+df -h /System/Volumes/Data
+
+# 查看日志
+tail -100 ~/.config/global-scripts/logs/menubar.log | grep -i disk
+```
+
+### 端口监控不工作
+
+```bash
+# 手动测试端口检测
+lsof -i :3000
+
+# 预期输出：
+# COMMAND   PID   USER   FD   TYPE   DEVICE SIZE/OFF NODE NAME
+# node    12345  user   21u  IPv4  0x1234      0t0  TCP *:3000 (LISTEN)
+
+# 查看日志
+tail -100 ~/.config/global-scripts/logs/menubar.log | grep -i port
+```
+
 ### 菜单栏未自动启动
 
 ```bash
@@ -542,7 +819,35 @@ A: 不支持。菜单栏功能仅限 macOS。其他平台可以考虑使用系�
 
 ## 更新日志
 
-### 版本 5.2.0-dev
+### 版本 5.2.0 (2025-11-09)
+
+**重大更新**:
+- ✨ **磁盘监控** (Phase 6.2): 磁盘使用量、I/O速度、压力等级
+- ✨ **电池监控** (Phase 3): 电池健康、循环次数、温度、剩余时间
+- ✨ **端口监控** (Phase 5): 常用开发端口占用检测、进程终止
+- ✨ **温度警报** (Phase 6): 可配置温度阈值、三级警报状态（🟢/🟡/🔴）
+- ✨ **按需监控** (Phase 6.1): 仅在菜单打开时更新，节省80% CPU使用
+- ✨ **命令历史** (Phase 1): 最近命令记录、重放功能
+- ✨ **自定义快捷方式** (Phase 2): 快速执行常用命令
+
+**关键修复**:
+- 🐛 **修复电池健康计算**: 新电脑错误显示2%健康度（现在正确显示102.9%）
+  - 使用 `AppleRawMaxCapacity` 字段（实际mAh）替代 `MaxCapacity`（百分比）
+  - 修正温度单位转换（decikelvin → °C）
+- 🐛 **修复磁盘使用量计算**: macOS APFS 系统错误显示11GB（现在正确显示336GB）
+  - 检测 `/System/Volumes/Data` 数据卷而非仅系统快照
+  - 自动选择使用量更大的卷
+
+**性能优化**:
+- ⚡ 按需监控模式减少80%+ CPU使用
+- ⚡ 所有监控器支持缓存（1-2秒）
+- ⚡ 端口检测使用并发检查（ThreadPoolExecutor）
+
+**测试覆盖**:
+- ✅ 新增 17 个温度警报单元测试（100%通过）
+- ✅ 完善电池、磁盘、端口监控测试
+
+### 版本 5.2.0-dev (历史版本)
 - ✨ 新增跑马灯滚动效果
 - ✨ 新增一言 API 集成
 - ✨ 支持命令输出显示

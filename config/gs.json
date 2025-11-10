@@ -18,8 +18,34 @@
     "completion_show_subcommand_descriptions": true,
     "menubar": {
         "enabled": true,
+        "on_demand_monitoring": true,
         "refresh_interval": 5,
         "show_cpu_temp": true,
-        "show_memory": true
+        "show_memory": true,
+        "show_disk": true,
+        "show_battery": true,
+        "show_ports": true,
+        "monitored_ports": [3000, 8080, 80, 443, 5432, 3306, 6379, 27017],
+        "show_temp_alert": true,
+        "temp_warning_threshold": 60.0,
+        "temp_critical_threshold": 75.0,
+        "enable_history": true,
+        "history_max_entries": 50,
+        "history_execution_mode": "background",
+        "enable_shortcuts": true,
+        "shortcuts": {
+            "📊 状态检查": {
+                "command": "gs status",
+                "execution_mode": "terminal"
+            },
+            "🔄 重新加载": {
+                "command": "gs-reload",
+                "execution_mode": "background"
+            },
+            "📱 ADB 设备": {
+                "command": "gs android adb devices",
+                "execution_mode": "terminal"
+            }
+        }
     }
 }

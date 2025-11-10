@@ -647,11 +647,12 @@ class PluginExecutor:
             final_result = None
             async for item in result:
                 if isinstance(item, dict) and "progress" in item:
-                    # Progress update
+                    # Progress update (with optional stage)
                     percentage = item.get("progress")
+                    stage = item.get("stage")  # Extract stage if present
                     if isinstance(percentage, (int, float)) and 0 <= percentage <= 100:
                         elapsed = monotonic() - start_time
-                        self._send_ipc_progress_update(int(percentage), elapsed)
+                        self._send_ipc_progress_update(int(percentage), elapsed, stage=stage)
                     else:
                         logger.warning(
                             f"Invalid progress value: {percentage} (must be 0-100)"
@@ -676,11 +677,12 @@ class PluginExecutor:
             final_result = None
             for item in result:
                 if isinstance(item, dict) and "progress" in item:
-                    # Progress update
+                    # Progress update (with optional stage)
                     percentage = item.get("progress")
+                    stage = item.get("stage")  # Extract stage if present
                     if isinstance(percentage, (int, float)) and 0 <= percentage <= 100:
                         elapsed = monotonic() - start_time
-                        self._send_ipc_progress_update(int(percentage), elapsed)
+                        self._send_ipc_progress_update(int(percentage), elapsed, stage=stage)
                     else:
                         logger.warning(
                             f"Invalid progress value: {percentage} (must be 0-100)"
@@ -728,7 +730,9 @@ class PluginExecutor:
             # Don't fail command execution if IPC fails
             logger.debug(f"Failed to send IPC command_start: {e}")
 
-    def _send_ipc_progress_update(self, percentage: int, elapsed: float) -> None:
+    def _send_ipc_progress_update(
+        self, percentage: int, elapsed: float, stage: Optional[str] = None
+    ) -> None:
         """Send progress_update IPC message to menu bar (only for top-level commands)"""
         # Only send IPC for top-level command (depth == 1)
         if _execution_depth.get() != 1:
@@ -738,7 +742,7 @@ class PluginExecutor:
             from ...menubar.ipc import IPCClient
 
             client = IPCClient()
-            client.send_progress_update(percentage, elapsed)
+            client.send_progress_update(percentage, elapsed, stage=stage)
         except ImportError:
             # menubar module not available
             pass
