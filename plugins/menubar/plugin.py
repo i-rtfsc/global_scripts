@@ -224,3 +224,46 @@ Socket: {socket_path} ({socket_status})
 
         except Exception as e:
             return CommandResult(success=False, error=f"发送失败: {e}", exit_code=1)
+
+    @plugin_function(
+        name="demo-stage",
+        description={
+            "zh": "演示多阶段进度报告（用于测试 stage 功能）",
+            "en": "Demo multi-stage progress reporting (for testing stage feature)"
+        },
+        usage="gs menubar demo-stage",
+        examples=["gs menubar demo-stage"]
+    )
+    async def demo_stage(self, args=None):
+        """Demo multi-stage progress reporting"""
+        import asyncio
+
+        # Stage 1: Preparing
+        yield {"progress": 10, "stage": "准备中"}
+        await asyncio.sleep(1)
+
+        # Stage 2: Downloading
+        yield {"progress": 30, "stage": "下载中"}
+        await asyncio.sleep(1)
+
+        # Stage 3: Compiling
+        yield {"progress": 50, "stage": "编译中"}
+        await asyncio.sleep(1)
+
+        # Stage 4: Packaging
+        yield {"progress": 70, "stage": "打包中"}
+        await asyncio.sleep(1)
+
+        # Stage 5: Uploading
+        yield {"progress": 90, "stage": "上传中"}
+        await asyncio.sleep(1)
+
+        # Stage 6: Done
+        yield {"progress": 100, "stage": "完成"}
+
+        # Final result (must be yielded, not returned, in async generator)
+        yield CommandResult(
+            success=True,
+            output="多阶段演示完成！检查菜单栏查看阶段进度显示。",
+            exit_code=0
+        )

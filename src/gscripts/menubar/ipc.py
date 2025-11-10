@@ -69,11 +69,18 @@ class IPCClient:
             {"type": "command_start", "command": command, "timestamp": time.time()}
         )
 
-    def send_progress_update(self, percentage: int, elapsed: float) -> bool:
+    def send_progress_update(
+        self, percentage: int, elapsed: float, stage: Optional[str] = None
+    ) -> bool:
         """Send progress_update message"""
-        return self.send_message(
-            {"type": "progress_update", "percentage": percentage, "elapsed": elapsed}
-        )
+        message = {
+            "type": "progress_update",
+            "percentage": percentage,
+            "elapsed": elapsed,
+        }
+        if stage:
+            message["stage"] = stage
+        return self.send_message(message)
 
     def send_command_complete(
         self, success: bool, duration: float, error: Optional[str] = None

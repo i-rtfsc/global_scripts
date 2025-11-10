@@ -483,17 +483,257 @@
       }
     },
     "menu": {
+      "recent_commands": {
+        "en": "Recent Commands",
+        "zh": "最近命令"
+      },
+      "shortcuts": {
+        "en": "Shortcuts",
+        "zh": "快捷方式"
+      },
+      "reload_config": {
+        "en": "Reload Config",
+        "zh": "重新加载配置"
+      },
+      "clear_history": {
+        "en": "Clear History",
+        "zh": "清除历史"
+      },
+      "no_shortcuts": {
+        "en": "(No shortcuts configured)",
+        "zh": "(未配置快捷方式)"
+      },
+      "no_history": {
+        "en": "(No history)",
+        "zh": "(无历史记录)"
+      },
+      "cpu": {
+        "en": "CPU",
+        "zh": "CPU"
+      },
+      "memory": {
+        "en": "Memory",
+        "zh": "内存"
+      },
       "cpu_temp": {
         "en": "CPU: {temp}",
         "zh": "CPU: {temp}"
       },
-      "memory": {
+      "memory_usage": {
         "en": "Memory: {usage}",
         "zh": "内存: {usage}"
       },
       "quit": {
         "en": "Quit",
         "zh": "退出"
+      },
+      "cpu_overall": {
+        "en": "Overall: {percent}%",
+        "zh": "总体: {percent}%"
+      },
+      "cpu_core": {
+        "en": "Core {core}: {percent}%",
+        "zh": "核心 {core}: {percent}%"
+      },
+      "cpu_temperature": {
+        "en": "Temperature: {temp}°C {trend}",
+        "zh": "温度: {temp}°C {trend}"
+      },
+      "cpu_temp_avg": {
+        "en": "Avg (5min): {temp}°C",
+        "zh": "平均 (5分钟): {temp}°C"
+      },
+      "cpu_temp_peak": {
+        "en": "Peak (session): {temp}°C",
+        "zh": "峰值 (本次): {temp}°C"
+      },
+      "cpu_temp_alert_warning": {
+        "en": "🟡 Warning: {temp}°C (threshold: {threshold}°C)",
+        "zh": "🟡 警告: {temp}°C (阈值: {threshold}°C)"
+      },
+      "cpu_temp_alert_critical": {
+        "en": "🔴 Critical: {temp}°C (threshold: {threshold}°C)",
+        "zh": "🔴 危险: {temp}°C (阈值: {threshold}°C)"
+      },
+      "cpu_temp_alert_normal": {
+        "en": "🟢 Normal: {temp}°C",
+        "zh": "🟢 正常: {temp}°C"
+      },
+      "cpu_temp_thresholds": {
+        "en": "Thresholds: Warning {warning}°C / Critical {critical}°C",
+        "zh": "阈值: 警告 {warning}°C / 危险 {critical}°C"
+      },
+      "memory_used": {
+        "en": "Used: {used} / {total} GB ({percent}%)",
+        "zh": "已用: {used} / {total} GB ({percent}%)"
+      },
+      "memory_app": {
+        "en": "  App: {size} GB",
+        "zh": "  应用: {size} GB"
+      },
+      "memory_wired": {
+        "en": "  Wired: {size} GB",
+        "zh": "  固定: {size} GB"
+      },
+      "memory_compressed": {
+        "en": "  Compressed: {size} GB",
+        "zh": "  压缩: {size} GB"
+      },
+      "memory_cached": {
+        "en": "  Cached: {size} GB",
+        "zh": "  缓存: {size} GB"
+      },
+      "memory_swap": {
+        "en": "Swap: {size}",
+        "zh": "交换: {size}"
+      },
+      "memory_swap_none": {
+        "en": "None",
+        "zh": "无"
+      },
+      "memory_pressure": {
+        "en": "Pressure: {level}",
+        "zh": "内存压力: {level}"
+      },
+      "memory_pressure_normal": {
+        "en": "🟢 Normal",
+        "zh": "🟢 正常"
+      },
+      "memory_pressure_moderate": {
+        "en": "🟡 Moderate",
+        "zh": "🟡 中等"
+      },
+      "memory_pressure_high": {
+        "en": "🔴 High",
+        "zh": "🔴 高"
+      },
+      "top_processes": {
+        "en": "Top Processes:",
+        "zh": "占用最高:"
+      },
+      "not_available": {
+        "en": "N/A",
+        "zh": "不可用"
+      },
+      "disk_used": {
+        "en": "Used: {used} / {total} GB ({percent}%)",
+        "zh": "已用: {used} / {total} GB ({percent}%)"
+      },
+      "disk_free": {
+        "en": "Free: {free} GB",
+        "zh": "可用: {free} GB"
+      },
+      "disk_pressure": {
+        "en": "Pressure: {level}",
+        "zh": "磁盘压力: {level}"
+      },
+      "disk_pressure_normal": {
+        "en": "🟢 Normal",
+        "zh": "🟢 正常"
+      },
+      "disk_pressure_moderate": {
+        "en": "🟡 Moderate",
+        "zh": "🟡 中等"
+      },
+      "disk_pressure_high": {
+        "en": "🔴 High",
+        "zh": "🔴 高"
+      },
+      "disk_io_activity": {
+        "en": "I/O Activity:",
+        "zh": "I/O 活动:"
+      },
+      "disk_read": {
+        "en": "Read: {rate} MB/s",
+        "zh": "读取: {rate} MB/s"
+      },
+      "disk_write": {
+        "en": "Write: {rate} MB/s",
+        "zh": "写入: {rate} MB/s"
+      },
+      "battery_charge": {
+        "en": "Charge: {percent}% ({status})",
+        "zh": "电量: {percent}% ({status})"
+      },
+      "battery_charging": {
+        "en": "Charging",
+        "zh": "充电中"
+      },
+      "battery_discharging": {
+        "en": "Discharging",
+        "zh": "放电中"
+      },
+      "battery_time_remaining": {
+        "en": "Time Remaining: {time}",
+        "zh": "剩余时间: {time}"
+      },
+      "battery_time_calculating": {
+        "en": "Calculating...",
+        "zh": "计算中..."
+      },
+      "battery_health": {
+        "en": "Health: {percent}% ({status})",
+        "zh": "健康度: {percent}% ({status})"
+      },
+      "battery_health_excellent": {
+        "en": "Excellent",
+        "zh": "极佳"
+      },
+      "battery_health_good": {
+        "en": "Good",
+        "zh": "良好"
+      },
+      "battery_health_fair": {
+        "en": "Fair",
+        "zh": "一般"
+      },
+      "battery_health_poor": {
+        "en": "Poor",
+        "zh": "较差"
+      },
+      "battery_health_replace": {
+        "en": "Replace Soon",
+        "zh": "建议更换"
+      },
+      "battery_health_unknown": {
+        "en": "Unknown",
+        "zh": "未知"
+      },
+      "battery_cycle_count": {
+        "en": "Cycle Count: {count} / {max}",
+        "zh": "循环次数: {count} / {max}"
+      },
+      "battery_temperature": {
+        "en": "Temperature: {temp}°C",
+        "zh": "温度: {temp}°C"
+      },
+      "battery_power_source": {
+        "en": "Power Source: {source}",
+        "zh": "电源: {source}"
+      },
+      "battery_not_available": {
+        "en": "Battery: N/A (Desktop Mac)",
+        "zh": "电池: 不可用 (台式机)"
+      },
+      "port_in_use": {
+        "en": "🟢 {port}: {process} (PID {pid})",
+        "zh": "🟢 {port}: {process} (PID {pid})"
+      },
+      "port_not_in_use": {
+        "en": "🔴 {port}: Not in use",
+        "zh": "🔴 {port}: 未使用"
+      },
+      "port_error": {
+        "en": "⚠️ {port}: {error}",
+        "zh": "⚠️ {port}: {error}"
+      },
+      "port_kill_process": {
+        "en": "  ⏹ Kill Process",
+        "zh": "  ⏹ 结束进程"
+      },
+      "ports_title": {
+        "en": "Ports",
+        "zh": "端口"
       }
     },
     "messages": {
@@ -532,6 +772,14 @@
       "disabled_in_config": {
         "en": "Menu bar disabled in config",
         "zh": "菜单栏在配置中已禁用"
+      },
+      "config_reloaded": {
+        "en": "Config reloaded: {count} shortcuts loaded",
+        "zh": "配置已重新加载: 已加载 {count} 个快捷方式"
+      },
+      "history_cleared": {
+        "en": "Command history cleared by user",
+        "zh": "用户已清除命令历史"
       }
     },
     "errors": {
@@ -550,6 +798,50 @@
       "invalid_progress": {
         "en": "Invalid progress value: {value} (must be 0-100)",
         "zh": "无效的进度值: {value} (必须在0-100之间)"
+      },
+      "config_reload_failed": {
+        "en": "Failed to reload config: {error}",
+        "zh": "重新加载配置失败: {error}"
+      },
+      "shortcut_execution_failed": {
+        "en": "Shortcut Execution Failed",
+        "zh": "快捷方式执行失败"
+      },
+      "shortcut_failed_message": {
+        "en": "Failed to start shortcut execution",
+        "zh": "无法启动快捷方式执行"
+      },
+      "command_replay_failed": {
+        "en": "Command Replay Failed",
+        "zh": "命令重放失败"
+      },
+      "clear_history_confirm_title": {
+        "en": "Clear History",
+        "zh": "清除历史"
+      },
+      "clear_history_confirm_message": {
+        "en": "Are you sure you want to clear all command history?",
+        "zh": "确定要清除所有命令历史吗？"
+      },
+      "clear_history_confirm_ok": {
+        "en": "Clear",
+        "zh": "清除"
+      },
+      "clear_history_confirm_cancel": {
+        "en": "Cancel",
+        "zh": "取消"
+      },
+      "config_reload_success_title": {
+        "en": "Config Reloaded",
+        "zh": "配置已重新加载"
+      },
+      "config_reload_success_message": {
+        "en": "Configuration reloaded successfully",
+        "zh": "配置重新加载成功"
+      },
+      "config_reload_failed_title": {
+        "en": "Config Reload Failed",
+        "zh": "配置重新加载失败"
       }
     }
   }
