@@ -334,6 +334,46 @@ class TestExecutePluginFunction:
         mock_process_executor.execute_shell.assert_called_once()
 
     @pytest.mark.asyncio
+    async def test_execute_script_function_sources_script_file(self, tmp_path):
+        """Regression: shell functions must source their script_file and call
+        the function. The loader serializes the path under 'script_file' (not
+        'shell_file'), and 'command' holds the real bash function name."""
+        # Arrange: a real script on disk so Path(...).exists() is True
+        script = tmp_path / "plugin.sh"
+        script.write_text("help() { echo hi; }\n", encoding="utf-8")
+
+        mock_loader = Mock()
+        mock_loader.get_loaded_plugins = Mock(
+            return_value={
+                "grep": {
+                    "enabled": True,
+                    "functions": {
+                        "help": {
+                            "type": "shell",
+                            "command": "help",
+                            "script_file": str(script),
+                        }
+                    },
+                }
+            }
+        )
+
+        mock_process_executor = Mock()
+        mock_process_executor.execute_shell = AsyncMock(
+            return_value=ResultFactory.success(output="hi")
+        )
+
+        executor = PluginExecutor(mock_loader, mock_process_executor)
+
+        # Act
+        result = await executor.execute_plugin_function("grep", "help")
+
+        # Assert
+        assert result.success is True
+        command_str = mock_process_executor.execute_shell.call_args[0][0]
+        assert command_str == f"source {script} && help"
+
+    @pytest.mark.asyncio
     async def test_execute_with_timeout(self):
         """Test executing with custom timeout"""
         # Arrange

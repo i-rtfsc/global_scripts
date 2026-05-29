@@ -388,6 +388,8 @@ class TestCPUMetricsCollector:
 
         temp_monitor = CPUTemperatureMonitor()
         temp_monitor._track_temperature(52.0)
+        # Deterministic current temperature (avoid platform sensor reads).
+        temp_monitor.collect = lambda: 52.0
 
         collector = CPUMetricsCollector(temp_monitor=temp_monitor)
 
@@ -411,6 +413,9 @@ class TestCPUMetricsCollector:
         mock_psutil.cpu_percent.side_effect = [35.2, [45.1, 32.3]]
 
         temp_monitor = CPUTemperatureMonitor()
+        # Deterministic temperature so collect() does not consume cpu_percent
+        # side-effect values (the test asserts an exact call count).
+        temp_monitor.collect = lambda: 50.0
         collector = CPUMetricsCollector(temp_monitor=temp_monitor)
 
         with patch.dict("sys.modules", {"psutil": mock_psutil}):
@@ -461,7 +466,9 @@ class TestMemoryMetricsCollector:
                 assert metrics["app"] == pytest.approx(8.0, rel=0.1)
                 assert metrics["wired"] == pytest.approx(2.0, rel=0.1)
                 assert metrics["swap"] == 0
-                assert metrics["pressure"] in ["🟢 Normal", "🟡 Moderate", "🔴 High"]
+                # Pressure is localized; assert on the language-agnostic
+                # emoji indicator rather than English/Chinese text.
+                assert metrics["pressure"][0] in {"🟢", "🟡", "🔴"}
 
     @pytest.mark.unit
     def test_calculate_pressure_normal(self):
@@ -469,7 +476,7 @@ class TestMemoryMetricsCollector:
         from gscripts.menubar.monitors import MemoryMetricsCollector
 
         collector = MemoryMetricsCollector()
-        assert "Normal" in collector._calculate_pressure(50.0)
+        assert collector._calculate_pressure(50.0)[0] == "🟢"  # normal -> green
 
     @pytest.mark.unit
     def test_calculate_pressure_moderate(self):
@@ -477,7 +484,7 @@ class TestMemoryMetricsCollector:
         from gscripts.menubar.monitors import MemoryMetricsCollector
 
         collector = MemoryMetricsCollector()
-        assert "Moderate" in collector._calculate_pressure(70.0)
+        assert collector._calculate_pressure(70.0)[0] == "🟡"  # moderate -> yellow
 
     @pytest.mark.unit
     def test_calculate_pressure_high(self):
@@ -485,7 +492,7 @@ class TestMemoryMetricsCollector:
         from gscripts.menubar.monitors import MemoryMetricsCollector
 
         collector = MemoryMetricsCollector()
-        assert "High" in collector._calculate_pressure(85.0)
+        assert collector._calculate_pressure(85.0)[0] == "🔴"  # high -> red
 
     @pytest.mark.unit
     def test_get_top_processes(self):

@@ -270,20 +270,67 @@ class PluginService:
         Returns:
             Dict[str, Any]: Health status including plugin counts and errors
         """
-        all_plugins = await self.list_all_plugins()
-        enabled = await self.get_enabled_plugins()
-        disabled = await self.get_disabled_plugins()
-        loaded = self.get_loaded_plugins()
+        stats = await self.get_statistics()
         failed = self.get_failed_plugins()
 
         return {
             "status": "healthy" if not failed else "degraded",
-            "total_plugins": len(all_plugins),
-            "enabled_count": len(enabled),
-            "disabled_count": len(disabled),
-            "loaded_count": len(loaded),
+            "plugins_total": stats["plugins_total"],
+            "plugins_enabled": stats["plugins_enabled"],
+            "plugins_disabled": stats["plugins_disabled"],
+            "functions_total": stats["commands_total"],
             "failed_count": len(failed),
             "failed_plugins": list(failed.keys()) if failed else [],
+            "issues": [],
+        }
+
+    @staticmethod
+    def count_commands(plugin_info: Dict[str, Any]) -> int:
+        """Count the commands of a single plugin info dict.
+
+        Tolerates the differing field names used by the live loader
+        (``functions`` dict) and the router index (``commands`` dict/int),
+        so every caller derives the same number.
+        """
+        if not plugin_info:
+            return 0
+        for key in ("functions", "commands"):
+            value = plugin_info.get(key)
+            if isinstance(value, dict) and value:
+                return len(value)
+            if isinstance(value, (list, tuple)) and value:
+                return len(value)
+            if isinstance(value, int) and value:
+                return value
+        return 0
+
+    async def get_statistics(self) -> Dict[str, int]:
+        """Canonical plugin/command statistics.
+
+        Single source of truth for ``gs status`` and ``gs plugin list`` so
+        the two never disagree. Counts come from the live loaded plugins.
+        """
+        all_plugins = await self.list_all_plugins()
+        loaded = self.get_loaded_plugins()
+
+        plugins_total = len(all_plugins)
+        plugins_enabled = sum(1 for p in all_plugins if p.enabled)
+
+        commands_total = 0
+        commands_enabled = 0
+        for meta in all_plugins:
+            count = self.count_commands(loaded.get(meta.name) or {})
+            commands_total += count
+            if meta.enabled:
+                commands_enabled += count
+
+        return {
+            "plugins_total": plugins_total,
+            "plugins_enabled": plugins_enabled,
+            "plugins_disabled": plugins_total - plugins_enabled,
+            "commands_total": commands_total,
+            "commands_enabled": commands_enabled,
+            "commands_disabled": commands_total - commands_enabled,
         }
 
     async def get_plugins_by_type(

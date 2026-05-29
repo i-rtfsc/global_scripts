@@ -392,25 +392,31 @@ class PluginExecutor:
             timeout: Timeout in seconds
         """
         command_template = function_info.get("command", "")
-        shell_file = function_info.get("shell_file")
+        # Loader serializes FunctionInfo.script_file to the "script_file" key.
+        # (Older code read "shell_file", which never exists -> always failed.)
+        shell_file = function_info.get("script_file") or function_info.get("shell_file")
 
-        if not command_template:
-            return CommandResult(
-                success=False,
-                error="Script function missing 'command' field",
-                exit_code=1,
-            )
-
-        # For shell functions, we need to source the file and call the function
+        # For shell functions, we source the file and call the function.
         if shell_file and Path(shell_file).exists():
-            # Build command: source file && call function with args (already sanitized)
-            function_call = command_template
-            if args:
-                function_call = f"{function_call} {' '.join(args)}"
-
-            command_str = f"source {shell_file} && {function_call}"
+            if command_template:
+                # Sourced shell function: source file && call function with args
+                function_call = command_template
+                if args:
+                    function_call = f"{function_call} {' '.join(args)}"
+                command_str = f"source {shell_file} && {function_call}"
+            else:
+                # No annotated function name: execute the whole script directly
+                command_str = f"bash {shell_file}"
+                if args:
+                    command_str = f"{command_str} {' '.join(args)}"
         else:
             # Direct command execution
+            if not command_template:
+                return CommandResult(
+                    success=False,
+                    error="Script function missing 'command' field",
+                    exit_code=1,
+                )
             if args:
                 command_str = f"{command_template} {' '.join(args)}"
             else:

@@ -163,7 +163,10 @@ class ShellFunctionParser(FunctionParser):
                 FunctionInfo(
                     name=func_name,
                     description=description if description else "",
-                    command="",
+                    # The actual shell function to invoke after sourcing the
+                    # script is the raw definition name (e.g. ``gs_grep_search``
+                    # or ``help``), not the user-facing command name.
+                    command=raw_func_name,
                     type=FunctionType.SHELL,
                     subplugin=detected_subplugin,
                     script_file=file,

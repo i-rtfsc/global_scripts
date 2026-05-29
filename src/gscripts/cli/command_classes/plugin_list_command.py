@@ -128,18 +128,13 @@ class PluginListCommand(Command):
         plugin_dir = loaded_info.get("plugin_dir", "") if loaded_info else ""
         type_display = self._get_plugin_type_display(plugin_type, plugin_dir)
 
-        # Get command count - check multiple possible fields
-        command_count = 0
-        if loaded_info:
-            # Try 'commands' field (from router.json - dict or int)
-            commands = loaded_info.get("commands", {})
-            if isinstance(commands, dict):
-                command_count = len(commands)
-            elif isinstance(commands, int):
-                command_count = commands
-            else:
-                # Fallback to 'functions' field
-                command_count = len(loaded_info.get("functions", []))
+        # Count commands via the shared helper so list/status/info agree.
+        # (Both the router 'commands' field and the loader 'functions' field
+        # are handled; the old code only checked 'commands' and an empty dict
+        # short-circuited the 'functions' fallback to 0.)
+        from ...application.services.plugin_service import PluginService
+
+        command_count = PluginService.count_commands(loaded_info or {})
 
         return {
             "name": meta.name,

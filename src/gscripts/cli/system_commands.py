@@ -76,32 +76,10 @@ class SystemCommands:
             start_ts = monotonic()
             logger.debug(f"cid={cid} status enter")
 
-            # 从router index加载插件信息
-            plugins_data = self._load_router_index()
-
-            if plugins_data:
-                # 从index统计信息
-                plugins_total = len(plugins_data)
-                plugins_enabled = sum(
-                    1 for p in plugins_data.values() if p.get("enabled", True)
-                )
-                plugins_disabled = plugins_total - plugins_enabled
-                functions_total = sum(
-                    len(p.get("commands", {})) for p in plugins_data.values()
-                )
-
-                health_result = {
-                    "status": "healthy",
-                    "plugins_total": plugins_total,
-                    "plugins_enabled": plugins_enabled,
-                    "plugins_disabled": plugins_disabled,
-                    "functions_total": functions_total,
-                    "issues": [],
-                }
-            else:
-                # 回退到plugin_service
-                logger.debug(f"cid={cid} status fallback to plugin_service")
-                health_result = await self.plugin_service.health_check()
+            # Use the plugin service as the single source of truth so that
+            # `gs status`, `gs plugin list` and `gs plugin info` always agree.
+            # (Previously this read an often-empty router.json and reported 0.)
+            health_result = await self.plugin_service.health_check()
 
             # i18n labels with graceful fallback
             def _label(key: str, zh_fallback: str, en_fallback: str) -> str:

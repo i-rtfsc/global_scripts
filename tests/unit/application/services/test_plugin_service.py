@@ -455,9 +455,10 @@ class TestHealthCheck:
 
         # Assert
         assert result["status"] == "healthy"
-        assert result["total_plugins"] == 2
-        assert result["enabled_count"] == 2
-        assert result["loaded_count"] == 2
+        assert result["plugins_total"] == 2
+        assert result["plugins_enabled"] == 2
+        assert result["plugins_disabled"] == 0
+        assert result["functions_total"] == 0
         assert result["failed_count"] == 0
 
     @pytest.mark.asyncio
@@ -484,6 +485,56 @@ class TestHealthCheck:
         assert result["status"] == "degraded"
         assert result["failed_count"] == 1
         assert "plugin2" in result["failed_plugins"]
+
+
+class TestStatistics:
+    """Tests for the canonical get_statistics / count_commands helpers.
+
+    These guard the consistency contract shared by `gs status`,
+    `gs plugin list` and `gs plugin info`.
+    """
+
+    def test_count_commands_handles_functions_and_commands_fields(self):
+        # Live-loader shape uses 'functions'; router shape uses 'commands'.
+        assert PluginService.count_commands({"functions": {"a": {}, "b": {}}}) == 2
+        assert PluginService.count_commands({"commands": {"a": {}}}) == 1
+        assert PluginService.count_commands({"commands": 5}) == 5
+        # Empty 'functions' must not short-circuit a populated 'commands'.
+        assert PluginService.count_commands({"functions": {}, "commands": {"a": {}}}) == 1
+        assert PluginService.count_commands({}) == 0
+
+    @pytest.mark.asyncio
+    async def test_get_statistics_counts_plugins_and_commands(self):
+        # Arrange
+        mock_loader = Mock()
+        mock_loader.get_loaded_plugins = Mock(
+            return_value={
+                "plugin1": {"functions": {"a": {}, "b": {}}},
+                "plugin2": {"functions": {"c": {}}},
+            }
+        )
+        mock_loader.get_failed_plugins = Mock(return_value={})
+
+        mock_repository = Mock()
+        mock_repository.get_all = AsyncMock(
+            return_value=[
+                PluginFactory.create(name="plugin1", enabled=True),
+                PluginFactory.create(name="plugin2", enabled=False),
+            ]
+        )
+
+        service = PluginService(mock_loader, mock_repository)
+
+        # Act
+        stats = await service.get_statistics()
+
+        # Assert
+        assert stats["plugins_total"] == 2
+        assert stats["plugins_enabled"] == 1
+        assert stats["plugins_disabled"] == 1
+        assert stats["commands_total"] == 3
+        assert stats["commands_enabled"] == 2  # only plugin1 is enabled
+        assert stats["commands_disabled"] == 1
 
 
 class TestSearchFunctions:
