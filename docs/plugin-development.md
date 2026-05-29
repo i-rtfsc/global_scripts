@@ -170,6 +170,28 @@ gs system-info hardware cpu
 gs system-info hardware memory
 ```
 
+#### Shell 注解格式参考
+
+每个要暴露为命令的函数，前面紧跟一个以 `# @plugin_function` 开头的注解块。
+推荐使用以下 **规范格式**（内置插件均采用此写法）：
+
+| 注解 | 说明 |
+| --- | --- |
+| `# name: <命令名>` | 用户可见的命令名（缺省时回退为 bash 函数名） |
+| `# description:` + `#   zh:` / `#   en:` | 多语言描述 |
+| `# usage: <用法>` | 用法说明 |
+| `# examples:` + `#   - <示例>` | 示例列表（每行一个） |
+
+函数定义 `name()` 与 `function name()` 两种语法均可。
+
+为兼容历史写法，解析器同时接受以下 **等价别名**，但新插件请使用上面的规范格式：
+
+- `# @name <值>`、`# @usage <值>`（`@` 前缀写法）
+- `# @description {"zh": "...", "en": "..."}`（内联 JSON 描述）
+
+> 提示：用户可见命令名由 `name` 决定，实际执行的是 `source <plugin.sh> && <bash 函数名>`，
+> 因此函数名与命令名可以不同（例如命令 `search` 对应函数 `gs_grep_search`）。
+
 ### 3. Python插件 (推荐)
 
 **适用场景**: 复杂逻辑、API调用、数据处理

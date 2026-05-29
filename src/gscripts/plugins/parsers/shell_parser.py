@@ -3,9 +3,10 @@ Shell 脚本解析器
 解析 Shell 脚本中的函数和注释
 """
 
+import json
 import re
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from ...core.logger import get_logger
 from ...models.function import FunctionInfo
@@ -92,13 +93,20 @@ class ShellFunctionParser(FunctionParser):
         """
         解析带注释的函数
 
-        注释格式:
-        # @plugin_function
-        # name: function_name
-        # description:
-        #   zh: 中文描述
-        #   en: English description
-        # usage: gs plugin subplugin function
+        统一的注解格式（canonical，内置插件均使用此写法）::
+
+            # @plugin_function
+            # name: function_name
+            # description:
+            #   zh: 中文描述
+            #   en: English description
+            # usage: gs plugin subplugin function
+            # examples:
+            #   - gs plugin function arg
+
+        为兼容历史写法，解析器同时接受 ``# @key value`` 形式（如
+        ``# @name``、``# @usage``）以及内联 JSON 描述
+        （``# @description {"zh": "...", "en": "..."}``）。
         """
         functions = []
 
@@ -111,27 +119,11 @@ class ShellFunctionParser(FunctionParser):
             annotations = match.group(1)
             raw_func_name = match.group(2)
 
-            # 提取 name
-            name_match = re.search(r"# name:\s*(.+)", annotations)
-            func_name = name_match.group(1).strip() if name_match else None
-
-            # 提取多语言描述
-            description = {}
-            desc_section = re.search(
-                r"# description:\s*\n((?:#\s+\w+:.*\n)*)", annotations
-            )
-            if desc_section:
-                desc_lines = desc_section.group(1)
-                zh_match = re.search(r"#\s+zh:\s*(.+)", desc_lines)
-                en_match = re.search(r"#\s+en:\s*(.+)", desc_lines)
-                if zh_match:
-                    description["zh"] = zh_match.group(1).strip()
-                if en_match:
-                    description["en"] = en_match.group(1).strip()
-
-            # 提取 usage
-            usage_match = re.search(r"# usage:\s*(.+)", annotations)
-            usage = usage_match.group(1).strip() if usage_match else ""
+            # 提取注解（name / usage 兼容 `# key:` 与 `# @key` 两种写法）
+            func_name = self._annotation_scalar(annotations, "name")
+            description = self._annotation_description(annotations)
+            usage = self._annotation_scalar(annotations, "usage") or ""
+            examples = self._annotation_examples(annotations)
 
             # 从 raw_func_name 解析 subplugin
             # 格式: gs_{plugin}_{subplugin}_{function} 或 gs_{plugin}_{function}
@@ -172,10 +164,77 @@ class ShellFunctionParser(FunctionParser):
                     subplugin=detected_subplugin,
                     script_file=file,
                     usage=usage,
+                    examples=examples,
                 )
             )
 
         return functions
+
+    @staticmethod
+    def _annotation_scalar(annotations: str, key: str) -> Optional[str]:
+        """提取单行注解值，兼容 ``# key: value`` 与 ``# @key value`` 两种写法。"""
+        m = re.search(
+            rf"^#\s*@?{key}:?[ \t]+(.+)$", annotations, re.MULTILINE
+        )
+        return m.group(1).strip() if m else None
+
+    @staticmethod
+    def _annotation_description(annotations: str):
+        """解析描述。
+
+        依次尝试：内联 JSON ``{"zh": ..., "en": ...}``、紧随其后的多语言
+        ``#   zh:/#   en:`` 块、纯文本。无描述时返回空串。
+        """
+        head = re.search(
+            r"^#\s*@?description:?[ \t]*(.*)$", annotations, re.MULTILINE
+        )
+        if not head:
+            return ""
+        inline = head.group(1).strip()
+
+        # 内联 JSON
+        if inline.startswith("{"):
+            try:
+                return json.loads(inline)
+            except (ValueError, TypeError):
+                pass
+
+        # 多语言块：# description: 换行后跟 #   zh: / #   en:
+        block = re.search(
+            r"^#\s*@?description:?[ \t]*\n((?:#[ \t]+\w+:.*\n)*)",
+            annotations,
+            re.MULTILINE,
+        )
+        desc = {}
+        if block:
+            zh = re.search(r"#[ \t]+zh:\s*(.+)", block.group(1))
+            en = re.search(r"#[ \t]+en:\s*(.+)", block.group(1))
+            if zh:
+                desc["zh"] = zh.group(1).strip()
+            if en:
+                desc["en"] = en.group(1).strip()
+        if desc:
+            return desc
+
+        # 纯文本（或空）
+        return inline
+
+    @staticmethod
+    def _annotation_examples(annotations: str) -> List[str]:
+        """解析示例列表：``# examples:`` 后跟 ``#   - item`` 行。"""
+        block = re.search(
+            r"^#\s*@?examples:?[ \t]*\n((?:#[ \t]+-[ \t].*\n)*)",
+            annotations,
+            re.MULTILINE,
+        )
+        if not block:
+            return []
+        examples = []
+        for line in block.group(1).splitlines():
+            item = re.sub(r"^#[ \t]+-[ \t]*", "", line).strip()
+            if item:
+                examples.append(item)
+        return examples
 
     def _parse_simple_functions(
         self, content: str, plugin_name: str, subplugin_name: str, file: Path = None
