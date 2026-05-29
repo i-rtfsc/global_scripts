@@ -136,50 +136,28 @@ class TestSystemStatus:
     """Tests for system_status method"""
 
     @pytest.mark.asyncio
-    async def test_system_status_with_router_index(self, system_commands):
-        """Test system_status with router index available"""
-        # Arrange
-        mock_router_data = {
-            "plugin1": {"enabled": True, "commands": {"cmd1": {}, "cmd2": {}}},
-            "plugin2": {"enabled": False, "commands": {"cmd3": {}}},
-        }
-
-        with patch.object(
-            system_commands, "_load_router_index", return_value=mock_router_data
-        ):
-            # Act
-            result = await system_commands.system_status()
+    async def test_system_status_uses_plugin_service(self, system_commands):
+        """status derives its counts from the plugin service (single source
+        of truth shared with `gs plugin list`), not from the router index."""
+        # Act
+        result = await system_commands.system_status()
 
         # Assert
         assert result.success is True
         assert result.output  # Non-empty status info
         assert result.message  # Has message (translated)
-
-    @pytest.mark.asyncio
-    async def test_system_status_fallback_to_plugin_service(self, system_commands):
-        """Test system_status falls back to plugin_service when no router index"""
-        # Arrange
-        with patch.object(system_commands, "_load_router_index", return_value={}):
-            # Act
-            result = await system_commands.system_status()
-
-        # Assert
-        assert result.success is True
-        assert result.output  # Non-empty status info
-        # plugin_service.health_check should have been called
         system_commands.plugin_service.health_check.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_system_status_handles_exception(self, system_commands):
         """Test system_status handles exceptions"""
         # Arrange
-        with patch.object(
-            system_commands,
-            "_load_router_index",
-            side_effect=RuntimeError("Test error"),
-        ):
-            # Act
-            result = await system_commands.system_status()
+        system_commands.plugin_service.health_check = AsyncMock(
+            side_effect=RuntimeError("Test error")
+        )
+
+        # Act
+        result = await system_commands.system_status()
 
         # Assert
         assert result.success is False

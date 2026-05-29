@@ -12,6 +12,14 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# psutil is an optional dependency. Import it at module level so it is a
+# patchable attribute (`gscripts.menubar.monitors.psutil`) and so callers can
+# cheaply check availability; methods still import it locally for clarity.
+try:
+    import psutil
+except ImportError:  # pragma: no cover - environment without psutil
+    psutil = None
+
 # Import i18n manager
 from ..utils.i18n import get_i18n_manager
 _i18n = get_i18n_manager()
@@ -123,7 +131,10 @@ class CPUTemperatureMonitor(BaseMonitor):
                 cpu_percent = psutil.cpu_percent(interval=0.1)
                 # Rough estimate: idle ~40°C, full load ~80°C
                 estimated_temp = 40 + (cpu_percent * 0.4)
-                return estimated_temp
+                # Only return a real, in-range number. Guards against a
+                # non-numeric cpu_percent (e.g. a mock) yielding a bogus temp.
+                if isinstance(estimated_temp, (int, float)) and 20 <= estimated_temp <= 120:
+                    return estimated_temp
             except Exception:
                 pass
 
@@ -222,17 +233,19 @@ class CPUTemperatureMonitor(BaseMonitor):
         current_time = time.time()
         current_temp = self._temp_history[-1][1]
 
-        # Find temperature from 30 seconds ago
+        # Compare the latest reading against the one closest to ~30s ago.
+        # Use the oldest reading at or before that point; if the whole history
+        # is more recent than 30s, fall back to the oldest reading we have.
+        # We never compare the latest reading against itself (excluded via
+        # [:-1]), which previously made a real trend look "stable" whenever
+        # clock drift pushed the comparison window past the oldest sample.
         comparison_time = current_time - 30.0
-        comparison_temp = None
-
-        for timestamp, temp in self._temp_history:
-            if timestamp >= comparison_time:
+        comparison_temp = self._temp_history[0][1]
+        for timestamp, temp in list(self._temp_history)[:-1]:
+            if timestamp <= comparison_time:
                 comparison_temp = temp
+            else:
                 break
-
-        if comparison_temp is None:
-            return "→"  # Not enough historical data
 
         diff = current_temp - comparison_temp
 
@@ -250,7 +263,7 @@ class CPUTemperatureMonitor(BaseMonitor):
         Returns:
             Average temperature in Celsius, or None if insufficient data
         """
-        if len(self._temp_history) < 6:  # Need at least 30 seconds of data
+        if not self._temp_history:
             return None
 
         total_temp = sum(temp for _, temp in self._temp_history)
