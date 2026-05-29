@@ -4,30 +4,33 @@
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Optional, Dict, Any, Protocol
+from typing import List, Optional, Dict, Any, Protocol, Union
 from pathlib import Path
 
 
 class IProcessExecutor(Protocol):
-    """进程执行器接口 (使用 Protocol 实现结构化子类型)"""
+    """进程执行器接口 (使用 Protocol 实现结构化子类型)
+
+    签名与 :class:`gscripts.utils.process_executor.ProcessExecutor` 保持一致：
+    命令以字符串或列表形式给出，可选的 ``config`` 对象承载超时/工作目录/环境
+    等设置，额外的覆盖项通过关键字参数传入。``config`` 使用 ``Any`` 以避免领域
+    层反向依赖 utils 层的 ``ProcessConfig``。
+    """
 
     async def execute(
         self,
-        command: List[str],
-        timeout: int = 30,
-        cwd: Optional[Path] = None,
-        env: Optional[Dict[str, str]] = None,
-        capture_output: bool = True,
+        command: Union[str, List[str]],
+        config: Optional[Any] = None,
+        **kwargs: Any,
     ) -> Any:  # 返回 CommandResult
-        """执行命令（列表形式）"""
+        """执行命令（字符串或列表形式）"""
         ...
 
     async def execute_shell(
         self,
         command: str,
-        timeout: int = 30,
-        cwd: Optional[Path] = None,
-        env: Optional[Dict[str, str]] = None,
+        config: Optional[Any] = None,
+        **kwargs: Any,
     ) -> Any:  # 返回 CommandResult
         """执行 Shell 命令（字符串形式）"""
         ...

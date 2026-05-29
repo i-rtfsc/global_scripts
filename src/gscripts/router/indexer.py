@@ -8,6 +8,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any
 
+# Schema version of the router index. Bump this only with an intentional
+# structural change to the index; tests assert against it so a silent format
+# drift fails loudly. See build_router_index() for the documented shape.
+ROUTER_INDEX_VERSION = "2.0"
+
 
 def _get_meta_value(meta: Any, key: str, default: Any = None) -> Any:
     """Get value from meta (supports both dict and object)"""
@@ -59,7 +64,7 @@ def build_router_index(plugins: Dict[str, Any]) -> Dict[str, Any]:
     enabled_map = _load_enabled_status()
 
     index: Dict[str, Any] = {
-        "version": "2.0",
+        "version": ROUTER_INDEX_VERSION,
         "generated_at": datetime.now().isoformat(),
         "plugins": {},
     }

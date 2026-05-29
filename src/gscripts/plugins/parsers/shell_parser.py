@@ -103,7 +103,8 @@ class ShellFunctionParser(FunctionParser):
         functions = []
 
         # 查找 @plugin_function 注释块
-        pattern = r"# @plugin_function\s*\n((?:#.*\n)*?)(\w+)\(\)"
+        # 支持两种 bash 函数定义语法: `name()` 和 `function name()`。
+        pattern = r"# @plugin_function\s*\n((?:#.*\n)*?)(?:function\s+)?(\w+)\s*\(\)"
         matches = re.finditer(pattern, content, re.MULTILINE)
 
         for match in matches:
