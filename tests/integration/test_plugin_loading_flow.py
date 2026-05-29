@@ -321,6 +321,11 @@ function echo_args() {
         functions = plugins["shellplugin"]["functions"]
         assert "hello" in functions
         assert "echo_args" in functions
+        # Annotations (name + description) are parsed, not just the bash name.
+        assert functions["hello"]["description"] == {
+            "zh": "打招呼",
+            "en": "Say hello",
+        }
 
     @pytest.mark.asyncio
     async def test_load_shell_plugin_without_functions(self, plugin_loader_setup):
