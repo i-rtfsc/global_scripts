@@ -59,7 +59,9 @@ class IPluginLoader(ABC):
     """插件加载器接口"""
 
     @abstractmethod
-    async def load_all_plugins(self, include_examples: bool = False) -> Dict[str, Any]:
+    async def load_all_plugins(
+        self, include_examples: bool = False, only_enabled: bool = True
+    ) -> Dict[str, Any]:
         """加载所有插件"""
         pass
 
@@ -71,6 +73,16 @@ class IPluginLoader(ABC):
     @abstractmethod
     def get_loaded_plugins(self) -> Dict[str, Any]:
         """获取已加载的插件"""
+        pass
+
+    @abstractmethod
+    def get_failed_plugins(self) -> Dict[str, str]:
+        """获取加载失败的插件及其错误信息"""
+        pass
+
+    @abstractmethod
+    def update_plugin_enabled_status(self, plugin_name: str, enabled: bool) -> bool:
+        """更新已加载插件的启用状态"""
         pass
 
 
