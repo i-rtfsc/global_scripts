@@ -25,7 +25,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Global Scripts is a modern, high-performance shell command management system with a plugin-based architecture. It supports Python, Shell, Config (JSON), and Hybrid plugin types with async execution and type safety.
 
-**Version**: 5.0.0
+**Version**: 5.2.0
 **Tech Stack**: Python 3.8+, asyncio, UV dependency management
 **Architecture**: Clean architecture with Domain-Driven Design principles
 
@@ -121,8 +121,7 @@ User Command → CLI Layer → Command Handler → Application Services → Doma
 2. **Application Layer** (`src/gscripts/application/`)
    - `services/plugin_service.py`: Plugin lifecycle management (load, enable, disable, health checks)
    - `services/plugin_executor.py`: Safe plugin execution with validation and timeout control
-   - `services/config_service.py`: Configuration management
-   - Orchestrates domain logic and coordinates infrastructure
+   - Orchestrates domain logic and coordinates infrastructure (configuration is handled by `core/config_manager.py`)
 
 3. **Domain Layer** (`src/gscripts/domain/`)
    - `interfaces/`: Contracts (IPluginLoader, IPluginRepository, IFileSystem)
@@ -136,12 +135,10 @@ User Command → CLI Layer → Command Handler → Application Services → Doma
    - `filesystem/`: File system operations
    - Implements domain interfaces
 
-5. **Core Layer** (`src/gscripts/core/`) - **Transitional, being phased out**
-   - `config_manager.py`: Configuration loading (user > project > defaults)
-   - `command_executor.py`: Safe command execution with whitelist/blacklist
+5. **Core Layer** (`src/gscripts/core/`) - **Shared infrastructure** (logging, constants, config)
+   - `config_manager.py`: Configuration loading (user > project > defaults) — the single config entry point
    - `constants.py`: Global constants and configuration
-   - `logger.py`: Logging setup and utilities
-   - `router/indexer.py`: Builds command routing index for shell integration
+   - `logger.py`: Logging setup and utilities (depended on across all layers)
 
 6. **Models Layer** (`src/gscripts/models/`)
    - `result.py`: `CommandResult` dataclass for unified return values
@@ -232,9 +229,9 @@ gs command → Check router.json → Route by type:
 
 ### Security Model
 
-- **Whitelist**: `GlobalConstants.SAFE_COMMANDS` defines allowed commands
-- **Blacklist**: `GlobalConstants.DANGEROUS_COMMANDS` blocks dangerous operations
-- **Timeout**: Default 30s, configurable
+- **Input validation** (`security/validators.py`): `InputValidator`, plus helpers `is_valid_plugin_name()`, `is_valid_command_name()`, `is_safe_shell_command()`, `validate_config()`
+- **Input sanitization** (`security/sanitizers.py`): `InputSanitizer`, plus helpers `clean_command()`, `clean_path()`, `clean_plugin_name()`
+- **Timeout**: Subprocess execution uses configurable timeout control
 - **Argument escaping**: Uses `shlex.quote` to prevent injection
 
 ### Logging System
@@ -242,7 +239,7 @@ gs command → Check router.json → Route by type:
 - Centralized logging in `~/.config/global-scripts/logs/gs.log`
 - Structured logging with correlation IDs
 - Utilities in `utils/logging_utils.py`: `redact()`, `correlation_id()`, `duration()`, `sanitize_path()`
-- Tag-based logger creation: `get_logger(tag="CORE.PLUGIN_MANAGER")`
+- Tag-based logger creation: `get_logger(tag="APP.PLUGIN_SERVICE")`
 
 ## Common Development Patterns
 
@@ -309,12 +306,24 @@ class MyPlugin(BasePlugin):
 
 ```python
 import pytest
-from gscripts.core.plugin_loader import PluginLoader
-from gscripts.core.plugin_manager import PluginManager
+
+from gscripts.infrastructure.persistence.plugin_loader import PluginLoader
+from gscripts.infrastructure.persistence.plugin_repository import PluginRepository
+from gscripts.infrastructure.filesystem.file_operations import RealFileSystem
+from gscripts.core.config_manager import ConfigManager
 
 @pytest.mark.asyncio
-async def test_my_plugin():
-    loader = PluginLoader("plugins")
+async def test_my_plugin(tmp_path):
+    plugins_root = tmp_path / "plugins"
+    plugins_root.mkdir()
+
+    repository = PluginRepository(
+        filesystem=RealFileSystem(),
+        plugins_dir=plugins_root,
+        router_cache_path=None,
+        config_manager=ConfigManager(),
+    )
+    loader = PluginLoader(plugin_repository=repository, plugins_root=plugins_root)
     plugins = await loader.load_all_plugins()
 
     assert "myplugin" in plugins
@@ -363,8 +372,8 @@ global_scripts-v5/
 ## Key Files to Understand
 
 - `src/gscripts/cli/main.py`: CLI entry point and async orchestration
-- `src/gscripts/core/plugin_manager.py`: Plugin lifecycle management
-- `src/gscripts/core/plugin_loader.py`: Plugin discovery and parsing logic
+- `src/gscripts/application/services/plugin_service.py`: Plugin lifecycle management
+- `src/gscripts/infrastructure/persistence/plugin_loader.py`: Plugin discovery and loading
 - `src/gscripts/plugins/parsers/`: How different plugin types are parsed
 - `src/gscripts/router/indexer.py`: Command routing index generation
 - `scripts/setup.py`: Installation logic, env generation, completion generation
