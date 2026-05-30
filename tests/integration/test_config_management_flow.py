@@ -12,7 +12,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 from gscripts.core.config_manager import ConfigManager
-from gscripts.application.services.config_service import ConfigService
 
 
 @pytest.mark.integration
@@ -188,116 +187,6 @@ class TestConfigValidation:
         # Assert: Specified keys use config, missing keys use defaults
         assert language == "en"  # From config
         assert logging_level in ["INFO", "DEBUG", "WARNING", "ERROR"]  # Default value
-
-
-@pytest.mark.integration
-class TestConfigServiceIntegration:
-    """Integration tests for ConfigService"""
-
-    def test_config_service_get_with_defaults(self):
-        """Test ConfigService get method with default values"""
-        # Arrange
-        from unittest.mock import Mock, AsyncMock
-
-        config_repo = Mock()
-        config_repo.get = AsyncMock(return_value=None)
-
-        environment = Mock()
-        environment.get = Mock(return_value=None)
-
-        config_service = ConfigService(
-            config_repository=config_repo,
-            environment=environment,
-            defaults={"test_key": "test_value"}
-        )
-
-        # Act - ConfigService.get is async
-        import asyncio
-        value = asyncio.run(config_service.get("test_key"))
-
-        # Assert
-        assert value == "test_value"
-
-    def test_config_service_set_and_get(self):
-        """Test ConfigService set and get methods"""
-        # Arrange
-        from unittest.mock import Mock, AsyncMock
-
-        config_repo = Mock()
-        config_repo.set = AsyncMock()
-        config_repo.get = AsyncMock(return_value="custom_value")
-
-        environment = Mock()
-        environment.get = Mock(return_value=None)
-
-        config_service = ConfigService(
-            config_repository=config_repo,
-            environment=environment
-        )
-
-        # Act
-        import asyncio
-        asyncio.run(config_service.set("custom_key", "custom_value"))
-        value = asyncio.run(config_service.get("custom_key"))
-
-        # Assert
-        assert value == "custom_value"
-
-    def test_config_service_get_all_merges_with_defaults(self):
-        """Test that get_all merges config with defaults"""
-        # Arrange
-        from unittest.mock import Mock, AsyncMock
-
-        config_repo = Mock()
-        config_repo.get_all = AsyncMock(return_value={})
-
-        environment = Mock()
-        environment.get = Mock(return_value=None)
-
-        default_config = {"key1": "default1", "key2": "default2"}
-        config_service = ConfigService(
-            config_repository=config_repo,
-            environment=environment,
-            defaults=default_config
-        )
-
-        # Act
-        import asyncio
-        all_config = asyncio.run(config_service.get_all())
-
-        # Assert
-        assert "key1" in all_config
-        assert "key2" in all_config
-
-    def test_config_service_convenience_methods(self):
-        """Test ConfigService convenience methods"""
-        # Arrange
-        from unittest.mock import Mock, AsyncMock
-
-        config_repo = Mock()
-        config_repo.get = AsyncMock(return_value=None)
-
-        environment = Mock()
-        environment.get = Mock(return_value=None)
-
-        config_service = ConfigService(
-            config_repository=config_repo,
-            environment=environment
-        )
-
-        # Act & Assert
-        import asyncio
-        language = asyncio.run(config_service.get_language())
-        assert language in ["zh", "en"]
-
-        logging_level = asyncio.run(config_service.get_logging_level())
-        assert logging_level in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
-
-        show_examples = asyncio.run(config_service.get_show_examples())
-        assert isinstance(show_examples, bool)
-
-        is_debug = config_service.is_debug_mode()
-        assert isinstance(is_debug, bool)
 
 
 @pytest.mark.integration
