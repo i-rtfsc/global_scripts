@@ -7,7 +7,7 @@ import asyncio
 import shlex
 from contextvars import ContextVar
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Optional
 from ...models import CommandResult, PluginEvent, PluginEventData
 from ...domain.interfaces import IPluginLoader, IProcessExecutor
 from ...core.logger import get_logger
@@ -284,9 +284,12 @@ class PluginExecutor:
                     function_info, sanitized_args, timeout
                 )
             elif function_type in ("python", "python_decorated"):
-                result = await self._execute_python_function(
-                    function_info, args, start_ts
-                )  # Python functions get unsanitized args, with start time for progress
+                # Python functions get unsanitized args. The raw return value may
+                # be a CommandResult or an (async) generator that yields progress
+                # dicts; _process_generator_result normalizes it to a
+                # CommandResult and emits progress IPC along the way.
+                raw = await self._execute_python_function(function_info, args)
+                result = await self._process_generator_result(raw, start_ts)
             else:
                 took = duration(start_ts)
                 logger.error(
@@ -433,8 +436,8 @@ class PluginExecutor:
         return await self._executor.execute_shell(command_str, timeout=timeout)
 
     async def _execute_python_function(
-        self, function_info: dict, args: List[str], start_time: float = None
-    ) -> CommandResult:
+        self, function_info: dict, args: List[str]
+    ) -> Any:
         """
         Execute Python function command - with full decorated function support
 
@@ -443,15 +446,12 @@ class PluginExecutor:
         2. Methods in BasePlugin subclasses
         3. Standalone Python scripts
 
-        Supports generator pattern for progress reporting:
-        - Functions can yield {"progress": 0-100} dicts for progress updates
-        - Final return value should be CommandResult
+        Returns the function's *raw* return value (a CommandResult, or an
+        (async) generator that yields {"progress": 0-100} dicts for progress
+        reporting). The caller passes it through _process_generator_result to
+        normalize it into a CommandResult and emit progress IPC. Error paths
+        return a CommandResult directly.
         """
-        from time import monotonic
-
-        if start_time is None:
-            start_time = monotonic()
-
         python_file = function_info.get("python_file")
 
         if not python_file:
@@ -519,8 +519,9 @@ class PluginExecutor:
                                     else attr(args)
                                 )
 
-                            # Process result (handles generators for progress reporting)
-                            return await self._process_generator_result(ret, start_time)
+                            # Return the raw result; the caller normalizes it
+                            # and processes (async) generators for progress.
+                            return ret
                         except Exception as e:
                             return CommandResult(
                                 False,
@@ -611,8 +612,9 @@ class PluginExecutor:
                             else method(args)
                         )
 
-                    # Process result (handles generators for progress reporting)
-                    return await self._process_generator_result(ret, start_time)
+                    # Return the raw result; the caller normalizes it and
+                    # processes (async) generators for progress.
+                    return ret
                 except Exception as e:
                     return CommandResult(
                         False, error=f"Python method error: {str(e)}", exit_code=1
