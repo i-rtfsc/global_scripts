@@ -199,7 +199,7 @@ class PluginRepository(IPluginRepository):
                 "keywords": plugin.keywords,
                 "requirements": plugin.requirements,
                 "tags": plugin.tags,
-                "subplugins": plugin.subplugins,
+                "subplugins": [sp.to_dict() for sp in plugin.subplugins],
             }
         )
 

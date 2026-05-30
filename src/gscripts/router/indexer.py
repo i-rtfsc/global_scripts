@@ -304,68 +304,20 @@ def _normalize_description(desc: Any) -> Dict[str, str]:
 
 
 def _get_subplugins_with_descriptions(plugin) -> list:
-    """Get subplugins with descriptions from plugin.
+    """Return subplugins as router-index dicts: ``{"name", "description"}``.
 
-    Tries to use subplugins_full if available, otherwise falls back to subplugins.
+    Routes every entry through the unified :class:`SubPlugin` model so legacy
+    string/dict forms and live ``SubPlugin`` objects all serialize to the same
+    stable router.json / shell-completion shape.
     """
-    # Handle both dict and object plugin formats
+    from ..models.plugin import SubPlugin
+
     if isinstance(plugin, dict):
-        subplugins_full = plugin.get("subplugins_full")
-        if subplugins_full:
-            return subplugins_full
         subplugins = plugin.get("subplugins", [])
     else:
-        # Try to get full subplugins info (with descriptions)
-        if hasattr(plugin, "subplugins_full") and plugin.subplugins_full:
-            return plugin.subplugins_full
-
-        # Fallback: use old subplugins list (strings only)
         subplugins = getattr(plugin, "subplugins", [])
-    if not subplugins:
-        return []
 
-    # Convert to proper format
-    # Handle both string list and dict list formats
-    result = []
-    for sp in subplugins:
-        if isinstance(sp, dict):
-            # Already a dict, extract name and description
-            result.append(
-                {
-                    "name": sp.get("name", sp),
-                    "description": _normalize_description(sp.get("description", "")),
-                }
-            )
-        else:
-            # String format, convert to dict
-            result.append({"name": sp, "description": {"zh": "", "en": ""}})
-    return result
-
-
-def _normalize_subplugins(subplugins: Any) -> list:
-    """Normalize subplugins to list of dicts with descriptions.
-
-    Input can be:
-    - List of strings: ["sub1", "sub2"]
-    - List of dicts: [{"name": "sub1", "description": {...}}, ...]
-
-    Output is always list of dicts with normalized descriptions.
-    """
-    if not subplugins:
-        return []
-
-    result = []
-    for item in subplugins:
-        if isinstance(item, str):
-            # Simple string - convert to dict without description
-            result.append({"name": item, "description": {"zh": "", "en": ""}})
-        elif isinstance(item, dict):
-            # Already a dict - normalize description if present
-            name = item.get("name", "")
-            desc = item.get("description", {})
-            result.append({"name": name, "description": _normalize_description(desc)})
-
-    return result
+    return [SubPlugin.from_raw(sp).to_index_dict() for sp in (subplugins or [])]
 
 
 def _determine_plugin_type(plugin) -> str:
