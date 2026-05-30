@@ -229,7 +229,7 @@ class TestPluginLoadingPerformance:
         assert len(plugins) == 10
 
         # Total functions: 10 plugins * 20 functions = 200 functions
-        total_functions = sum(len(p.functions) for p in plugins.values())
+        total_functions = sum(len(p["functions"]) for p in plugins.values())
         assert total_functions == 200
 
         # Performance requirement: < 2 seconds for 200 functions
