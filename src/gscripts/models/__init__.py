@@ -4,7 +4,7 @@
 """
 
 from .result import CommandResult, ExecutionMetadata
-from .plugin import PluginMetadata, PluginType, PluginPaths
+from .plugin import PluginMetadata, PluginType, PluginPaths, SubPlugin
 from .function import FunctionInfo, FunctionType
 from .config import ConfigSchema
 
@@ -14,6 +14,7 @@ __all__ = [
     "PluginMetadata",
     "PluginType",
     "PluginPaths",
+    "SubPlugin",
     "FunctionInfo",
     "FunctionType",
     "ConfigSchema",

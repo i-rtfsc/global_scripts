@@ -2,7 +2,9 @@
 Tests for PluginMetadata model
 """
 
-from gscripts.models.plugin import PluginMetadata, PluginType
+from typing import Any
+
+from gscripts.models.plugin import PluginMetadata, PluginType, SubPlugin
 from tests.factories import PluginFactory
 
 
@@ -138,7 +140,7 @@ class TestPluginMetadata:
         assert metadata.get_description("en") == "Simple description"
 
     def test_plugin_with_subplugins(self):
-        """Test creating plugin with subplugins list"""
+        """Test creating plugin with subplugins list (unified to SubPlugin)"""
         # Arrange & Act
         metadata = PluginFactory.create(
             name="hybrid_test", subplugins=["sub1", "sub2", "sub3"]
@@ -146,6 +148,10 @@ class TestPluginMetadata:
 
         # Assert
         assert len(metadata.subplugins) == 3
+        # Even via the factory's setattr path, entries are unified to SubPlugin...
+        assert all(isinstance(sp, SubPlugin) for sp in metadata.subplugins)
+        assert [sp.name for sp in metadata.subplugins] == ["sub1", "sub2", "sub3"]
+        # ...while staying backward-compatible with string membership.
         assert "sub1" in metadata.subplugins
         assert metadata.type == PluginType.PYTHON  # Default type
 
@@ -177,3 +183,113 @@ class TestPluginMetadata:
 
         # Assert
         assert metadata.priority == 100
+
+
+class TestSubPlugin:
+    """Tests for the unified SubPlugin model."""
+
+    def test_from_raw_string(self):
+        """A bare string becomes a SubPlugin named after it."""
+        sp = SubPlugin.from_raw("mysub")
+        assert isinstance(sp, SubPlugin)
+        assert sp.name == "mysub"
+        assert sp.type == PluginType.UNKNOWN
+        assert sp.entry == ""
+
+    def test_from_raw_dict(self):
+        """A plugin.json dict is parsed into typed fields."""
+        sp = SubPlugin.from_raw(
+            {
+                "name": "python_sub",
+                "type": "python",
+                "entry": "python_sub.py",
+                "description": {"zh": "子", "en": "sub"},
+            }
+        )
+        assert sp.name == "python_sub"
+        assert sp.type == PluginType.PYTHON
+        assert sp.entry == "python_sub.py"
+        assert sp.get_description("en") == "sub"
+
+    def test_from_raw_type_aliases(self):
+        """plugin.json type aliases map to canonical PluginType."""
+        assert (
+            SubPlugin.from_raw({"name": "c", "type": "json"}).type == PluginType.CONFIG
+        )
+        assert SubPlugin.from_raw({"name": "s", "type": "sh"}).type == PluginType.SHELL
+        assert (
+            SubPlugin.from_raw({"name": "u", "type": "bogus"}).type
+            == PluginType.UNKNOWN
+        )
+
+    def test_from_raw_is_idempotent(self):
+        """from_raw on an existing SubPlugin returns it unchanged."""
+        sp = SubPlugin(name="x", type=PluginType.SHELL)
+        assert SubPlugin.from_raw(sp) is sp
+
+    def test_to_index_dict_shape(self):
+        """to_index_dict matches the router.json / completion contract."""
+        sp = SubPlugin.from_raw({"name": "n", "description": {"zh": "中", "en": "en"}})
+        assert sp.to_index_dict() == {
+            "name": "n",
+            "description": {"zh": "中", "en": "en"},
+        }
+        # String description is normalized to a zh/en dict.
+        assert SubPlugin.from_raw("bare").to_index_dict() == {
+            "name": "bare",
+            "description": {"zh": "", "en": ""},
+        }
+
+    def test_to_dict_round_trips_plugin_json(self):
+        """A rich plugin.json entry survives from_raw -> to_dict unchanged."""
+        raw = {
+            "name": "shell_sub",
+            "type": "shell",
+            "entry": "shell_sub.sh",
+            "description": {"zh": "壳", "en": "shell"},
+        }
+        assert SubPlugin.from_raw(raw).to_dict() == raw
+
+    def test_to_dict_omits_defaults(self):
+        """A string-form subplugin serializes to a minimal dict."""
+        assert SubPlugin.from_raw("sub1").to_dict() == {"name": "sub1"}
+
+    def test_equality_with_string_and_subplugin(self):
+        """Name-based equality preserves the legacy membership idiom."""
+        assert SubPlugin(name="a") == "a"
+        assert SubPlugin(name="a") == SubPlugin(name="a", type=PluginType.PYTHON)
+        assert SubPlugin(name="a") != "b"
+        assert (
+            SubPlugin(name="a") != 123
+        )  # non-str/SubPlugin -> NotImplemented -> False
+
+
+class TestPluginMetadataSubpluginCoercion:
+    """The List[SubPlugin] invariant must hold on every assignment path."""
+
+    def test_constructor_coerces_mixed_raw_entries(self):
+        """Strings and dicts passed to the constructor become SubPlugin objects."""
+        # Deliberately loose input (Any) — the model normalizes it at runtime.
+        raw: Any = [
+            "str_sub",
+            {"name": "dict_sub", "type": "python", "entry": "d.py"},
+        ]
+        meta = PluginMetadata(name="hybrid", subplugins=raw)
+        assert all(isinstance(sp, SubPlugin) for sp in meta.subplugins)
+        assert [sp.name for sp in meta.subplugins] == ["str_sub", "dict_sub"]
+        assert meta.subplugins[1].type == PluginType.PYTHON
+
+    def test_reassignment_after_construction_is_coerced(self):
+        """Later `meta.subplugins = [...]` (e.g. factory setattr) is coerced too."""
+        meta = PluginMetadata(name="hybrid")
+        assert meta.subplugins == []
+        late: Any = ["late_sub"]
+        meta.subplugins = late
+        assert isinstance(meta.subplugins[0], SubPlugin)
+        assert meta.subplugins[0].name == "late_sub"
+
+    def test_none_subplugins_normalizes_to_empty_list(self):
+        """A None value does not break coercion."""
+        none_value: Any = None
+        meta = PluginMetadata(name="hybrid", subplugins=none_value)
+        assert meta.subplugins == []
