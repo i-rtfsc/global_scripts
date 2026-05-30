@@ -230,17 +230,21 @@ class TestPluginDiscoveryFlow:
     """Integration tests for plugin discovery"""
 
     @pytest.mark.asyncio
-    async def test_discover_plugins_in_nested_structure(self, plugin_loader_setup):
-        """Test discovering plugins in nested directory structure"""
-        # Arrange: Create nested plugin structure
+    async def test_discover_multiple_system_plugins(self, plugin_loader_setup):
+        """Discovery finds every plugin in the (flat) system plugins/ tree.
+
+        System plugins use a flat layout — ``plugins/<name>/plugin.json``. Nested
+        grouping (``category/<name>/plugin.json``) is intentionally a ``custom/``-only
+        capability (see ConfigManager._discover_custom_plugins_recursive); the
+        built-in loader scans ``plugins/`` only one level deep.
+        """
+        # Arrange: two flat system plugins
         plugins_root = plugin_loader_setup["plugins_root"]
         loader = plugin_loader_setup["loader"]
 
-        (plugins_root / "category1" / "plugin1").mkdir(parents=True)
-        (plugins_root / "category2" / "plugin2").mkdir(parents=True)
-
-        for category, plugin in [("category1", "plugin1"), ("category2", "plugin2")]:
-            plugin_dir = plugins_root / category / plugin
+        for plugin in ("plugin1", "plugin2"):
+            plugin_dir = plugins_root / plugin
+            plugin_dir.mkdir(parents=True)
             plugin_json = {
                 "name": plugin,
                 "version": "1.0.0",
@@ -254,9 +258,10 @@ class TestPluginDiscoveryFlow:
         # Act
         plugins = await loader.load_all_plugins()
 
-        # Assert: Should find both plugins regardless of nesting
+        # Assert: both flat plugins are discovered and loaded
         assert len(plugins) >= 2
-        # Note: Actual behavior depends on PluginLoader implementation
+        assert "plugin1" in plugins
+        assert "plugin2" in plugins
 
 
 @pytest.mark.integration
@@ -360,9 +365,15 @@ function regular_function() {
         # Act
         plugins = await loader.load_all_plugins()
 
-        # Assert: Plugin loads but has no functions
+        # Assert: Plugin loads. A shell script with no @plugin_function
+        # annotations is intentionally exposed as a single whole-script command
+        # (named after the file stem) so the script stays runnable. See
+        # ShellFunctionParser.parse() fallback branch.
         assert "empty_shell" in plugins
-        assert len(plugins["empty_shell"]["functions"]) == 0
+        functions = plugins["empty_shell"]["functions"]
+        assert len(functions) == 1
+        assert "plugin" in functions  # derived from plugin.sh stem
+        assert functions["plugin"]["description"] == "Execute script: plugin.sh"
 
 
 @pytest.mark.integration

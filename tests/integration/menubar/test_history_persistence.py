@@ -142,16 +142,16 @@ async def test_menubar_records_command_to_history(temp_history_file, tmp_path):
     from gscripts.menubar.app import MenuBarApp
     from gscripts.menubar.ipc import IPCClient, get_socket_path
 
-    # Create config with history enabled
+    # Create config with history enabled.
+    # MenuBarApp receives the *unwrapped* menubar section (see app.main():
+    # MenuBarApp(config=config.get("menubar", {}))), so keys are flat here.
     config = {
-        "menubar": {
-            "enabled": True,
-            "enable_history": True,
-            "history_max_entries": 50,
-            "refresh_interval": 5,
-            "show_cpu_temp": False,
-            "show_memory": False,
-        }
+        "enabled": True,
+        "enable_history": True,
+        "history_max_entries": 50,
+        "refresh_interval": 5,
+        "show_cpu_temp": False,
+        "show_memory": False,
     }
 
     # Mock socket path to temp directory
