@@ -8,10 +8,21 @@ user config > project config > defaults hierarchy.
 import pytest
 import json
 import os
-from pathlib import Path
 from unittest.mock import patch
 
 from gscripts.core.config_manager import ConfigManager
+
+
+@pytest.fixture(autouse=True)
+def _isolate_gs_env(monkeypatch):
+    """隔离真实环境的 GS_* 变量，使配置优先级断言只反映文件内容。
+
+    开发环境(env.fish/env.sh)会 export GS_LANGUAGE 等，经 ConfigManager.get 的
+    环境变量覆盖会盖过文件值；需要该覆盖的 TestEnvironmentVariableOverride 会在
+    自身用 patch.dict 重新设置。
+    """
+    for key in [k for k in os.environ if k.startswith("GS_")]:
+        monkeypatch.delenv(key, raising=False)
 
 
 @pytest.mark.integration
