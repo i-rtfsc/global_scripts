@@ -8,12 +8,11 @@ import shlex
 from contextvars import ContextVar
 from pathlib import Path
 from typing import List, Optional
-from ...models import CommandResult
+from ...models import CommandResult, PluginEvent, PluginEventData
 from ...domain.interfaces import IPluginLoader, IProcessExecutor
 from ...core.logger import get_logger
 from ...core.constants import GlobalConstants
 from ...utils.logging_utils import correlation_id, duration
-from ...plugins.interfaces import PluginEvent, PluginEventData
 
 logger = get_logger(tag="APP.PLUGIN_EXECUTOR", name=__name__)
 
