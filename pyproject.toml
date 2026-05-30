@@ -1,7 +1,7 @@
 [project]
 name = "global-scripts"
 dynamic = ["version"]
-description = "Modern Plugin Framework - 零依赖的高性能Shell命令管理系统"
+description = "Modern Plugin Framework - 高性能 Shell 命令管理系统"
 authors = [
     { name = "Solo", email = "anqi.huang@outlook.com" }
 ]
