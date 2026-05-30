@@ -396,3 +396,59 @@ class ConfigManager:
     def get_config(self) -> Dict[str, Any]:
         """获取完整配置（兼容性方法）"""
         return self.config_data
+
+    def get_all(self) -> Dict[str, Any]:
+        """获取完整配置（get_config 的别名，与便捷 getter 配套）"""
+        return self.config_data
+
+    @staticmethod
+    def _parse_env_value(value: str) -> Any:
+        """将环境变量字符串解析为 bool/int/float/str"""
+        low = value.lower()
+        if low in ("true", "yes", "1"):
+            return True
+        if low in ("false", "no", "0"):
+            return False
+        try:
+            return int(value)
+        except ValueError:
+            pass
+        try:
+            return float(value)
+        except ValueError:
+            pass
+        return value
+
+    def get(self, key: str, default: Any = None) -> Any:
+        """获取单个配置值，优先级：环境变量 GS_<KEY> > 配置文件 > default。
+
+        支持点号嵌套 key，例如 ``logging.level`` 对应环境变量 ``GS_LOGGING_LEVEL``。
+        """
+        env_key = "GS_" + key.replace(".", "_").upper()
+        env_val = os.environ.get(env_key)
+        if env_val is not None:
+            return self._parse_env_value(env_val)
+
+        current: Any = self.config_data
+        for part in key.split("."):
+            if isinstance(current, dict) and part in current:
+                current = current[part]
+            else:
+                return default
+        return current
+
+    def get_language(self, default: str = "zh") -> str:
+        """获取界面语言（默认 zh）"""
+        return self.get("language", default)
+
+    def get_logging_level(self, default: str = "INFO") -> str:
+        """获取日志级别（默认 INFO）"""
+        return self.get("logging_level", default)
+
+    def get_show_examples(self, default: bool = False) -> bool:
+        """获取是否显示示例（默认 False）"""
+        return bool(self.get("show_examples", default))
+
+    def get_prompt_theme(self, default: str = "minimalist") -> str:
+        """获取提示符主题（默认 minimalist）"""
+        return self.get("prompt_theme", default)
