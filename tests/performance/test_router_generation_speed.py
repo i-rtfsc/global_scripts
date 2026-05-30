@@ -9,10 +9,20 @@ import pytest
 import time
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 from tests.factories.plugin_factory import PluginFactory
 from tests.factories.function_factory import FunctionFactory
 from gscripts.models.plugin import PluginType
+
+
+def _make_router_plugin(name, functions, enabled=True, plugin_type=PluginType.PYTHON):
+    """Plugin shape consumed by generate_router_json/_bash_completion:
+    an object exposing .metadata (PluginMetadata) and .functions (dict)."""
+    return SimpleNamespace(
+        metadata=PluginFactory.create(name=name, enabled=enabled, plugin_type=plugin_type),
+        functions=functions,
+    )
 
 
 @pytest.fixture
@@ -110,11 +120,10 @@ class TestRouterGenerationPerformance:
             for j in range(5):
                 functions[f"func{j}"] = FunctionFactory.create_python(name=f"func{j}")
 
-            plugins[f"plugin{i}"] = PluginFactory.create(
+            plugins[f"plugin{i}"] = _make_router_plugin(
                 name=f"plugin{i}",
-                enabled=True,
-                type=PluginType.PYTHON,
                 functions=functions,
+                enabled=True,
             )
 
         output_file = output_dir / "router.json"
@@ -148,11 +157,10 @@ class TestRouterGenerationPerformance:
             for j in range(10):
                 functions[f"func{j}"] = FunctionFactory.create_python(name=f"func{j}")
 
-            plugins[f"plugin{i}"] = PluginFactory.create(
+            plugins[f"plugin{i}"] = _make_router_plugin(
                 name=f"plugin{i}",
-                enabled=True,
-                type=PluginType.PYTHON,
                 functions=functions,
+                enabled=True,
             )
 
         output_file = output_dir / "router_large.json"
@@ -189,11 +197,10 @@ class TestRouterGenerationPerformance:
                 for j in range(5)
             }
 
-            plugins[f"plugin{i}"] = PluginFactory.create(
+            plugins[f"plugin{i}"] = _make_router_plugin(
                 name=f"plugin{i}",
-                enabled=(i % 2 == 0),  # Only even plugins enabled
-                type=PluginType.PYTHON,
                 functions=functions,
+                enabled=(i % 2 == 0),  # Only even plugins enabled
             )
 
         output_file = output_dir / "router_filtered.json"
@@ -234,11 +241,10 @@ class TestCompletionGenerationPerformance:
                 for j in range(5)
             }
 
-            plugins[f"plugin{i}"] = PluginFactory.create(
+            plugins[f"plugin{i}"] = _make_router_plugin(
                 name=f"plugin{i}",
-                enabled=True,
-                type=PluginType.PYTHON,
                 functions=functions,
+                enabled=True,
             )
 
         output_file = output_dir / "gs-completion.bash"
@@ -273,11 +279,10 @@ class TestCompletionGenerationPerformance:
                 for j in range(5)
             }
 
-            plugins[f"plugin{i}"] = PluginFactory.create(
+            plugins[f"plugin{i}"] = _make_router_plugin(
                 name=f"plugin{i}",
-                enabled=True,
-                type=PluginType.PYTHON,
                 functions=functions,
+                enabled=True,
             )
 
         # Generate for all shells
@@ -313,11 +318,10 @@ class TestCompletionGenerationPerformance:
                 f"func{j}": FunctionFactory.create_python(name=f"func{j}")
                 for j in range(5)
             }
-            plugins[f"plugin{i}"] = PluginFactory.create(
+            plugins[f"plugin{i}"] = _make_router_plugin(
                 name=f"plugin{i}",
-                enabled=True,
-                type=PluginType.PYTHON,
                 functions=functions,
+                enabled=True,
             )
 
         output_file = output_dir / "gs-completion-incremental.bash"
@@ -333,11 +337,10 @@ class TestCompletionGenerationPerformance:
                 f"func{j}": FunctionFactory.create_python(name=f"func{j}")
                 for j in range(5)
             }
-            plugins[f"plugin{i}"] = PluginFactory.create(
+            plugins[f"plugin{i}"] = _make_router_plugin(
                 name=f"plugin{i}",
-                enabled=True,
-                type=PluginType.PYTHON,
                 functions=functions,
+                enabled=True,
             )
 
         # Regenerate
@@ -372,11 +375,10 @@ class TestCombinedGenerationPerformance:
                 for j in range(8)
             }
 
-            plugins[f"plugin{i}"] = PluginFactory.create(
+            plugins[f"plugin{i}"] = _make_router_plugin(
                 name=f"plugin{i}",
-                enabled=True,
-                type=PluginType.PYTHON,
                 functions=functions,
+                enabled=True,
             )
 
         # Measure full pipeline
@@ -423,11 +425,10 @@ class TestCombinedGenerationPerformance:
                     f"func{j}": FunctionFactory.create_python(name=f"func{j}")
                     for j in range(5)
                 }
-                plugins[f"plugin{i}"] = PluginFactory.create(
+                plugins[f"plugin{i}"] = _make_router_plugin(
                     name=f"plugin{i}",
-                    enabled=True,
-                    type=PluginType.PYTHON,
                     functions=functions,
+                    enabled=True,
                 )
 
             # Measure generation
@@ -468,11 +469,10 @@ class TestRouterFileSize:
                 for j in range(10)
             }
 
-            plugins[f"plugin{i}"] = PluginFactory.create(
+            plugins[f"plugin{i}"] = _make_router_plugin(
                 name=f"plugin{i}",
-                enabled=True,
-                type=PluginType.PYTHON,
                 functions=functions,
+                enabled=True,
             )
 
         output_file = output_dir / "router_size_test.json"

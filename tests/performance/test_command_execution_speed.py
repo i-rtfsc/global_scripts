@@ -107,8 +107,8 @@ class TestCommandExecutionOverhead:
         start_time = time.time()
 
         for _ in range(iterations):
-            result = await process_executor.run_command("echo 'test'")
-            assert result.returncode == 0
+            result = await process_executor.execute_shell("echo 'test'")
+            assert result.exit_code == 0
 
         total_time = time.time() - start_time
         avg_time = total_time / iterations
@@ -132,13 +132,13 @@ class TestCommandExecutionOverhead:
 
         start_time = time.time()
         tasks = [
-            process_executor.run_command("echo 'test'") for _ in range(num_commands)
+            process_executor.execute_shell("echo 'test'") for _ in range(num_commands)
         ]
         results = await asyncio.gather(*tasks)
         total_time = time.time() - start_time
 
         # Assert: All succeeded
-        assert all(r.returncode == 0 for r in results)
+        assert all(r.exit_code == 0 for r in results)
 
         # Performance requirement: Concurrent execution should be faster than sequential
         # 50 commands concurrently should take < 1 second (vs ~1s if sequential)
@@ -262,8 +262,8 @@ class TestTimeoutPerformance:
 
         start_time = time.time()
         for _ in range(iterations):
-            result = await process_executor.run_command("echo 'test'", timeout=timeout)
-            assert result.returncode == 0
+            result = await process_executor.execute_shell("echo 'test'", timeout=timeout)
+            assert result.exit_code == 0
         total_time = time.time() - start_time
 
         avg_time = total_time / iterations
@@ -289,7 +289,7 @@ class TestTimeoutPerformance:
 
         start_time = time.time()
         for _ in range(iterations):
-            result = await process_executor.run_command(
+            result = await process_executor.execute_shell(
                 "sleep 10", timeout=short_timeout  # Will timeout
             )
             # Command should timeout (non-zero return code or error)
@@ -323,7 +323,7 @@ class TestScalability:
 
         for scale in scales:
             start_time = time.time()
-            tasks = [process_executor.run_command("echo 'test'") for _ in range(scale)]
+            tasks = [process_executor.execute_shell("echo 'test'") for _ in range(scale)]
             await asyncio.gather(*tasks)
             exec_time = time.time() - start_time
             times.append(exec_time)
@@ -354,7 +354,7 @@ class TestScalability:
 
         start_time = time.time()
         tasks = [
-            process_executor.run_command("echo 'test'") for _ in range(num_commands)
+            process_executor.execute_shell("echo 'test'") for _ in range(num_commands)
         ]
         results = await asyncio.gather(*tasks)
         total_time = time.time() - start_time
