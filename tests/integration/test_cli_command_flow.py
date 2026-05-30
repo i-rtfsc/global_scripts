@@ -26,14 +26,16 @@ class TestPluginListCommandFlow:
     async def test_plugin_list_shows_all_plugins(self):
         """Test that plugin list command shows all loaded plugins"""
         # Arrange: Mock plugin service with test plugins
+        plugins = {
+            "android": PluginFactory.create(name="android", enabled=True),
+            "system": PluginFactory.create(name="system", enabled=True),
+            "grep": PluginFactory.create(name="grep", enabled=False),
+        }
         mock_plugin_service = Mock()
-        mock_plugin_service.get_loaded_plugins = Mock(
-            return_value={
-                "android": PluginFactory.create(name="android", enabled=True),
-                "system": PluginFactory.create(name="system", enabled=True),
-                "grep": PluginFactory.create(name="grep", enabled=False),
-            }
+        mock_plugin_service.list_all_plugins = AsyncMock(
+            return_value=list(plugins.values())
         )
+        mock_plugin_service.get_loaded_plugins = Mock(return_value={})
 
         mock_formatter = Mock()
         mock_i18n = Mock()
@@ -64,6 +66,7 @@ class TestPluginListCommandFlow:
         """Test plugin list when no plugins are loaded"""
         # Arrange
         mock_plugin_service = Mock()
+        mock_plugin_service.list_all_plugins = AsyncMock(return_value=[])
         mock_plugin_service.get_loaded_plugins = Mock(return_value={})
 
         mock_formatter = Mock()
@@ -106,7 +109,8 @@ class TestPluginInfoCommandFlow:
         )
 
         mock_plugin_service = Mock()
-        mock_plugin_service.get_plugin_info = AsyncMock(return_value=test_plugin)
+        mock_plugin_service.get_plugin_metadata = AsyncMock(return_value=test_plugin)
+        mock_plugin_service.get_loaded_plugins = Mock(return_value={})
 
         mock_formatter = Mock()
         mock_i18n = Mock()
@@ -130,7 +134,7 @@ class TestPluginInfoCommandFlow:
 
         # Assert
         assert result.success is True
-        mock_plugin_service.get_plugin_info.assert_called_once_with("android")
+        mock_plugin_service.get_plugin_metadata.assert_called_once_with("android")
 
     @pytest.mark.asyncio
     async def test_plugin_info_without_args_shows_usage(self):
@@ -141,7 +145,7 @@ class TestPluginInfoCommandFlow:
         mock_i18n = Mock()
         mock_i18n.get_message = Mock(return_value="Usage")
         mock_constants = Mock()
-        mock_constants.exit_invalid_arguments = 2
+        mock_constants.exit_misuse = 2
 
         mock_config_manager = Mock()
         mock_plugin_executor = Mock()
