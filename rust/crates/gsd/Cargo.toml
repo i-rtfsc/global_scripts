@@ -1,0 +1,21 @@
+[package]
+name = "gsd"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Global Scripts daemon — status-light host (event socket + render)."
+
+[[bin]]
+name = "gsd"
+path = "src/main.rs"
+
+[dependencies]
+gs-core = { path = "../gs-core" }
+serde_json.workspace = true
+tao = { version = "0.35.3", optional = true }
+tray-icon = { version = "0.24.0", optional = true }
+
+[features]
+# `tray` adds the cross-platform menu-bar/tray light (spec §8). Without it, gsd
+# builds tiny and headless (terminal renderer only) — good for CI / servers.
+tray = ["dep:tao", "dep:tray-icon"]
