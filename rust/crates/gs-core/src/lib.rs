@@ -15,7 +15,7 @@ use std::path::{Path, PathBuf};
 /// Top-level `router.json` shape. Unknown fields are ignored on purpose: the
 /// Python indexer writes many more keys (description, author, …) the front
 /// door does not need on the hot path.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Default, Deserialize)]
 pub struct RouterIndex {
     #[serde(default)]
     pub version: String,
@@ -1086,5 +1086,159 @@ mod tests {
         s.apply_at(&env("codex", "needs.input", "q"), 20);
         assert!(!s.sweep(10_000_000, 1, 1), "NeedsYou never times out");
         assert_eq!(s.aggregate(), Some(Color::Red));
+    }
+}
+
+// ---------------------------------------------------------------------------
+// F8 — native, jq-free Tab completion. The `gs __complete` engine: given the
+// words already typed after `gs` (excluding the partial word at the cursor),
+// return the candidate tokens for the next position. Pure & testable; the front
+// door wires argv/printing and the per-shell scripts just call it and filter.
+// Spec: design.md §14 / §13 Q5.
+// ---------------------------------------------------------------------------
+pub mod completion {
+    use crate::{PluginEntry, RouterIndex};
+
+    /// Candidates for the position *after* `completed` (the words typed after
+    /// `gs`, without the partial word at the cursor). `system` is (command,
+    /// subcommands) for the front door's own commands. Returns sorted, unique,
+    /// non-empty tokens; the shell does the prefix filtering.
+    pub fn complete(
+        router: &RouterIndex,
+        system: &[(&str, &[&str])],
+        completed: &[String],
+    ) -> Vec<String> {
+        let mut out: Vec<String> = match completed {
+            // first token: front-door commands + enabled plugins
+            [] => system
+                .iter()
+                .map(|(c, _)| (*c).to_string())
+                .chain(
+                    router
+                        .plugins
+                        .iter()
+                        .filter(|(_, p)| p.enabled)
+                        .map(|(name, _)| name.clone()),
+                )
+                .collect(),
+            // second token: a front-door command's subcommands, else a plugin's commands
+            [head] => {
+                let head = head.as_str();
+                if let Some((_, subs)) = system.iter().find(|(c, _)| *c == head) {
+                    subs.iter().map(|s| (*s).to_string()).collect()
+                } else if let Some(p) = router.plugins.get(head) {
+                    plugin_tokens(p)
+                } else {
+                    Vec::new()
+                }
+            }
+            // third token: commands under a subplugin (keys are "<sub> <cmd>")
+            [head, sub] => router
+                .plugins
+                .get(head.as_str())
+                .map(|p| subplugin_cmds(p, sub))
+                .unwrap_or_default(),
+            _ => Vec::new(),
+        };
+        out.retain(|s| !s.is_empty());
+        out.sort();
+        out.dedup();
+        out
+    }
+
+    /// A plugin's first-level tokens: direct command names + subplugin names.
+    fn plugin_tokens(p: &PluginEntry) -> Vec<String> {
+        p.commands
+            .iter()
+            .map(|(key, cmd)| {
+                if cmd.subplugin.is_empty() {
+                    key.clone() // direct command (key == name)
+                } else {
+                    cmd.subplugin.clone() // subplugin group (deduped by the caller)
+                }
+            })
+            .collect()
+    }
+
+    /// Commands under subplugin `sub` within a plugin.
+    fn subplugin_cmds(p: &PluginEntry, sub: &str) -> Vec<String> {
+        p.commands
+            .values()
+            .filter(|c| c.subplugin == sub)
+            .map(|c| c.name.clone())
+            .collect()
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        const SYSTEM: &[(&str, &[&str])] = &[
+            ("version", &[]),
+            ("hooks", &["install", "uninstall", "status"]),
+            ("completions", &["bash", "zsh", "fish"]),
+        ];
+
+        fn router() -> RouterIndex {
+            serde_json::from_str(
+                r#"{
+                "plugins": {
+                    "demo": { "enabled": true, "commands": {
+                        "echo": {"name":"echo","kind":"json","subplugin":"","command":"echo {args}"},
+                        "greet": {"name":"greet","kind":"shell","subplugin":"","entry":"/x.sh"},
+                        "tools build": {"name":"build","kind":"shell","subplugin":"tools","entry":"/x.sh"},
+                        "tools run": {"name":"run","kind":"shell","subplugin":"tools","entry":"/x.sh"}
+                    }},
+                    "off": { "enabled": false, "commands": {
+                        "x": {"name":"x","kind":"json","subplugin":"","command":"true"}
+                    }}
+                }
+            }"#,
+            )
+            .unwrap()
+        }
+
+        fn s(items: &[&str]) -> Vec<String> {
+            items.iter().map(|x| x.to_string()).collect()
+        }
+
+        #[test]
+        fn top_level_lists_system_and_enabled_plugins() {
+            let got = complete(&router(), SYSTEM, &[]);
+            assert!(got.contains(&"version".to_string()));
+            assert!(got.contains(&"hooks".to_string()));
+            assert!(got.contains(&"demo".to_string()));
+            assert!(
+                !got.contains(&"off".to_string()),
+                "disabled plugin hidden at top level"
+            );
+        }
+
+        #[test]
+        fn plugin_tokens_merge_direct_and_subplugin() {
+            // direct commands + the subplugin group name, sorted & deduped
+            assert_eq!(
+                complete(&router(), SYSTEM, &s(&["demo"])),
+                s(&["echo", "greet", "tools"])
+            );
+        }
+
+        #[test]
+        fn subplugin_commands() {
+            assert_eq!(
+                complete(&router(), SYSTEM, &s(&["demo", "tools"])),
+                s(&["build", "run"])
+            );
+        }
+
+        #[test]
+        fn system_subcommands_and_unknowns() {
+            assert_eq!(
+                complete(&router(), SYSTEM, &s(&["hooks"])),
+                s(&["install", "status", "uninstall"])
+            );
+            assert!(complete(&router(), SYSTEM, &s(&["nope"])).is_empty());
+            assert!(complete(&router(), SYSTEM, &s(&["demo", "echo", "x"])).is_empty());
+        }
     }
 }

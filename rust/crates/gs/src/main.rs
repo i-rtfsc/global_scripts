@@ -16,6 +16,12 @@ use gs_core::{load_router, resolve, router_index_path, CommandEntry, Resolution}
 use std::process::Command;
 
 fn main() {
+    // Behave like a normal Unix filter: a closed reader (e.g. `gs … | head`, or
+    // `source <(gs completions …)`) should terminate us quietly, not panic.
+    #[cfg(unix)]
+    unsafe {
+        libc::signal(libc::SIGPIPE, libc::SIG_DFL);
+    }
     let args: Vec<String> = std::env::args().skip(1).collect();
     std::process::exit(run(&args));
 }
@@ -28,6 +34,8 @@ fn run(args: &[String]) -> i32 {
         Some("version") => return cmd_version(),
         Some("event") => return cmd_event(&args[1..]),
         Some("hooks") => return cmd_hooks(&args[1..]),
+        Some("__complete") => return cmd_complete(&args[1..]),
+        Some("completions") => return cmd_completions(&args[1..]),
         Some("help" | "plugin" | "status" | "doctor" | "refresh") => return delegate_python(args),
         _ => {}
     }
@@ -582,3 +590,121 @@ fn report_status(label: &str, path: Option<PathBuf>, installed: impl Fn(&str) ->
         Err(e) => println!("{label}: 读取失败 {} ({e})", path.display()),
     }
 }
+
+// ---- native Tab completion (`gs __complete` engine + `gs completions <shell>`) ----
+//
+// F8 (design.md §14 / §13 Q5): jq-free completion. The shell scripts call
+// `gs __complete <completed words>`; the Rust core reads router.json and prints
+// the candidate tokens for the next position; the shell filters by the partial.
+
+/// Front-door commands and their subcommands, for top-level/`<cmd>` completion.
+/// (`__complete` itself is intentionally hidden.)
+const SYSTEM_CMDS: &[(&str, &[&str])] = &[
+    ("version", &[]),
+    ("help", &[]),
+    ("plugin", &[]),
+    ("status", &[]),
+    ("doctor", &[]),
+    ("refresh", &[]),
+    ("event", &["emit"]),
+    ("hooks", &["install", "uninstall", "status"]),
+    (
+        "completions",
+        &["bash", "zsh", "fish", "nushell", "powershell"],
+    ),
+];
+
+/// `gs __complete <completed words…>` — print candidate tokens, one per line.
+/// Quiet and best-effort: a missing/corrupt router.json just yields the
+/// front-door commands.
+fn cmd_complete(completed: &[String]) -> i32 {
+    let router = router_index_path()
+        .and_then(|p| load_router(&p).ok())
+        .unwrap_or_default();
+    for cand in gs_core::completion::complete(&router, SYSTEM_CMDS, completed) {
+        println!("{cand}");
+    }
+    0
+}
+
+/// `gs completions <shell>` — print a completion script that wires the shell to
+/// `gs __complete`.
+fn cmd_completions(args: &[String]) -> i32 {
+    let script = match args.first().map(String::as_str) {
+        Some("bash") => COMP_BASH,
+        Some("zsh") => COMP_ZSH,
+        Some("fish") => COMP_FISH,
+        Some("nu" | "nushell") => COMP_NUSHELL,
+        Some("pwsh" | "powershell") => COMP_POWERSHELL,
+        _ => {
+            eprintln!("用法: gs completions <bash|zsh|fish|nushell|powershell>");
+            eprintln!();
+            eprintln!("启用（选你的 shell）:");
+            eprintln!("  fish: gs completions fish > ~/.config/fish/completions/gs.fish   # 立即生效，无需 source");
+            eprintln!("  zsh:  gs completions zsh  > \"${{fpath[1]}}/_gs\"   （或 .zshrc 里 source <(gs completions zsh)）");
+            eprintln!("  bash: gs completions bash >> ~/.bash_completion    （或 source <(gs completions bash)）");
+            eprintln!();
+            eprintln!("补全候选由 'gs __complete' 原生计算，无 jq 依赖。");
+            return 2;
+        }
+    };
+    print!("{script}");
+    0
+}
+
+const COMP_BASH: &str = r#"# gs bash completion.  Enable: source <(gs completions bash)
+_gs_complete() {
+    local cur cands i
+    local -a completed=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    # words after `gs`, up to but not including the word at the cursor
+    for (( i = 1; i < COMP_CWORD; i++ )); do completed+=("${COMP_WORDS[i]}"); done
+    cands="$(gs __complete "${completed[@]}" 2>/dev/null)"
+    local IFS=$'\n'
+    COMPREPLY=( $(compgen -W "$cands" -- "$cur") )
+}
+complete -F _gs_complete gs
+"#;
+
+const COMP_ZSH: &str = r#"# gs zsh completion.  Enable (after compinit): source <(gs completions zsh)
+_gs_complete() {
+    local -a completed cands
+    completed=(${words[2,CURRENT-1]})
+    cands=(${(f)"$(gs __complete ${completed} 2>/dev/null)"})
+    compadd -- ${cands}
+}
+compdef _gs_complete gs
+"#;
+
+const COMP_FISH: &str = r#"# gs fish completion.  Enable: gs completions fish > ~/.config/fish/completions/gs.fish
+function __gs_complete
+    set -l completed (commandline -opc)
+    gs __complete $completed[2..-1] 2>/dev/null
+end
+complete -c gs -f -a '(__gs_complete)'
+"#;
+
+const COMP_NUSHELL: &str = r#"# gs nushell completion (experimental).  Add to your config.nu.
+# Note: nushell uses ONE global external completer — merge this with any existing one.
+$env.config.completions.external.enable = true
+$env.config.completions.external.completer = {|spans|
+    if ($spans | first) == "gs" {
+        let completed = ($spans | skip 1 | drop 1)
+        (^gs __complete ...$completed | lines | where {|l| ($l | str trim) != "" })
+    } else { null }
+}
+"#;
+
+const COMP_POWERSHELL: &str = r#"# gs PowerShell completion (experimental).  Add to your $PROFILE.
+Register-ArgumentCompleter -Native -CommandName gs -ScriptBlock {
+    param($wordToComplete, $commandAst, $cursorPosition)
+    $elems = @($commandAst.CommandElements | ForEach-Object { $_.ToString() })
+    $end = $elems.Count - 1
+    if ($wordToComplete -ne '') { $end-- }
+    $completed = @()
+    if ($end -ge 1) { $completed = $elems[1..$end] }
+    (gs __complete @completed 2>$null) | Where-Object { $_ -ne '' } | ForEach-Object {
+        [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_)
+    }
+}
+"#;
