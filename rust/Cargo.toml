@@ -1,0 +1,22 @@
+[workspace]
+resolver = "2"
+members = ["crates/gs-core", "crates/gs"]
+
+[workspace.package]
+version = "0.6.0-dev"
+edition = "2021"
+license = "MIT"
+description = "Global Scripts 6.0 — Rust core (front door + daemon)"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+# preserve_order: keep user JSON key order stable when we rewrite settings.json.
+serde_json = { version = "1", features = ["preserve_order"] }
+
+# Launcher: optimize for a small, fast-starting binary.
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
