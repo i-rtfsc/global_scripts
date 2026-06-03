@@ -599,8 +599,8 @@ pub mod hooks {
     }
 
     /// Render a TOML basic string (double-quoted, minimal escaping). Used for
-    /// each element of the Codex `command = [...]` array, so paths with spaces
-    /// or quotes survive intact.
+    /// the Codex `command = "..."` line, so a `gs` path with spaces or quotes
+    /// survives intact.
     fn toml_str(s: &str) -> String {
         let mut out = String::with_capacity(s.len() + 2);
         out.push('"');
@@ -619,12 +619,36 @@ pub mod hooks {
         out
     }
 
-    /// `command = ["<gs>", "event", "emit", "<evt>", "--source", "codex"]`
-    /// (Codex array/exec form — no shell, no quoting hazard).
+    /// POSIX-shell-quote one argument. Codex runs a `type = "command"` hook by
+    /// handing the `command` string to a shell, so a `gs` path containing spaces
+    /// (or other shell metacharacters) must be quoted to survive word splitting.
+    /// The common `~/.local/bin/gs` path is all-safe and emitted bare.
+    fn shell_quote(arg: &str) -> String {
+        let safe = !arg.is_empty()
+            && arg
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || matches!(c, '/' | '.' | '_' | '-'));
+        if safe {
+            arg.to_string()
+        } else {
+            format!("'{}'", arg.replace('\'', r"'\''"))
+        }
+    }
+
+    /// `command = "<gs> event emit <evt> --source codex"` — unlike Claude Code's
+    /// argv (`command` + `args`), Codex's hook handler takes the command as a
+    /// single *string*; passing a TOML array there fails config loading with
+    /// `invalid type: sequence, expected a string`. We shell-quote the `gs` path
+    /// (Codex runs the string through a shell), append the rest of the argv —
+    /// all space-free literals — and render the line as one TOML basic string.
+    /// The hook payload still arrives on stdin, where `gs event emit` reads the
+    /// session id.
     fn codex_command(emit_event: &str, gs: &str) -> String {
-        let parts = [gs, "event", "emit", emit_event, "--source", SOURCE_CODEX];
-        let quoted: Vec<String> = parts.iter().map(|p| toml_str(p)).collect();
-        format!("[{}]", quoted.join(", "))
+        let line = format!(
+            "{} event emit {emit_event} --source {SOURCE_CODEX}",
+            shell_quote(gs)
+        );
+        toml_str(&line)
     }
 
     /// The TOML array-of-tables for Codex (no markers), each block trailing in a
@@ -849,9 +873,7 @@ pub mod hooks {
             assert!(out.contains(CODEX_BEGIN) && out.contains(CODEX_END));
             assert!(out.contains("[[hooks.SessionStart]]"));
             assert!(out.contains("[[hooks.SessionStart.hooks]]"));
-            assert!(out.contains(
-                "command = [\"gs\", \"event\", \"emit\", \"session.start\", \"--source\", \"codex\"]"
-            ));
+            assert!(out.contains("command = \"gs event emit session.start --source codex\""));
             assert!(codex_installed(&out));
         }
 
@@ -885,7 +907,11 @@ pub mod hooks {
         #[test]
         fn codex_command_path_with_space_is_quoted() {
             let (out, _) = apply_codex("", true, "/Apps/My Tools/gs");
-            assert!(out.contains("command = [\"/Apps/My Tools/gs\", \"event\""));
+            // Codex runs the command via a shell, so a spaced path is single-quoted
+            // inside the TOML string rather than split into argv elements.
+            assert!(out.contains(
+                "command = \"'/Apps/My Tools/gs' event emit session.start --source codex\""
+            ));
             assert!(codex_installed(&out));
         }
     }
