@@ -38,6 +38,11 @@ fn run(args: &[String]) -> i32 {
         Some("hooks") => return cmd_hooks(&args[1..]),
         Some("__complete") => return cmd_complete(&args[1..]),
         Some("completions") => return cmd_completions(&args[1..]),
+        // `plugin migrate` is handled natively (legacy → plugin.toml); the other
+        // `plugin` subcommands (list/enable/disable) still delegate to Python.
+        Some("plugin") if args.get(1).map(String::as_str) == Some("migrate") => {
+            return cmd_plugin_migrate(&args[2..]);
+        }
         Some("help" | "plugin" | "status" | "doctor" | "refresh") => return delegate_python(args),
         _ => {}
     }
@@ -160,19 +165,32 @@ fn dispatch_manifest(p: &LoadedManifest, rest: &[String]) -> i32 {
     }
     let locale = detect_locale();
     let cmds = p.commands(&locale);
-    let Some((name, argv)) = rest.split_first() else {
+    if rest.is_empty() {
         eprintln!("用法: gs {} <命令> [参数…]\n可用命令:", p.manifest.name);
         for c in cmds.iter().filter(|c| !c.hidden) {
             eprintln!(
                 "  {:<18} {}",
-                c.name,
+                c.name.replace('.', " "),
                 pick(&c.summary, &locale).unwrap_or_default()
             );
         }
         return 2;
-    };
-    let Some(cmd) = cmds.iter().find(|c| !c.hidden && &c.name == name) else {
-        eprintln!("错误: 插件 '{}' 没有命令 '{name}'", p.manifest.name);
+    }
+    // Resolve a (possibly `.`-namespaced) command typed either dotted
+    // (`config.show`) or space-separated (`config show`); prefer the longest
+    // path so `a b c` reaches `a.b.c` before falling back to `a.b` / `a`.
+    let resolved = (1..=rest.len()).rev().find_map(|take| {
+        let joined = rest[..take].join(".");
+        cmds.iter()
+            .find(|c| !c.hidden && c.name == joined)
+            .map(|c| (c, &rest[take..]))
+    });
+    let Some((cmd, argv)) = resolved else {
+        eprintln!(
+            "错误: 插件 '{}' 没有命令 '{}'",
+            p.manifest.name,
+            rest.join(" ")
+        );
         return 1;
     };
     match p.manifest.tier {
@@ -489,6 +507,133 @@ fn gsd_listening() -> bool {
     {
         Ok(_) => true,
         Err(e) => e.raw_os_error() == Some(231),
+    }
+}
+
+// ---- `gs plugin migrate` (legacy plugin.json → plugin.toml) ----
+//
+// The only `plugin` subcommand handled natively; list/enable/disable still
+// delegate to Python. Reads a legacy plugin dir, runs the §1.4 transform, then
+// validates the result and either prints it or writes plugin.toml in place.
+
+fn cmd_plugin_migrate(args: &[String]) -> i32 {
+    use gs_core::migrate::{self, MigrateInputs};
+
+    let mut path: Option<&str> = None;
+    let mut write = false;
+    for a in args {
+        match a.as_str() {
+            "--write" | "-w" => write = true,
+            "-h" | "--help" => {
+                println!("用法: gs plugin migrate <插件目录> [--write]");
+                println!("  读取旧 plugin.json(+commands.json) 生成 6.0 plugin.toml。");
+                println!("  默认打印到 stdout；--write 写入 <目录>/plugin.toml（不覆盖已存在文件）。");
+                return 0;
+            }
+            other if other.starts_with('-') => {
+                eprintln!("错误: 未知选项 '{other}'");
+                return 2;
+            }
+            other => path = Some(other),
+        }
+    }
+    let Some(path) = path else {
+        eprintln!("用法: gs plugin migrate <插件目录> [--write]");
+        return 2;
+    };
+
+    // Accept either the plugin dir or its plugin.json directly.
+    let given = Path::new(path);
+    let (dir, manifest) = if given.file_name().map(|f| f == "plugin.json").unwrap_or(false) {
+        (
+            given.parent().unwrap_or(Path::new(".")).to_path_buf(),
+            given.to_path_buf(),
+        )
+    } else {
+        (given.to_path_buf(), given.join("plugin.json"))
+    };
+
+    let plugin_json = match std::fs::read_to_string(&manifest) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("错误: 读取 {} 失败：{e}", manifest.display());
+            return 1;
+        }
+    };
+
+    // Pull in each subplugin's commands.json (paths come from the manifest).
+    let mut sub_commands = Vec::new();
+    match migrate::parse_plugin_json(&plugin_json) {
+        Ok(p) => {
+            for sub in &p.subplugins {
+                if sub.entry.is_empty() {
+                    continue;
+                }
+                let sp = gs_core::index::resolve_under(&dir, &sub.entry);
+                match std::fs::read_to_string(&sp) {
+                    Ok(text) => sub_commands.push((sub.name.clone(), text)),
+                    Err(_) => eprintln!(
+                        "注意: 子插件 '{}' 的 {} 读取失败，已跳过",
+                        sub.name,
+                        sp.display()
+                    ),
+                }
+            }
+        }
+        Err(e) => {
+            eprintln!("错误: {e}");
+            return 1;
+        }
+    }
+
+    let main_commands_json = std::fs::read_to_string(dir.join("commands.json")).ok();
+
+    let out = match migrate::migrate(&MigrateInputs {
+        plugin_json,
+        main_commands_json,
+        sub_commands,
+    }) {
+        Ok(o) => o,
+        Err(e) => {
+            eprintln!("错误: 迁移失败：{e}");
+            return 1;
+        }
+    };
+
+    // Validate before handing it over — a heads-up beats a silent dud.
+    let valid = gs_core::manifest::PluginManifest::parse(&out.toml);
+    for n in &out.notes {
+        eprintln!("注意: {n}");
+    }
+    if let Err(e) = &valid {
+        eprintln!("警告: 生成的 plugin.toml 未通过校验：{e}");
+        eprintln!("      （仍会输出，请人工修正后再用）");
+    }
+
+    if write {
+        let target = dir.join("plugin.toml");
+        if target.exists() {
+            eprintln!(
+                "错误: {} 已存在，拒绝覆盖（手动删除后重试，或省略 --write 看输出）",
+                target.display()
+            );
+            return 1;
+        }
+        if let Err(e) = std::fs::write(&target, &out.toml) {
+            eprintln!("错误: 写入 {} 失败：{e}", target.display());
+            return 1;
+        }
+        println!("已写入 {}", target.display());
+        if let Ok(m) = &valid {
+            println!("校验通过；运行 `gs {} <命令>` 试试。", m.name);
+        }
+    } else {
+        print!("{}", out.toml);
+    }
+    if valid.is_ok() {
+        0
+    } else {
+        1
     }
 }
 
@@ -832,7 +977,7 @@ fn report_status(label: &str, path: Option<PathBuf>, installed: impl Fn(&str) ->
 const SYSTEM_CMDS: &[(&str, &str, &[&str])] = &[
     ("version", "显示版本号", &[]),
     ("help", "显示帮助", &[]),
-    ("plugin", "插件管理（启用/禁用/列表）", &[]),
+    ("plugin", "插件管理（启用/禁用/列表/migrate）", &["migrate"]),
     ("status", "查看状态", &[]),
     ("doctor", "环境体检", &[]),
     ("refresh", "刷新命令索引", &[]),

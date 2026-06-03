@@ -18,6 +18,7 @@ pub mod engine;
 pub mod exec;
 pub mod index;
 pub mod manifest;
+pub mod migrate;
 pub mod rpc;
 
 /// Top-level `router.json` shape. Unknown fields are ignored on purpose: the

@@ -1,0 +1,38 @@
+name = "json-simple"
+version = "1.0.0"
+tier = "declarative"
+description = { zh = "纯JSON配置插件示例 - 演示仅使用JSON配置定义命令", en = "Pure JSON configuration plugin example - demonstrates commands defined only in JSON config" }
+category = "example"
+priority = 90
+author = "Solo"
+homepage = "https://github.com/i-rtfsc/global_scripts"
+license = "MIT"
+keywords = ["example", "json", "configuration", "demo"]
+protocol = 1
+
+[capabilities]
+exec = ["echo"]
+
+[[commands]]
+name = "info"
+summary = { zh = "显示插件基本信息", en = "Show plugin basic information" }
+usage = "gs json-simple info"
+examples = ["gs json-simple info"]
+shell = true
+run = "echo '📋 Plugin: json-simple | Type: Pure JSON | Implementation: Configuration-only | Commands: 3'"
+
+[[commands]]
+name = "status"
+summary = { zh = "显示插件运行状态", en = "Show plugin running status" }
+usage = "gs json-simple status"
+examples = ["gs json-simple status"]
+shell = true
+run = "echo '✅ json-simple Status: Active | Source: examples/json-simple | Config: commands.json only'"
+
+[[commands]]
+name = "demo"
+summary = { zh = "演示插件功能", en = "Demonstrate plugin functionality" }
+usage = "gs json-simple demo"
+examples = ["gs json-simple demo"]
+shell = true
+run = "echo '🎯 json-simple Demo | Feature: JSON commands | No script files needed | Easy to configure'"

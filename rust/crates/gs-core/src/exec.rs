@@ -124,14 +124,56 @@ pub fn render(cmd: &CommandSpec, bound: &Bound) -> Result<Vec<String>, String> {
     Ok(argv)
 }
 
-/// Full T1 plan: bind → render → capability-check argv[0]. Returns the argv to
-/// exec, or a friendly error (missing arg, denied program, …).
+/// Render `cmd.run` as a single shell line (`shell = true`). Placeholders are
+/// substituted textually, but each bound value is single-quote-escaped so a
+/// value can never break out of the command. An arg-free command renders `run`
+/// verbatim — the common case for migrated legacy commands.
+pub fn render_shell(cmd: &CommandSpec, bound: &Bound) -> Result<String, String> {
+    if cmd.run.trim().is_empty() {
+        return Err(format!("命令 '{}' 无 run 模板", cmd.name));
+    }
+    let mut line = cmd.run.clone();
+    for (name, vals) in &bound.values {
+        let joined = vals
+            .iter()
+            .map(|v| shell_quote(v))
+            .collect::<Vec<_>>()
+            .join(" ");
+        line = line.replace(&format!("{{{name}}}"), &joined);
+    }
+    Ok(line)
+}
+
+/// POSIX single-quote escaping: wrap in `'…'`, rewriting any embedded `'` as
+/// `'\''`. Safe to interpolate into a `sh -c` line.
+fn shell_quote(s: &str) -> String {
+    format!("'{}'", s.replace('\'', r"'\''"))
+}
+
+/// The argv that runs `line` through the platform shell.
+fn shell_argv(line: String) -> Vec<String> {
+    if cfg!(windows) {
+        vec!["cmd".into(), "/C".into(), line]
+    } else {
+        vec!["sh".into(), "-c".into(), line]
+    }
+}
+
+/// Full T1 plan: bind → render → capability-check. Exec form gates the rendered
+/// `argv[0]`; shell form (`shell = true`) wraps the line in `sh -c` / `cmd /C`
+/// and gates the line's first word (the program), not the shell itself. Returns
+/// the argv to exec, or a friendly error (missing arg, denied program, …).
 pub fn plan_exec(
     caps: &Capabilities,
     cmd: &CommandSpec,
     argv: &[String],
 ) -> Result<Vec<String>, String> {
     let bound = bind(cmd, argv)?;
+    if cmd.shell {
+        let line = render_shell(cmd, &bound)?;
+        caps::check_exec_line(caps, &line).map_err(|d| d.to_string())?;
+        return Ok(shell_argv(line));
+    }
     let rendered = render(cmd, &bound)?;
     if !caps::allows_exec(caps, &rendered[0]) {
         return Err(Denied::Exec(rendered[0].clone()).to_string());
@@ -289,5 +331,55 @@ mod tests {
         .capabilities;
         let e = plan_exec(&caps2, &evil, &["/tmp/x".into()]).unwrap_err();
         assert!(e.contains("rm"), "denied program surfaced: {e}");
+    }
+
+    const SH: &str = r#"name="x"
+        tier="declarative"
+        [capabilities]
+        exec=["echo"]
+        [[commands]]
+        name="info"
+        shell=true
+        run="echo 'hi there' | cat"
+        [[commands]]
+        name="greet"
+        shell=true
+        run="echo {msg}"
+          [[commands.args]]
+          name="msg"
+          required=true"#;
+
+    #[test]
+    fn shell_mode_wraps_in_shell_and_gates_first_word() {
+        let caps = PluginManifest::parse(SH).unwrap().capabilities;
+        let info = cmd("info", SH);
+        let plan = plan_exec(&caps, &info, &[]).unwrap();
+        assert_eq!(plan.len(), 3, "shell wrapper: <shell> -c/C <line>");
+        assert_eq!(plan[0], if cfg!(windows) { "cmd" } else { "sh" });
+        assert_eq!(plan[2], "echo 'hi there' | cat", "pipe/quotes preserved");
+
+        // The line's first word is gated, not the shell binary.
+        let denied = PluginManifest::parse(
+            r#"name="x"
+               tier="declarative"
+               [capabilities]
+               exec=["git"]
+               [[commands]]
+               name="info"
+               shell=true
+               run="echo nope""#,
+        )
+        .unwrap()
+        .capabilities;
+        let e = plan_exec(&denied, &info, &[]).unwrap_err();
+        assert!(e.contains("echo"), "inner program gated, not the shell: {e}");
+    }
+
+    #[test]
+    fn render_shell_substitutes_and_quotes_values() {
+        let greet = cmd("greet", SH);
+        let b = bind(&greet, &["a b; rm -rf /".into()]).unwrap();
+        // The value is single-quote-escaped, so the `;` can't start a new command.
+        assert_eq!(render_shell(&greet, &b).unwrap(), "echo 'a b; rm -rf /'");
     }
 }
