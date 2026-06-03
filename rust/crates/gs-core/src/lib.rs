@@ -300,6 +300,20 @@ pub fn gsd_socket_path() -> PathBuf {
     PathBuf::from("/tmp/gsd.sock")
 }
 
+/// Windows has no Unix-domain socket, so the gsd control endpoint is a **named
+/// pipe** instead (spec §7). `$GS_GSD_PIPE` overrides; otherwise the name is
+/// scoped per-user under the `\\.\pipe\` namespace so two users on one machine
+/// don't collide. The pipe lives in the kernel object namespace, not the
+/// filesystem — there is no on-disk path to stat.
+#[cfg(windows)]
+pub fn gsd_pipe_name() -> String {
+    if let Some(p) = std::env::var_os("GS_GSD_PIPE") {
+        return p.to_string_lossy().into_owned();
+    }
+    let user = std::env::var("USERNAME").unwrap_or_else(|_| "default".into());
+    format!(r"\\.\pipe\global-scripts-gsd-{user}")
+}
+
 /// Default timeouts (spec §9). Overridable by `gsd` (e.g. via env).
 pub const BUSY_IDLE_MS: u64 = 90_000;
 pub const ERROR_RESET_MS: u64 = 8_000;

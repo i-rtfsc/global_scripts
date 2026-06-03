@@ -456,8 +456,41 @@ fn send_to_gsd(env: &gs_core::Envelope) {
     }
 }
 
-#[cfg(not(unix))]
+// A named-pipe client opens like a file, so the send side needs no FFI: open
+// the pipe for write, push one framed line, drop. gsd absent (file-not-found)
+// or momentarily busy → silent no-op, exactly like the UDS path.
+#[cfg(windows)]
+fn send_to_gsd(env: &gs_core::Envelope) {
+    use std::io::Write;
+    let Ok(mut pipe) = std::fs::OpenOptions::new()
+        .write(true)
+        .open(gs_core::gsd_pipe_name())
+    else {
+        return; // gsd not running → no-op
+    };
+    if let Ok(mut line) = serde_json::to_string(env) {
+        line.push('\n');
+        let _ = pipe.write_all(line.as_bytes());
+    }
+}
+
+#[cfg(not(any(unix, windows)))]
 fn send_to_gsd(_env: &gs_core::Envelope) {}
+
+/// Whether gsd is currently listening, for `gs hooks status`.
+/// Unix: the socket file exists. Windows: opening the pipe succeeds, or fails
+/// with ERROR_PIPE_BUSY (231) — both mean a server is up (just no free instance
+/// this instant).
+#[cfg(windows)]
+fn gsd_listening() -> bool {
+    match std::fs::OpenOptions::new()
+        .write(true)
+        .open(gs_core::gsd_pipe_name())
+    {
+        Ok(_) => true,
+        Err(e) => e.raw_os_error() == Some(231),
+    }
+}
 
 // ---- agent hook install/uninstall (`gs hooks …`) ----
 //
@@ -733,16 +766,32 @@ fn hooks_status(args: &[String]) -> i32 {
         );
     }
     // The light only lights up when gsd is listening — surface that here.
-    let sock = gs_core::gsd_socket_path();
-    println!(
-        "gsd socket: {} · {}",
-        sock.display(),
-        if sock.exists() {
-            "存在"
-        } else {
-            "不存在（状态灯当前不会亮）"
-        }
-    );
+    #[cfg(unix)]
+    {
+        let sock = gs_core::gsd_socket_path();
+        println!(
+            "gsd socket: {} · {}",
+            sock.display(),
+            if sock.exists() {
+                "存在"
+            } else {
+                "不存在（状态灯当前不会亮）"
+            }
+        );
+    }
+    #[cfg(windows)]
+    {
+        let name = gs_core::gsd_pipe_name();
+        println!(
+            "gsd 管道: {} · {}",
+            name,
+            if gsd_listening() {
+                "在线"
+            } else {
+                "离线（状态灯当前不会亮）"
+            }
+        );
+    }
     0
 }
 
