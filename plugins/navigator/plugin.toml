@@ -1,0 +1,75 @@
+name        = "navigator"
+version     = "6.0.0"
+tier        = "declarative"
+description  = { zh = "目录快速导航工具 - 快速跳转到常用开发目录", en = "Directory navigation tool - Quick navigation to common development directories" }
+author      = "Solo"
+homepage    = "https://github.com/i-rtfsc/global_scripts"
+license     = "Apache-2.0"
+category    = "development"
+priority    = 60
+protocol    = 1
+
+# `list` / `status` only print, so they need `echo`.
+[capabilities]
+exec = ["echo"]
+
+# --- 目录跳转（cd 命令）：真正切换 shell 目录需 `gs shell-init <shell>` ---
+
+[[commands]]
+name    = "house"
+summary = { zh = "跳转到 house 项目目录", en = "Navigate to house project directory" }
+cd      = "$HOME/code/github/house"
+
+[[commands]]
+name    = "global-scripts"
+summary = { zh = "跳转到 global_scripts 项目目录", en = "Navigate to global_scripts project directory" }
+cd      = "$HOME/code/github/global_scripts"
+
+[[commands]]
+name    = "as-aosp"
+summary = { zh = "跳转到 as-aosp 项目目录", en = "Navigate to as-aosp project directory" }
+cd      = "$HOME/code/github/as-aosp"
+
+[[commands]]
+name    = "aosp"
+summary = { zh = "跳转到 AOSP 源码目录", en = "Navigate to AOSP source directory" }
+cd      = "$HOME/code/aosp"
+
+[[commands]]
+name    = "lineage"
+summary = { zh = "跳转到 LineageOS 源码目录", en = "Navigate to LineageOS source directory" }
+cd      = "$HOME/code/lineage"
+
+[[commands]]
+name    = "flyme"
+summary = { zh = "跳转到 FlymeOS 源码目录", en = "Navigate to FlymeOS source directory" }
+cd      = "$HOME/code/flyme"
+
+[[commands]]
+name    = "miui"
+summary = { zh = "跳转到 MIUI 源码目录", en = "Navigate to MIUI source directory" }
+cd      = "$HOME/code/miui"
+
+[[commands]]
+name    = "oppo"
+summary = { zh = "跳转到 OPPO 源码目录", en = "Navigate to OPPO source directory" }
+cd      = "$HOME/code/oppo"
+
+[[commands]]
+name    = "vivo"
+summary = { zh = "跳转到 VIVO 源码目录", en = "Navigate to VIVO source directory" }
+cd      = "$HOME/code/vivo"
+
+# --- 信息类（shell 打印，不切目录） ---
+
+[[commands]]
+name    = "list"
+summary = { zh = "列出所有可用目录", en = "List all available directories" }
+shell   = true
+run     = "echo '📂 Navigator 可用目录:' && echo '🏠 house          → $HOME/code/github/house' && echo '🌍 global-scripts → $HOME/code/github/global_scripts' && echo '📱 as-aosp        → $HOME/code/github/as-aosp' && echo '🤖 aosp           → $HOME/code/aosp' && echo '📲 lineage        → $HOME/code/lineage' && echo '🎨 flyme          → $HOME/code/flyme' && echo '🎯 miui           → $HOME/code/miui' && echo '💚 oppo           → $HOME/code/oppo' && echo '💙 vivo           → $HOME/code/vivo'"
+
+[[commands]]
+name    = "status"
+summary = { zh = "显示当前位置与常用根目录", en = "Show current location and common roots" }
+shell   = true
+run     = "echo \"📍 当前位置: $(pwd)\" && echo \"🏠 HOME: $HOME\" && echo \"💻 CODE: $HOME/code\""

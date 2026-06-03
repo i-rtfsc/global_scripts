@@ -38,6 +38,7 @@ fn run(args: &[String]) -> i32 {
         Some("hooks") => return cmd_hooks(&args[1..]),
         Some("__complete") => return cmd_complete(&args[1..]),
         Some("completions") => return cmd_completions(&args[1..]),
+        Some("shell-init") => return cmd_shell_init(&args[1..]),
         // `plugin migrate` is handled natively (legacy → plugin.toml); the other
         // `plugin` subcommands (list/enable/disable) still delegate to Python.
         Some("plugin") if args.get(1).map(String::as_str) == Some("migrate") => {
@@ -193,6 +194,11 @@ fn dispatch_manifest(p: &LoadedManifest, rest: &[String]) -> i32 {
         );
         return 1;
     };
+    // A `cd` command is navigation (chdir), not exec — handle it before the
+    // tier split. The shell wrapper performs the real `cd`; see `exec_cd`.
+    if !cmd.cd.is_empty() {
+        return exec_cd(cmd, argv);
+    }
     match p.manifest.tier {
         Tier::Declarative => exec_t1(p, cmd, argv),
         Tier::Script | Tier::Rpc => invoke_t2(p, cmd, argv, &locale),
@@ -217,6 +223,47 @@ fn exec_t1(p: &LoadedManifest, cmd: &CommandSpec, argv: &[String]) -> i32 {
             2
         }
     }
+}
+
+/// T1 navigation: resolve a command's `cd` target (placeholders + `$VAR`/`~`)
+/// and hand it to the shell. The shell wrapper (`gs shell-init`) exports
+/// `GS_CD_FILE`; we write the resolved path there and it runs the real `cd`.
+/// With no wrapper installed we just print the path (and say how to enable it),
+/// so the command is still informative rather than silently inert.
+fn exec_cd(cmd: &CommandSpec, argv: &[String]) -> i32 {
+    let bound = match gs_core::exec::bind(cmd, argv) {
+        Ok(b) => b,
+        Err(e) => {
+            eprintln!("错误: {e}");
+            return 2;
+        }
+    };
+    let raw = match gs_core::exec::render_cd(cmd, &bound) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("错误: {e}");
+            return 2;
+        }
+    };
+    let path = gs_core::exec::expand_path(&raw, |k| std::env::var(k).ok());
+    if !Path::new(&path).is_dir() {
+        eprintln!("错误: 目录不存在: {path}");
+        return 1;
+    }
+    match std::env::var_os("GS_CD_FILE") {
+        Some(file) => {
+            if let Err(e) = std::fs::write(&file, &path) {
+                eprintln!("错误: 写入 GS_CD_FILE 失败：{e}");
+                return 1;
+            }
+            println!("📁 {path}");
+        }
+        None => {
+            println!("{path}");
+            eprintln!("提示: 未启用 shell 集成，无法切换目录。运行 `gs shell-init <shell>` 安装。");
+        }
+    }
+    0
 }
 
 /// T2: bind args, call the plugin's `invoke` over the one-shot RPC transport,
@@ -992,6 +1039,7 @@ const SYSTEM_CMDS: &[(&str, &str, &[&str])] = &[
         "生成 Tab 补全脚本",
         &["bash", "zsh", "fish", "nushell", "powershell"],
     ),
+    ("shell-init", "生成 gs 外壳函数（cd 集成）", &["bash", "zsh", "fish"]),
 ];
 
 /// `gs __complete <completed words…>` — the F8 engine. Prints candidates one per
@@ -1096,6 +1144,71 @@ fn cmd_completions(args: &[String]) -> i32 {
     print!("{script}");
     0
 }
+
+/// `gs shell-init <shell>` — emit the `gs` shell *function* that gives `cd`
+/// commands their teeth: it runs the real binary with `$GS_CD_FILE` pointed at a
+/// temp file and, if the command wrote a path there, performs the `cd` in the
+/// caller's shell. Completion is fast-pathed (no temp file) so per-Tab latency
+/// is untouched.
+fn cmd_shell_init(args: &[String]) -> i32 {
+    let script = match args.first().map(String::as_str) {
+        Some("bash") | Some("zsh") => SHELLINIT_POSIX,
+        Some("fish") => SHELLINIT_FISH,
+        _ => {
+            eprintln!("用法: gs shell-init <bash|zsh|fish>");
+            eprintln!();
+            eprintln!("作用: 定义 gs 外壳函数，让 `cd` 类命令（如 navigator）真正切换当前 shell 的目录。");
+            eprintln!("启用（选你的 shell）:");
+            eprintln!("  fish: gs shell-init fish > ~/.config/fish/conf.d/gs.fish   # 新开终端生效");
+            eprintln!("  zsh:  echo 'source <(gs shell-init zsh)'  >> ~/.zshrc");
+            eprintln!("  bash: echo 'source <(gs shell-init bash)' >> ~/.bashrc");
+            eprintln!();
+            eprintln!("（nushell / powershell 的 cd 集成待支持）");
+            return 2;
+        }
+    };
+    print!("{script}");
+    0
+}
+
+const SHELLINIT_FISH: &str = r#"# gs fish 外壳集成（cd 支持）。启用：gs shell-init fish > ~/.config/fish/conf.d/gs.fish
+function gs
+    # 补全对延迟敏感且无 cd 副作用——快速直通，不建临时文件。
+    if test (count $argv) -gt 0; and test "$argv[1]" = __complete
+        command gs $argv
+        return $status
+    end
+    set -l __gs_cd (command mktemp)
+    env GS_CD_FILE=$__gs_cd command gs $argv
+    set -l __gs_status $status
+    if test -s $__gs_cd
+        builtin cd (command cat $__gs_cd)
+    end
+    command rm -f $__gs_cd
+    return $__gs_status
+end
+"#;
+
+const SHELLINIT_POSIX: &str = r#"# gs bash/zsh 外壳集成（cd 支持）。
+#   bash: echo 'source <(gs shell-init bash)' >> ~/.bashrc
+#   zsh:  echo 'source <(gs shell-init zsh)'  >> ~/.zshrc
+gs() {
+    # Completion is latency-sensitive and has no cd side-effect — fast-path it.
+    if [ "$1" = __complete ]; then
+        command gs "$@"
+        return $?
+    fi
+    local __gs_cd
+    __gs_cd="$(mktemp)" || { command gs "$@"; return $?; }
+    GS_CD_FILE="$__gs_cd" command gs "$@"
+    local __gs_status=$?
+    if [ -s "$__gs_cd" ]; then
+        builtin cd "$(cat "$__gs_cd")"
+    fi
+    command rm -f "$__gs_cd"
+    return $__gs_status
+}
+"#;
 
 const COMP_BASH: &str = r#"# gs bash completion.  Enable: source <(gs completions bash)
 _gs_complete() {

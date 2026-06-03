@@ -192,6 +192,13 @@ pub struct CommandSpec {
     /// whose `command` field was always a shell string.
     #[serde(default)]
     pub shell: bool,
+    /// T1 navigation: a directory to `cd` into (path template — `$VAR`, `${VAR}`,
+    /// a leading `~`, and `{arg}` placeholders all expand). A command with a
+    /// non-empty `cd` changes the shell's working directory via the `gs` shell
+    /// wrapper (it reads the resolved path from `$GS_CD_FILE`); with no wrapper
+    /// installed it just prints the target. Mutually exclusive with `run`.
+    #[serde(default)]
+    pub cd: String,
     /// Hidden commands are excluded from completion.
     #[serde(default)]
     pub hidden: bool,
@@ -309,8 +316,19 @@ impl PluginManifest {
                     return Err("T1(declarative) 插件禁止设置 `entry`".into());
                 }
                 for c in &self.commands {
-                    if c.run.trim().is_empty() {
-                        return Err(format!("T1 命令 `{}` 必须定义 `run` 模板", c.name));
+                    let has_run = !c.run.trim().is_empty();
+                    let has_cd = !c.cd.trim().is_empty();
+                    if has_run && has_cd {
+                        return Err(format!(
+                            "T1 命令 `{}` 不能同时设置 `run` 和 `cd`",
+                            c.name
+                        ));
+                    }
+                    if !has_run && !has_cd {
+                        return Err(format!(
+                            "T1 命令 `{}` 必须定义 `run` 模板或 `cd` 目标",
+                            c.name
+                        ));
                     }
                 }
             }
