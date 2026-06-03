@@ -159,6 +159,68 @@ fn shell_argv(line: String) -> Vec<String> {
     }
 }
 
+/// Render a `cd` target: substitute `{arg}` placeholders (textually, multiple
+/// values space-joined) into `cmd.cd`. Env-var / `~` expansion is left to
+/// [`expand_path`] (it needs the live environment). Errors if there's no `cd`.
+pub fn render_cd(cmd: &CommandSpec, bound: &Bound) -> Result<String, String> {
+    if cmd.cd.trim().is_empty() {
+        return Err(format!("命令 '{}' 无 cd 目标", cmd.name));
+    }
+    let mut path = cmd.cd.clone();
+    for (name, vals) in &bound.values {
+        path = path.replace(&format!("{{{name}}}"), &vals.join(" "));
+    }
+    Ok(path)
+}
+
+/// Expand a leading `~`, plus `$VAR` and `${VAR}`, using `lookup` (typically the
+/// process environment). A `~` only expands at the start; an unknown variable
+/// expands to empty. Pure so it can be unit-tested without touching real env.
+pub fn expand_path(s: &str, lookup: impl Fn(&str) -> Option<String>) -> String {
+    let mut s = s.to_string();
+    if s == "~" || s.starts_with("~/") {
+        if let Some(home) = lookup("HOME") {
+            s = format!("{home}{}", &s[1..]);
+        }
+    }
+    let mut out = String::with_capacity(s.len());
+    let bytes = s.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] != b'$' {
+            out.push(bytes[i] as char);
+            i += 1;
+            continue;
+        }
+        // `${name}` or `$name` (name = [A-Za-z0-9_]); a bare `$` stays literal.
+        let (name, next) = if i + 1 < bytes.len() && bytes[i + 1] == b'{' {
+            match s[i + 2..].find('}') {
+                Some(end) => (&s[i + 2..i + 2 + end], i + 2 + end + 1),
+                None => {
+                    out.push('$');
+                    i += 1;
+                    continue;
+                }
+            }
+        } else {
+            let start = i + 1;
+            let mut j = start;
+            while j < bytes.len() && (bytes[j].is_ascii_alphanumeric() || bytes[j] == b'_') {
+                j += 1;
+            }
+            (&s[start..j], j)
+        };
+        if name.is_empty() {
+            out.push('$');
+            i += 1;
+        } else {
+            out.push_str(&lookup(name).unwrap_or_default());
+            i = next;
+        }
+    }
+    out
+}
+
 /// Full T1 plan: bind → render → capability-check. Exec form gates the rendered
 /// `argv[0]`; shell form (`shell = true`) wraps the line in `sh -c` / `cmd /C`
 /// and gates the line's first word (the program), not the shell itself. Returns
@@ -381,5 +443,40 @@ mod tests {
         let b = bind(&greet, &["a b; rm -rf /".into()]).unwrap();
         // The value is single-quote-escaped, so the `;` can't start a new command.
         assert_eq!(render_shell(&greet, &b).unwrap(), "echo 'a b; rm -rf /'");
+    }
+
+    #[test]
+    fn expand_path_handles_tilde_and_vars() {
+        let env = |k: &str| match k {
+            "HOME" => Some("/Users/solo".to_string()),
+            "CODE" => Some("/Users/solo/code".to_string()),
+            _ => None,
+        };
+        assert_eq!(expand_path("~/code", env), "/Users/solo/code");
+        assert_eq!(expand_path("$HOME/x", env), "/Users/solo/x");
+        assert_eq!(expand_path("${CODE}/aosp", env), "/Users/solo/code/aosp");
+        // unknown var → empty; a bare `$` and mid-string `~` stay literal.
+        assert_eq!(expand_path("$NOPE/a", env), "/a");
+        assert_eq!(expand_path("a~b$", env), "a~b$");
+    }
+
+    #[test]
+    fn render_cd_substitutes_placeholders() {
+        let c = cmd(
+            "go",
+            r#"name="x"
+               tier="declarative"
+               [[commands]]
+               name="go"
+               cd="$HOME/code/{repo}"
+                 [[commands.args]]
+                 name="repo"
+                 required=true"#,
+        );
+        let b = bind(&c, &["aosp".into()]).unwrap();
+        assert_eq!(render_cd(&c, &b).unwrap(), "$HOME/code/aosp");
+        // a command with no `cd` target errors.
+        let info = cmd("info", SH);
+        assert!(render_cd(&info, &Bound::default()).is_err());
     }
 }
