@@ -1,0 +1,19 @@
+name        = "devenv"
+version     = "1.0.0"
+tier        = "script"
+runtime     = "python"
+entry       = "devenv6.py"
+description  = { zh = "开发环境管理工具 - 快速安装和配置开发工具", en = "Development Environment Manager - Quick setup for development tools" }
+author      = "Solo"
+category    = "development"
+priority    = 50
+protocol    = 1
+describe_cache = "runtime"
+
+# T2 plugins run their own subprocesses (the core doesn't gate those), so these
+# are advisory/documentation: `env` is the slice the core passes through to the
+# plugin; `exec` records the package managers `install` shells out to. The
+# per-tool `check` probes (e.g. `java -version`) also run as subprocesses.
+[capabilities]
+env  = ["PATH", "HOME"]
+exec = ["brew", "apt-get", "sudo", "sh", "bash"]
