@@ -262,7 +262,8 @@ pub struct PluginManifest {
 impl PluginManifest {
     /// Parse a `plugin.toml` string, then validate tier invariants.
     pub fn parse(toml_text: &str) -> Result<Self, String> {
-        let m: PluginManifest = toml::from_str(toml_text).map_err(|e| e.to_string())?;
+        let m: PluginManifest =
+            toml::from_str(toml_text).map_err(|e| format!("TOML 解析失败：{e}"))?;
         m.validate()?;
         Ok(m)
     }
@@ -285,6 +286,11 @@ impl PluginManifest {
     pub fn validate(&self) -> Result<(), String> {
         if self.name.trim().is_empty() {
             return Err("plugin.toml: `name` 不能为空".into());
+        }
+        for c in &self.commands {
+            if c.name.trim().is_empty() {
+                return Err("plugin.toml: 每个 [[commands]] 必须有非空 `name`".into());
+            }
         }
         match self.tier {
             Tier::Declarative => {

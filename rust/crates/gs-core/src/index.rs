@@ -174,6 +174,38 @@ impl Registry {
             .into_iter()
             .find(|p| p.manifest.name == name)
     }
+
+    /// Like [`find`], but tells a *missing* plugin apart from a *broken* one:
+    ///   - `Ok(Some(_))` — found and valid → dispatch it.
+    ///   - `Ok(None)` — no `plugin.toml` for `name` → caller falls back (legacy
+    ///     router.json / Python).
+    ///   - `Err(msg)` — `<root>/<name>/plugin.toml` exists but is invalid → the
+    ///     front door reports `msg` instead of silently delegating, so a broken
+    ///     manifest surfaces the moment you run the plugin.
+    ///
+    /// Only the fast path (directory named after the plugin) reports errors; the
+    /// by-name fallback stays lenient (a malformed sibling shouldn't block an
+    /// unrelated command).
+    pub fn find_checked(roots: &[PathBuf], name: &str) -> Result<Option<LoadedManifest>, String> {
+        for root in roots {
+            let dir = root.join(name);
+            let toml = dir.join("plugin.toml");
+            let Ok(text) = std::fs::read_to_string(&toml) else {
+                continue; // no manifest here → try the next root
+            };
+            return match PluginManifest::parse(&text) {
+                Ok(manifest) if manifest.name == name => Ok(Some(LoadedManifest { manifest, dir })),
+                // Dir matches but the declared name differs — unusual; keep the
+                // lenient by-name scan below rather than erroring.
+                Ok(_) => break,
+                Err(e) => Err(format!("{}：{e}", toml.display())),
+            };
+        }
+        Ok(Registry::discover(roots)
+            .plugins
+            .into_iter()
+            .find(|p| p.manifest.name == name))
+    }
 }
 
 /// Map a manifest `runtime` to the program to spawn. `python` resolves to
@@ -186,14 +218,24 @@ pub fn runtime_program(runtime: &str) -> String {
     }
 }
 
-/// Default plugin-discovery roots: `$GS_ROOT/plugins` and `$GS_ROOT/examples`
-/// when `GS_ROOT` is set. The front door may prepend others.
+/// Plugin-discovery roots, highest priority first (earlier roots shadow later
+/// ones for a given plugin name):
+///   1. `$GS_PLUGIN_PATH` — explicit, `:`-separated override (power users).
+///   2. `$GS_ROOT/plugins` + `$GS_ROOT/examples` — the repo / dev tree.
+///   3. `~/.config/global-scripts/plugins` — user-installed plugins; the durable
+///      location that works with **no** `GS_ROOT` set.
 pub fn default_roots() -> Vec<PathBuf> {
     let mut roots = Vec::new();
+    if let Some(pp) = std::env::var_os("GS_PLUGIN_PATH") {
+        roots.extend(std::env::split_paths(&pp));
+    }
     if let Some(gs_root) = std::env::var_os("GS_ROOT") {
         let r = PathBuf::from(gs_root);
         roots.push(r.join("plugins"));
         roots.push(r.join("examples"));
+    }
+    if let Some(home) = crate::home_dir() {
+        roots.push(home.join(".config/global-scripts/plugins"));
     }
     roots
 }
@@ -341,5 +383,47 @@ mod tests {
         assert_eq!(cmds.len(), 1, "tree fetched via describe RPC");
         assert_eq!(cmds[0].name, "hello");
         let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn find_checked_reports_invalid_and_distinguishes_missing() {
+        let root = scratch("find-checked");
+        write_plugin(
+            &root,
+            "ok",
+            r#"name="ok"
+               tier="declarative"
+               [[commands]]
+               name="x"
+               run="true""#,
+        );
+        // Broken: a T1 plugin may not declare `runtime` (validate rejects it).
+        write_plugin(
+            &root,
+            "broken",
+            "name=\"broken\"\ntier=\"declarative\"\nruntime=\"python\"\n",
+        );
+        let roots = std::slice::from_ref(&root);
+
+        assert!(matches!(Registry::find_checked(roots, "ok"), Ok(Some(_))));
+        assert!(
+            matches!(Registry::find_checked(roots, "missing"), Ok(None)),
+            "no manifest → delegate, not error"
+        );
+        let err = Registry::find_checked(roots, "broken").unwrap_err();
+        assert!(
+            err.contains("broken") && err.contains("runtime"),
+            "error names the file and the reason; got: {err}"
+        );
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn default_roots_puts_explicit_path_first() {
+        let _g = crate::cache::test_isolate("index-roots");
+        std::env::set_var("GS_PLUGIN_PATH", "/opt/gs-plugins");
+        let roots = default_roots();
+        assert_eq!(roots.first(), Some(&PathBuf::from("/opt/gs-plugins")));
+        std::env::remove_var("GS_PLUGIN_PATH");
     }
 }
