@@ -247,14 +247,25 @@ mod tray {
             event_loop.set_activation_policy(ActivationPolicy::Accessory);
         }
 
-        let frame = Duration::from_millis(70); // ~14 fps; the breath is slow, so smooth
+        // ≤10 fps cap, and we only tick while a light is lit. The breath is slow,
+        // so this is plenty smooth — and we redraw the menu-bar icon only when its
+        // *visible* state actually changed (see `drawn` below).
+        let frame = Duration::from_millis(100);
         let start = Instant::now();
         let mut tray: Option<TrayIcon> = None;
         let mut current: Option<Color> = None;
         let mut sessions: Vec<String> = Vec::new();
+        // (color, quantized brightness) last actually pushed to the status bar.
+        // macOS turns every `set_icon` into an AppKit/WindowServer redraw, so we
+        // skip it whenever the visible icon would be identical.
+        let mut drawn: Option<(Option<Color>, u8)> = None;
 
         event_loop.run(move |event, _, control_flow| {
-            match event {
+            // Only these events advance a frame. tao emits several housekeeping
+            // events per loop turn (MainEventsCleared, RedrawEventsCleared, …);
+            // redrawing on each of them turned one tick into ~40 menu-bar redraws
+            // a second — the source of the whole-machine lag.
+            let tick = match event {
                 Event::NewEvents(StartCause::Init) => {
                     match TrayIconBuilder::new()
                         .with_tooltip("gsd — 状态灯")
@@ -265,7 +276,9 @@ mod tray {
                         Ok(t) => tray = Some(t),
                         Err(e) => eprintln!("gsd: 创建托盘失败: {e}"),
                     }
+                    true
                 }
+                Event::NewEvents(StartCause::ResumeTimeReached { .. }) => true,
                 Event::UserEvent(UserEvent::Update(agg, sess)) => {
                     current = agg;
                     sessions = sess;
@@ -273,6 +286,7 @@ mod tray {
                         t.set_menu(Some(Box::new(build_menu(&sessions))));
                         let _ = t.set_tooltip(Some(tooltip_text(&sessions)));
                     }
+                    true
                 }
                 Event::UserEvent(UserEvent::Menu(id)) => {
                     if id.0 == QUIT_ID {
@@ -280,14 +294,31 @@ mod tray {
                         // so a deliberate Quit (exit 0) is NOT relaunched.
                         std::process::exit(0);
                     }
+                    false
                 }
-                _ => {} // timer wake → just advance the breath below
+                _ => false,
+            };
+
+            // Breathe only when there's motion to convey: busy (yellow) or
+            // needs-you (red). Idle/green and off hold steady, so the loop parks
+            // on `Wait` — zero redraws whenever you're not being worked for, which
+            // is most of the day.
+            let breathing = matches!(current, Some(Color::Yellow) | Some(Color::Red));
+
+            if tick {
+                if let Some(t) = &tray {
+                    let b = if breathing { breath(start.elapsed()) } else { 1.0 };
+                    // Quantize to ~16 levels: imperceptible on a 4 s breath, but it
+                    // collapses per-frame churn to a handful of redraws a second.
+                    let key = (current, (b * 16.0) as u8);
+                    if drawn != Some(key) {
+                        let _ = t.set_icon(Some(icon_for(current, b)));
+                        drawn = Some(key);
+                    }
+                }
             }
 
-            if let Some(t) = &tray {
-                let _ = t.set_icon(Some(icon_for(current, breath(start.elapsed()))));
-            }
-            *control_flow = if current.is_some() {
+            *control_flow = if breathing {
                 ControlFlow::WaitUntil(Instant::now() + frame)
             } else {
                 ControlFlow::Wait
@@ -331,12 +362,12 @@ mod tray {
         menu
     }
 
-    /// Breathing brightness in [0.3, 1.0] — a smooth cosine ease, ~3.2s/cycle.
+    /// Breathing brightness in [0.4, 1.0] — a smooth cosine ease, ~4s/cycle.
     fn breath(elapsed: Duration) -> f32 {
-        const PERIOD: f32 = 3.2;
+        const PERIOD: f32 = 4.0;
         let phase = (elapsed.as_secs_f32() / PERIOD) * std::f32::consts::TAU;
         let eased = 0.5 - 0.5 * phase.cos(); // 0 → 1 → 0, eased at both ends
-        0.3 + 0.7 * eased
+        0.4 + 0.6 * eased
     }
 
     fn icon_for(agg: Option<Color>, brightness: f32) -> Icon {
