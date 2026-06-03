@@ -184,6 +184,14 @@ pub struct CommandSpec {
     /// T1 exec template (argv with `{arg}` placeholders); ignored by T2+.
     #[serde(default)]
     pub run: String,
+    /// T1 only: run `run` through the system shell (`sh -c` / `cmd /C`) as a
+    /// single line instead of exec-form argv splitting — needed for pipes,
+    /// quoting, redirects, globs and `&&`. The `exec` capability still gates the
+    /// line's first word; placeholders substitute textually (values are
+    /// shell-quoted). This is the faithful target for migrated legacy commands,
+    /// whose `command` field was always a shell string.
+    #[serde(default)]
+    pub shell: bool,
     /// Hidden commands are excluded from completion.
     #[serde(default)]
     pub hidden: bool,

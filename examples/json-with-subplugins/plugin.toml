@@ -1,0 +1,70 @@
+name = "json-with-subplugins"
+version = "1.0.0"
+tier = "declarative"
+description = { zh = "带子插件的JSON插件示例 - 演示JSON主插件与子插件结构", en = "JSON plugin with subplugins example - demonstrates JSON main plugin with subplugin structure" }
+category = "example"
+priority = 90
+author = "Solo"
+homepage = "https://github.com/i-rtfsc/global_scripts"
+license = "MIT"
+keywords = ["example", "json", "subplugins", "configuration", "demo"]
+protocol = 1
+
+[capabilities]
+exec = ["echo"]
+
+[[commands]]
+name = "info"
+summary = { zh = "显示主插件信息", en = "Show main plugin information" }
+usage = "gs json-with-subplugins info"
+examples = ["gs json-with-subplugins info"]
+shell = true
+run = "echo '📋 json-with-subplugins Main Info | Type: JSON with Subplugins | Subplugins: config, utility | Total Commands: 7'"
+
+[[commands]]
+name = "list_subplugins"
+summary = { zh = "列出所有子插件", en = "List all subplugins" }
+usage = "gs json-with-subplugins list_subplugins"
+examples = ["gs json-with-subplugins list_subplugins"]
+shell = true
+run = "echo '📂 json-with-subplugins Subplugins: | 1. config (配置管理) | 2. utility (实用工具)'"
+
+[[commands]]
+name = "config.show"
+summary = { zh = "显示配置信息", en = "Show configuration information" }
+usage = "gs json-with-subplugins config show"
+examples = ["gs json-with-subplugins config show"]
+shell = true
+run = "echo '⚙️ json-with-subplugins config show | Subplugin: config | Type: JSON | Function: Show configuration'"
+
+[[commands]]
+name = "config.validate"
+summary = { zh = "验证配置有效性", en = "Validate configuration validity" }
+usage = "gs json-with-subplugins config validate"
+examples = ["gs json-with-subplugins config validate"]
+shell = true
+run = "echo '✅ json-with-subplugins config validate | Subplugin: config | Status: Valid | All settings OK'"
+
+[[commands]]
+name = "utility.test"
+summary = { zh = "测试实用工具", en = "Test utility tools" }
+usage = "gs json-with-subplugins utility test"
+examples = ["gs json-with-subplugins utility test"]
+shell = true
+run = "echo '🧪 json-with-subplugins utility test | Subplugin: utility | Type: JSON | Function: Test utilities'"
+
+[[commands]]
+name = "utility.benchmark"
+summary = { zh = "运行性能基准测试", en = "Run performance benchmark" }
+usage = "gs json-with-subplugins utility benchmark"
+examples = ["gs json-with-subplugins utility benchmark"]
+shell = true
+run = "echo '📊 json-with-subplugins utility benchmark | Subplugin: utility | Performance: Excellent | Time: $(date +%s)ms'"
+
+[[commands]]
+name = "utility.info"
+summary = { zh = "显示工具子插件信息", en = "Show utility subplugin information" }
+usage = "gs json-with-subplugins utility info"
+examples = ["gs json-with-subplugins utility info"]
+shell = true
+run = "echo '📋 json-with-subplugins utility info | Subplugin: utility | Parent: json-with-subplugins | Commands: 3'"
