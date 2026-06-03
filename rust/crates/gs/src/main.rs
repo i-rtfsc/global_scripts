@@ -42,13 +42,19 @@ fn run(args: &[String]) -> i32 {
         _ => {}
     }
 
-    // GS 6.0 plugin.toml plugins win over the legacy router.json path. The
-    // targeted load keeps this hot path to a single stat + manifest parse.
-    if let Some(p) = args
-        .first()
-        .and_then(|name| Registry::find(&engine_roots(), name))
-    {
-        return dispatch_manifest(&p, &args[1..]);
+    // GS 6.0 plugin.toml plugins win over the legacy router.json path. A broken
+    // manifest for the named plugin is reported here (not silently delegated),
+    // so `gs <plugin>` tells you *why* it didn't run.
+    if let Some(name) = args.first() {
+        match Registry::find_checked(&engine_roots(), name) {
+            Ok(Some(p)) => return dispatch_manifest(&p, &args[1..]),
+            Ok(None) => {}
+            Err(msg) => {
+                eprintln!("错误: 插件 '{name}' 的 plugin.toml 无效：");
+                eprintln!("  {msg}");
+                return 1;
+            }
+        }
     }
 
     let Some(path) = router_index_path() else {
