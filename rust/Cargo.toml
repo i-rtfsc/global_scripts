@@ -12,6 +12,8 @@ description = "Global Scripts 6.0 — Rust core (front door + daemon)"
 serde = { version = "1", features = ["derive"] }
 # preserve_order: keep user JSON key order stable when we rewrite settings.json.
 serde_json = { version = "1", features = ["preserve_order"] }
+# plugin.toml manifests (GS 6.0 plugin protocol — tmp/phase0-plugin-protocol.md §1).
+toml = "0.8"
 
 # Launcher: optimize for a small, fast-starting binary.
 [profile.release]
