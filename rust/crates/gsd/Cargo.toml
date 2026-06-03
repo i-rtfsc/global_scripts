@@ -15,6 +15,18 @@ serde_json.workspace = true
 tao = { version = "0.35.3", optional = true }
 tray-icon = { version = "0.24.0", optional = true }
 
+# The control endpoint is a Unix-domain socket on unix and a named pipe on
+# Windows (spec §7). The named-pipe *server* needs Win32 calls std doesn't wrap
+# (CreateNamedPipe / ConnectNamedPipe); pull them in only on Windows.
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = [
+    "Win32_Foundation",
+    "Win32_System_Pipes",
+    "Win32_System_IO",
+    "Win32_Storage_FileSystem",
+    "Win32_Security",
+] }
+
 [features]
 # `tray` adds the cross-platform menu-bar/tray light (spec §8). Without it, gsd
 # builds tiny and headless (terminal renderer only) — good for CI / servers.
