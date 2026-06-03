@@ -13,6 +13,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 pub mod caps;
+pub mod cache;
 pub mod engine;
 pub mod exec;
 pub mod index;
@@ -1142,7 +1143,7 @@ pub mod completion {
 
     /// One completion candidate: the token plus an optional description (shown
     /// by zsh/fish; ignored by bash).
-    #[derive(Debug, Clone, PartialEq, Eq)]
+    #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
     pub struct Candidate {
         pub value: String,
         pub description: Option<String>,
