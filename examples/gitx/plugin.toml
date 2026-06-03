@@ -1,0 +1,39 @@
+name        = "gitx"
+version     = "1.0.0"
+tier        = "declarative"
+description  = { zh = "Git 快捷封装", en = "Git shortcuts" }
+category    = "development"
+priority    = 30
+protocol    = 1
+
+[capabilities]
+exec = ["git", "code"]
+
+[[commands]]
+name    = "co"
+summary = { zh = "切换分支", en = "Checkout branch" }
+run     = "git checkout {branch}"
+examples = ["gs gitx co main"]
+
+  [[commands.args]]
+  name        = "branch"
+  type        = "string"
+  required    = true
+  description = { zh = "目标分支", en = "Target branch" }
+
+    [commands.args.complete]
+    kind    = "dynamic"
+    command = "git for-each-ref --format=%(refname:short) refs/heads"
+
+[[commands]]
+name    = "open"
+summary = { zh = "用 VSCode 打开目录", en = "Open directory in VSCode" }
+run     = "code {dir}"
+
+  [[commands.args]]
+  name        = "dir"
+  type        = "path"
+  description = { zh = "要打开的目录", en = "Directory to open" }
+
+    [commands.args.complete]
+    kind = "dir"

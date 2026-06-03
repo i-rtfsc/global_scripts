@@ -1,0 +1,41 @@
+name        = "demo"
+version     = "1.0.0"
+tier        = "script"
+runtime     = "python"
+entry       = "plugin.py"
+description  = { zh = "GS 6.0 Python 示例插件", en = "GS 6.0 Python demo plugin" }
+category    = "development"
+priority    = 50
+protocol    = 1
+describe_cache = "runtime"
+
+[capabilities]
+exec = ["echo"]
+
+[[commands]]
+name    = "greet"
+summary = { zh = "打招呼", en = "Greet someone" }
+usage   = "gs demo greet <name>"
+examples = ["gs demo greet world"]
+
+  [[commands.args]]
+  name        = "name"
+  type        = "string"
+  required    = true
+  description = { zh = "要问候的名字", en = "Name to greet" }
+
+[[commands]]
+name    = "paint"
+summary = { zh = "涂色", en = "Paint with a color" }
+usage   = "gs demo paint --color <color>"
+examples = ["gs demo paint --color red"]
+
+  [[commands.args]]
+  name        = "color"
+  type        = "string"
+  flag        = "--color"
+  description = { zh = "颜色", en = "Color to paint with" }
+
+    [commands.args.complete]
+    kind   = "dynamic"
+    source = "colors"
