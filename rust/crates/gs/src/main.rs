@@ -12,6 +12,8 @@
 //! eventual design routes those through a thin `gs` wrapper that `eval`s
 //! emitted shell; out of scope for this startup-latency PoC.
 
+use gs_core::index::{LoadedManifest, Registry};
+use gs_core::manifest::CommandSpec;
 use gs_core::{load_router, resolve, router_index_path, CommandEntry, Resolution};
 use std::process::Command;
 
@@ -38,6 +40,15 @@ fn run(args: &[String]) -> i32 {
         Some("completions") => return cmd_completions(&args[1..]),
         Some("help" | "plugin" | "status" | "doctor" | "refresh") => return delegate_python(args),
         _ => {}
+    }
+
+    // GS 6.0 plugin.toml plugins win over the legacy router.json path. The
+    // targeted load keeps this hot path to a single stat + manifest parse.
+    if let Some(p) = args
+        .first()
+        .and_then(|name| Registry::find(&engine_roots(), name))
+    {
+        return dispatch_manifest(&p, &args[1..]);
     }
 
     let Some(path) = router_index_path() else {
@@ -120,6 +131,166 @@ fn dispatch_shell(plugin: &str, entry: &CommandEntry, rest: &[String]) -> i32 {
     let mut c = Command::new("bash");
     c.arg("-c").arg(program).arg("bash").args(rest);
     exec_or_status(c)
+}
+
+// ---- GS 6.0 plugin.toml dispatch (T1 exec / T2 invoke) ----
+//
+// plugin.toml plugins take precedence over the legacy router.json path. T1
+// (declarative) renders its `run` template to an argv and execs it (no shell,
+// capability-gated); T2 (script) speaks JSON-RPC over stdio via the one-shot
+// transport. Spec: tmp/phase0-plugin-protocol.md §5 / §6 #7.
+
+/// Plugin-discovery roots for the engine (`$GS_ROOT/{plugins,examples}`).
+fn engine_roots() -> Vec<PathBuf> {
+    gs_core::index::default_roots()
+}
+
+/// Dispatch `gs <plugin> <command> [args…]` for a plugin.toml plugin.
+fn dispatch_manifest(p: &LoadedManifest, rest: &[String]) -> i32 {
+    use gs_core::manifest::{pick, Tier};
+    if !p.manifest.enabled {
+        eprintln!("错误: 插件 '{}' 已被禁用", p.manifest.name);
+        return 1;
+    }
+    let locale = detect_locale();
+    let cmds = p.commands(&locale);
+    let Some((name, argv)) = rest.split_first() else {
+        eprintln!("用法: gs {} <命令> [参数…]\n可用命令:", p.manifest.name);
+        for c in cmds.iter().filter(|c| !c.hidden) {
+            eprintln!(
+                "  {:<18} {}",
+                c.name,
+                pick(&c.summary, &locale).unwrap_or_default()
+            );
+        }
+        return 2;
+    };
+    let Some(cmd) = cmds.iter().find(|c| !c.hidden && &c.name == name) else {
+        eprintln!("错误: 插件 '{}' 没有命令 '{name}'", p.manifest.name);
+        return 1;
+    };
+    match p.manifest.tier {
+        Tier::Declarative => exec_t1(p, cmd, argv),
+        Tier::Script | Tier::Rpc => invoke_t2(p, cmd, argv, &locale),
+        Tier::Wasm => {
+            eprintln!("错误: T4(wasm) 插件暂未实现");
+            1
+        }
+    }
+}
+
+/// T1: render the `run` template to an argv (capability-gated) and exec it in
+/// the user's current directory.
+fn exec_t1(p: &LoadedManifest, cmd: &CommandSpec, argv: &[String]) -> i32 {
+    match gs_core::exec::plan_exec(&p.manifest.capabilities, cmd, argv) {
+        Ok(rendered) => {
+            let mut c = Command::new(&rendered[0]);
+            c.args(&rendered[1..]);
+            exec_or_status(c)
+        }
+        Err(e) => {
+            eprintln!("错误: {e}");
+            2
+        }
+    }
+}
+
+/// T2: bind args, call the plugin's `invoke` over the one-shot RPC transport,
+/// replay streamed output/log events, and propagate the exit code.
+///
+/// Caveat: the one-shot transport reads the plugin's stdout to EOF, so streamed
+/// `output` events are replayed *after* the command finishes rather than live —
+/// real-time streaming is a later enhancement.
+fn invoke_t2(p: &LoadedManifest, cmd: &CommandSpec, argv: &[String], locale: &str) -> i32 {
+    use gs_core::{caps, exec, rpc};
+    use std::io::{IsTerminal, Write};
+
+    let bound = match exec::bind(cmd, argv) {
+        Ok(b) => b,
+        Err(e) => {
+            eprintln!("错误: {e}");
+            return 2;
+        }
+    };
+    // Single value → string, multiple → array (per the describe arg's shape).
+    let mut args_json = serde_json::Map::new();
+    for (k, v) in &bound.values {
+        let val = if v.len() == 1 {
+            serde_json::Value::String(v[0].clone())
+        } else {
+            serde_json::Value::Array(v.iter().cloned().map(serde_json::Value::String).collect())
+        };
+        args_json.insert(k.clone(), val);
+    }
+    let full_env: std::collections::BTreeMap<String, String> = std::env::vars().collect();
+    let env = caps::filter_env(&p.manifest.capabilities, &full_env);
+    let cwd = std::env::current_dir()
+        .map(|d| d.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let params = serde_json::json!({
+        "command": cmd.name,
+        "args": args_json,
+        "cwd": cwd,
+        "env": env,
+        "context": { "locale": locale, "tty": std::io::stdout().is_terminal() },
+        "capabilities": {
+            "exec": p.manifest.capabilities.exec,
+            "env": p.manifest.capabilities.env,
+        },
+    });
+    let Some((prog, pargs)) = p.spawn() else {
+        eprintln!("错误: 无法确定插件 '{}' 的启动方式", p.manifest.name);
+        return 1;
+    };
+    let req = rpc::request(1, "invoke", params);
+    match rpc::call_oneshot(&prog, &pargs, Some(&p.dir), &[req], false) {
+        Ok(ex) => {
+            let mut streamed = false;
+            for e in &ex.events {
+                match e.get("type").and_then(|v| v.as_str()) {
+                    Some("output") => {
+                        streamed = true;
+                        let chunk = e.get("chunk").and_then(|v| v.as_str()).unwrap_or("");
+                        if e.get("stream").and_then(|v| v.as_str()) == Some("stderr") {
+                            let _ = write!(std::io::stderr(), "{chunk}");
+                        } else {
+                            let _ = write!(std::io::stdout(), "{chunk}");
+                        }
+                    }
+                    Some("log") => {
+                        if let Some(m) = e.get("message").and_then(|v| v.as_str()) {
+                            eprintln!("[{}] {m}", p.manifest.name);
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            if let Some(result) = ex.result_for(1) {
+                if !streamed {
+                    if let Some(s) = result.get("stdout").and_then(|v| v.as_str()) {
+                        print!("{s}");
+                    }
+                }
+                result
+                    .get("exit_code")
+                    .and_then(|v| v.as_i64())
+                    .unwrap_or(0) as i32
+            } else if let Some(err) = ex.error_for(1) {
+                eprintln!(
+                    "错误: 插件 '{}' invoke 失败: {}",
+                    p.manifest.name, err.message
+                );
+                1
+            } else {
+                eprintln!("错误: 插件 '{}' 未返回结果", p.manifest.name);
+                1
+            }
+        }
+        Err(e) => {
+            eprintln!("错误: 启动插件 '{}' 失败: {e}", p.manifest.name);
+            127
+        }
+    }
 }
 
 /// Hand the full argv to the existing Python CLI.
@@ -595,36 +766,110 @@ fn report_status(label: &str, path: Option<PathBuf>, installed: impl Fn(&str) ->
 //
 // F8 (design.md §14 / §13 Q5): jq-free completion. The shell scripts call
 // `gs __complete <completed words>`; the Rust core reads router.json and prints
-// the candidate tokens for the next position; the shell filters by the partial.
+// one candidate per line — `value` or `value\tdescription` (locale-picked). The
+// shell filters by the partial and shows the description where it can (zsh/fish/
+// nu/pwsh; bash drops it).
 
-/// Front-door commands and their subcommands, for top-level/`<cmd>` completion.
-/// (`__complete` itself is intentionally hidden.)
-const SYSTEM_CMDS: &[(&str, &[&str])] = &[
-    ("version", &[]),
-    ("help", &[]),
-    ("plugin", &[]),
-    ("status", &[]),
-    ("doctor", &[]),
-    ("refresh", &[]),
-    ("event", &["emit"]),
-    ("hooks", &["install", "uninstall", "status"]),
+/// Front-door commands as `(name, one-line summary, subcommands)`, for
+/// top-level/`<cmd>` completion. (`__complete` itself is intentionally hidden.)
+/// Summaries are locale-agnostic single strings — only plugin/command
+/// descriptions (from router.json) are locale-picked.
+const SYSTEM_CMDS: &[(&str, &str, &[&str])] = &[
+    ("version", "显示版本号", &[]),
+    ("help", "显示帮助", &[]),
+    ("plugin", "插件管理（启用/禁用/列表）", &[]),
+    ("status", "查看状态", &[]),
+    ("doctor", "环境体检", &[]),
+    ("refresh", "刷新命令索引", &[]),
+    ("event", "上报 Agent 状态事件", &["emit"]),
+    (
+        "hooks",
+        "安装/卸载状态灯 hooks",
+        &["install", "uninstall", "status"],
+    ),
     (
         "completions",
+        "生成 Tab 补全脚本",
         &["bash", "zsh", "fish", "nushell", "powershell"],
     ),
 ];
 
-/// `gs __complete <completed words…>` — print candidate tokens, one per line.
-/// Quiet and best-effort: a missing/corrupt router.json just yields the
-/// front-door commands.
+/// `gs __complete <completed words…>` — the F8 engine. Prints candidates one per
+/// line as `value` or `value\tdescription` (locale-picked), then a final
+/// Cobra-style directive line `:<bits>` controlling file/dir fallback. Merges
+/// three sources: front-door commands, plugin.toml plugins (with dynamic arg
+/// rules), and legacy router.json plugins. Quiet and best-effort.
 fn cmd_complete(completed: &[String]) -> i32 {
+    use gs_core::engine;
+    let locale = detect_locale();
+    let registry = Registry::discover(&engine_roots());
     let router = router_index_path()
         .and_then(|p| load_router(&p).ok())
         .unwrap_or_default();
-    for cand in gs_core::completion::complete(&router, SYSTEM_CMDS, completed) {
-        println!("{cand}");
+
+    // Engine: front-door commands + plugin.toml plugins (+ dynamic arg rules).
+    let mut comp = engine::complete(&registry, SYSTEM_CMDS, completed, &locale);
+
+    // Merge in legacy router.json plugins so old-style plugins still complete.
+    match completed {
+        [] => {
+            let have: std::collections::BTreeSet<String> =
+                comp.candidates.iter().map(|c| c.value.clone()).collect();
+            for cand in gs_core::completion::complete(&router, SYSTEM_CMDS, completed, &locale) {
+                if !have.contains(&cand.value) {
+                    comp.candidates.push(cand);
+                }
+            }
+        }
+        [head, ..] => {
+            // First token is neither a front-door command nor a plugin.toml
+            // plugin → defer to legacy router completion for that plugin.
+            let is_system = SYSTEM_CMDS.iter().any(|(c, _, _)| c == head);
+            let is_manifest = registry.enabled().any(|p| &p.manifest.name == head);
+            if !is_system && !is_manifest {
+                comp.candidates =
+                    gs_core::completion::complete(&router, SYSTEM_CMDS, completed, &locale);
+                comp.directive = engine::directive::NO_FILE;
+            }
+        }
     }
+
+    comp.candidates.sort_by(|a, b| a.value.cmp(&b.value));
+    comp.candidates.dedup_by(|a, b| a.value == b.value);
+
+    let mut out = String::new();
+    for c in &comp.candidates {
+        out.push_str(&c.value);
+        if let Some(desc) = &c.description {
+            out.push('\t');
+            out.push_str(desc);
+        }
+        out.push('\n');
+    }
+    // Cobra-style directive on the final line; the shell scripts strip it.
+    out.push_str(&format!(":{}\n", comp.directive));
+    print!("{out}");
     0
+}
+
+/// Best-effort UI locale for completion descriptions: `GS_LANG` → `LC_ALL` →
+/// `LC_MESSAGES` → `LANG`, reduced to the language subtag (`zh_CN.UTF-8` → `zh`).
+/// Defaults to "en"; `completion::complete` still falls back en → zh → any.
+fn detect_locale() -> String {
+    for key in ["GS_LANG", "LC_ALL", "LC_MESSAGES", "LANG"] {
+        if let Ok(v) = std::env::var(key) {
+            let lang = v
+                .split(['_', '.', '@'])
+                .next()
+                .unwrap_or("")
+                .trim()
+                .to_ascii_lowercase();
+            if !lang.is_empty() && lang != "c" && lang != "posix" {
+                return lang;
+            }
+        }
+    }
+    "en".to_string()
 }
 
 /// `gs completions <shell>` — print a completion script that wires the shell to
@@ -654,32 +899,66 @@ fn cmd_completions(args: &[String]) -> i32 {
 
 const COMP_BASH: &str = r#"# gs bash completion.  Enable: source <(gs completions bash)
 _gs_complete() {
-    local cur cands i
-    local -a completed=()
+    local cur line i directive=0
+    local -a completed=() cands=()
     cur="${COMP_WORDS[COMP_CWORD]}"
-    # words after `gs`, up to but not including the word at the cursor
     for (( i = 1; i < COMP_CWORD; i++ )); do completed+=("${COMP_WORDS[i]}"); done
-    cands="$(gs __complete "${completed[@]}" 2>/dev/null)"
-    local IFS=$'\n'
-    COMPREPLY=( $(compgen -W "$cands" -- "$cur") )
+    # Each line is `value<TAB>desc`; the final `:<bits>` line is the directive.
+    while IFS= read -r line; do
+        if [[ $line == :* ]]; then directive="${line#:}"; continue; fi
+        cands+=("${line%%$'\t'*}")          # bash shows only the value
+    done < <(gs __complete "${completed[@]}" 2>/dev/null)
+    COMPREPLY=()
+    if (( directive & 16 )); then           # FILTER_DIRS
+        COMPREPLY=( $(compgen -d -- "$cur") )
+    else
+        local IFS=$'\n'
+        COMPREPLY=( $(compgen -W "${cands[*]}" -- "$cur") )
+        (( (directive & 4) == 0 )) && COMPREPLY+=( $(compgen -f -- "$cur") )   # not NO_FILE
+    fi
+    (( directive & 2 )) && compopt -o nospace 2>/dev/null                      # NO_SPACE
 }
 complete -F _gs_complete gs
 "#;
 
 const COMP_ZSH: &str = r#"# gs zsh completion.  Enable (after compinit): source <(gs completions zsh)
 _gs_complete() {
-    local -a completed cands
+    local -a completed lines described
+    local line directive=0
     completed=(${words[2,CURRENT-1]})
-    cands=(${(f)"$(gs __complete ${completed} 2>/dev/null)"})
-    compadd -- ${cands}
+    lines=(${(f)"$(gs __complete ${completed} 2>/dev/null)"})
+    for line in $lines; do
+        if [[ $line == :* ]]; then directive=${line#:}; continue; fi
+        described+=("${line/$'\t'/:}")      # value:desc for _describe
+    done
+    if (( directive & 16 )); then           # FILTER_DIRS
+        _files -/
+    else
+        _describe 'gs' described
+        (( (directive & 4) == 0 )) && _files   # not NO_FILE → also files
+    fi
 }
 compdef _gs_complete gs
 "#;
 
 const COMP_FISH: &str = r#"# gs fish completion.  Enable: gs completions fish > ~/.config/fish/completions/gs.fish
+# Each line is `value<TAB>desc` (fish shows the description); the final `:<bits>`
+# line is the directive (16=dirs, 4=no-file, 0=files — the engine emits 0/4/16).
 function __gs_complete
     set -l completed (commandline -opc)
-    gs __complete $completed[2..-1] 2>/dev/null
+    set -l directive 0
+    for line in (gs __complete $completed[2..-1] 2>/dev/null)
+        if string match -q ':*' -- $line
+            set directive (string sub -s 2 -- $line)
+        else
+            printf '%s\n' $line
+        end
+    end
+    if test "$directive" = 16
+        __fish_complete_directories (commandline -ct)
+    else if test "$directive" = 0
+        __fish_complete_path (commandline -ct)
+    end
 end
 complete -c gs -f -a '(__gs_complete)'
 "#;
@@ -690,7 +969,13 @@ $env.config.completions.external.enable = true
 $env.config.completions.external.completer = {|spans|
     if ($spans | first) == "gs" {
         let completed = ($spans | skip 1 | drop 1)
-        (^gs __complete ...$completed | lines | where {|l| ($l | str trim) != "" })
+        # Lines are `value<TAB>desc`; drop the trailing `:<directive>` line.
+        (^gs __complete ...$completed | lines
+            | where {|l| ($l | str trim) != "" and not ($l | str starts-with ":") }
+            | each {|l|
+                let p = ($l | split row "\t")
+                {value: ($p | get 0), description: ($p | get 1? | default "")}
+            })
     } else { null }
 }
 "#;
@@ -703,8 +988,12 @@ Register-ArgumentCompleter -Native -CommandName gs -ScriptBlock {
     if ($wordToComplete -ne '') { $end-- }
     $completed = @()
     if ($end -ge 1) { $completed = $elems[1..$end] }
-    (gs __complete @completed 2>$null) | Where-Object { $_ -ne '' } | ForEach-Object {
-        [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_)
+    # `gs __complete` prints `value<TAB>desc` then a `:<directive>` line (dropped).
+    (gs __complete @completed 2>$null) | Where-Object { $_ -ne '' -and $_ -notmatch '^:' } | ForEach-Object {
+        $parts = $_ -split "`t", 2
+        $val = $parts[0]
+        $desc = if ($parts.Count -gt 1 -and $parts[1]) { $parts[1] } else { $val }
+        [System.Management.Automation.CompletionResult]::new($val, $val, 'ParameterValue', $desc)
     }
 }
 "#;

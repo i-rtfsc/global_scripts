@@ -12,6 +12,13 @@ use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
+pub mod caps;
+pub mod engine;
+pub mod exec;
+pub mod index;
+pub mod manifest;
+pub mod rpc;
+
 /// Top-level `router.json` shape. Unknown fields are ignored on purpose: the
 /// Python indexer writes many more keys (description, author, …) the front
 /// door does not need on the hot path.
@@ -25,6 +32,9 @@ pub struct RouterIndex {
 
 #[derive(Debug, Deserialize)]
 pub struct PluginEntry {
+    /// Bilingual (or arbitrary-locale) description, e.g. `{ "zh": …, "en": … }`.
+    #[serde(default)]
+    pub description: BTreeMap<String, String>,
     /// Absent/null is treated as enabled (matches the shell wrapper).
     #[serde(default = "default_true")]
     pub enabled: bool,
@@ -49,6 +59,9 @@ pub struct CommandEntry {
     /// Command template — only populated for `kind == "json"`.
     #[serde(default)]
     pub command: String,
+    /// Bilingual (or arbitrary-locale) one-line summary, e.g. `{ "zh": …, "en": … }`.
+    #[serde(default)]
+    pub description: BTreeMap<String, String>,
 }
 
 fn default_true() -> bool {
@@ -1118,42 +1131,76 @@ mod tests {
 // ---------------------------------------------------------------------------
 // F8 — native, jq-free Tab completion. The `gs __complete` engine: given the
 // words already typed after `gs` (excluding the partial word at the cursor),
-// return the candidate tokens for the next position. Pure & testable; the front
-// door wires argv/printing and the per-shell scripts just call it and filter.
-// Spec: design.md §14 / §13 Q5.
+// return the candidates for the next position, each with an optional
+// locale-picked description (zsh/fish show it). Pure & testable; the front door
+// wires argv/printing and the per-shell scripts call it. Spec: design.md §14 /
+// §13 Q5 and tmp/phase0-plugin-protocol.md §3–§4.
 // ---------------------------------------------------------------------------
 pub mod completion {
     use crate::{PluginEntry, RouterIndex};
+    use std::collections::BTreeMap;
+
+    /// One completion candidate: the token plus an optional description (shown
+    /// by zsh/fish; ignored by bash).
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub struct Candidate {
+        pub value: String,
+        pub description: Option<String>,
+    }
+
+    impl Candidate {
+        fn new(value: impl Into<String>, description: Option<String>) -> Self {
+            Self {
+                value: value.into(),
+                description,
+            }
+        }
+    }
+
+    /// Pick a description for `locale` from a `{locale: text}` map, falling back
+    /// to en → zh → any. Empty strings count as absent.
+    fn pick(d: &BTreeMap<String, String>, locale: &str) -> Option<String> {
+        [locale, "en", "zh"]
+            .into_iter()
+            .filter_map(|k| d.get(k))
+            .chain(d.values())
+            .find(|s| !s.is_empty())
+            .cloned()
+    }
 
     /// Candidates for the position *after* `completed` (the words typed after
-    /// `gs`, without the partial word at the cursor). `system` is (command,
-    /// subcommands) for the front door's own commands. Returns sorted, unique,
-    /// non-empty tokens; the shell does the prefix filtering.
+    /// `gs`, without the partial word at the cursor). `system` is
+    /// (command, description, subcommands) for the front door's own commands.
+    /// Returns value-sorted, value-unique, non-empty candidates with
+    /// descriptions picked for `locale`; the shell does the prefix filtering.
     pub fn complete(
         router: &RouterIndex,
-        system: &[(&str, &[&str])],
+        system: &[(&str, &str, &[&str])],
         completed: &[String],
-    ) -> Vec<String> {
-        let mut out: Vec<String> = match completed {
+        locale: &str,
+    ) -> Vec<Candidate> {
+        let mut out: Vec<Candidate> = match completed {
             // first token: front-door commands + enabled plugins
             [] => system
                 .iter()
-                .map(|(c, _)| (*c).to_string())
+                .map(|(c, d, _)| Candidate::new(*c, (!d.is_empty()).then(|| (*d).to_string())))
                 .chain(
                     router
                         .plugins
                         .iter()
                         .filter(|(_, p)| p.enabled)
-                        .map(|(name, _)| name.clone()),
+                        .map(|(name, p)| {
+                            Candidate::new(name.clone(), pick(&p.description, locale))
+                        }),
                 )
                 .collect(),
             // second token: a front-door command's subcommands, else a plugin's commands
             [head] => {
                 let head = head.as_str();
-                if let Some((_, subs)) = system.iter().find(|(c, _)| *c == head) {
-                    subs.iter().map(|s| (*s).to_string()).collect()
+                if let Some((_, _, subs)) = system.iter().find(|(c, _, _)| *c == head) {
+                    subs.iter().map(|s| Candidate::new(*s, None)).collect()
                 } else if let Some(p) = router.plugins.get(head) {
-                    plugin_tokens(p)
+                    plugin_tokens(p, locale)
                 } else {
                     Vec::new()
                 }
@@ -1162,36 +1209,37 @@ pub mod completion {
             [head, sub] => router
                 .plugins
                 .get(head.as_str())
-                .map(|p| subplugin_cmds(p, sub))
+                .map(|p| subplugin_cmds(p, sub, locale))
                 .unwrap_or_default(),
             _ => Vec::new(),
         };
-        out.retain(|s| !s.is_empty());
-        out.sort();
-        out.dedup();
+        out.retain(|c| !c.value.is_empty());
+        out.sort_by(|a, b| a.value.cmp(&b.value));
+        out.dedup_by(|a, b| a.value == b.value);
         out
     }
 
-    /// A plugin's first-level tokens: direct command names + subplugin names.
-    fn plugin_tokens(p: &PluginEntry) -> Vec<String> {
+    /// A plugin's first-level tokens: direct commands (with description) +
+    /// subplugin group names (router.json has no per-group description).
+    fn plugin_tokens(p: &PluginEntry, locale: &str) -> Vec<Candidate> {
         p.commands
             .iter()
             .map(|(key, cmd)| {
                 if cmd.subplugin.is_empty() {
-                    key.clone() // direct command (key == name)
+                    Candidate::new(key.clone(), pick(&cmd.description, locale)) // direct (key == name)
                 } else {
-                    cmd.subplugin.clone() // subplugin group (deduped by the caller)
+                    Candidate::new(cmd.subplugin.clone(), None) // subplugin group (deduped by caller)
                 }
             })
             .collect()
     }
 
     /// Commands under subplugin `sub` within a plugin.
-    fn subplugin_cmds(p: &PluginEntry, sub: &str) -> Vec<String> {
+    fn subplugin_cmds(p: &PluginEntry, sub: &str, locale: &str) -> Vec<Candidate> {
         p.commands
             .values()
             .filter(|c| c.subplugin == sub)
-            .map(|c| c.name.clone())
+            .map(|c| Candidate::new(c.name.clone(), pick(&c.description, locale)))
             .collect()
     }
 
@@ -1199,20 +1247,26 @@ pub mod completion {
     mod tests {
         use super::*;
 
-        const SYSTEM: &[(&str, &[&str])] = &[
-            ("version", &[]),
-            ("hooks", &["install", "uninstall", "status"]),
-            ("completions", &["bash", "zsh", "fish"]),
+        const SYSTEM: &[(&str, &str, &[&str])] = &[
+            ("version", "show version", &[]),
+            (
+                "hooks",
+                "status-light hooks",
+                &["install", "uninstall", "status"],
+            ),
+            ("completions", "", &["bash", "zsh", "fish"]),
         ];
 
         fn router() -> RouterIndex {
             serde_json::from_str(
                 r#"{
                 "plugins": {
-                    "demo": { "enabled": true, "commands": {
-                        "echo": {"name":"echo","kind":"json","subplugin":"","command":"echo {args}"},
+                    "demo": { "enabled": true,
+                      "description": {"zh":"演示插件","en":"Demo plugin"},
+                      "commands": {
+                        "echo": {"name":"echo","kind":"json","subplugin":"","command":"echo {args}","description":{"zh":"打印","en":"Echo"}},
                         "greet": {"name":"greet","kind":"shell","subplugin":"","entry":"/x.sh"},
-                        "tools build": {"name":"build","kind":"shell","subplugin":"tools","entry":"/x.sh"},
+                        "tools build": {"name":"build","kind":"shell","subplugin":"tools","entry":"/x.sh","description":{"zh":"构建","en":"Build"}},
                         "tools run": {"name":"run","kind":"shell","subplugin":"tools","entry":"/x.sh"}
                     }},
                     "off": { "enabled": false, "commands": {
@@ -1224,13 +1278,13 @@ pub mod completion {
             .unwrap()
         }
 
-        fn s(items: &[&str]) -> Vec<String> {
-            items.iter().map(|x| x.to_string()).collect()
+        fn vals(cs: Vec<Candidate>) -> Vec<String> {
+            cs.into_iter().map(|c| c.value).collect()
         }
 
         #[test]
         fn top_level_lists_system_and_enabled_plugins() {
-            let got = complete(&router(), SYSTEM, &[]);
+            let got = vals(complete(&router(), SYSTEM, &[], "en"));
             assert!(got.contains(&"version".to_string()));
             assert!(got.contains(&"hooks".to_string()));
             assert!(got.contains(&"demo".to_string()));
@@ -1244,27 +1298,53 @@ pub mod completion {
         fn plugin_tokens_merge_direct_and_subplugin() {
             // direct commands + the subplugin group name, sorted & deduped
             assert_eq!(
-                complete(&router(), SYSTEM, &s(&["demo"])),
-                s(&["echo", "greet", "tools"])
+                vals(complete(&router(), SYSTEM, &["demo".into()], "en")),
+                vec!["echo", "greet", "tools"]
             );
         }
 
         #[test]
         fn subplugin_commands() {
             assert_eq!(
-                complete(&router(), SYSTEM, &s(&["demo", "tools"])),
-                s(&["build", "run"])
+                vals(complete(
+                    &router(),
+                    SYSTEM,
+                    &["demo".into(), "tools".into()],
+                    "en"
+                )),
+                vec!["build", "run"]
             );
         }
 
         #[test]
         fn system_subcommands_and_unknowns() {
             assert_eq!(
-                complete(&router(), SYSTEM, &s(&["hooks"])),
-                s(&["install", "status", "uninstall"])
+                vals(complete(&router(), SYSTEM, &["hooks".into()], "en")),
+                vec!["install", "status", "uninstall"]
             );
-            assert!(complete(&router(), SYSTEM, &s(&["nope"])).is_empty());
-            assert!(complete(&router(), SYSTEM, &s(&["demo", "echo", "x"])).is_empty());
+            assert!(complete(&router(), SYSTEM, &["nope".into()], "en").is_empty());
+        }
+
+        #[test]
+        fn descriptions_follow_locale_with_fallback() {
+            let find = |cs: &[Candidate], v: &str| {
+                cs.iter()
+                    .find(|c| c.value == v)
+                    .unwrap()
+                    .description
+                    .clone()
+            };
+            let zh = complete(&router(), SYSTEM, &[], "zh");
+            assert_eq!(find(&zh, "demo").as_deref(), Some("演示插件"));
+            let en = complete(&router(), SYSTEM, &[], "en");
+            assert_eq!(find(&en, "demo").as_deref(), Some("Demo plugin"));
+            // unknown locale falls back en → zh → any
+            let cmds = complete(&router(), SYSTEM, &["demo".into()], "fr");
+            assert_eq!(find(&cmds, "echo").as_deref(), Some("Echo"));
+            assert_eq!(find(&cmds, "greet"), None, "no description → None");
+            // system command descriptions: present, and "" → None
+            assert_eq!(find(&en, "version").as_deref(), Some("show version"));
+            assert_eq!(find(&en, "completions"), None);
         }
     }
 }
