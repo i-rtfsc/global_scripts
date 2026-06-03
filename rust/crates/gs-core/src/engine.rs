@@ -17,6 +17,7 @@
 //!     `enum` (static) · `file`/`dir` (directive) · `dynamic` (T1 runs
 //!     `command`, capability-checked; T2+ calls the plugin via RPC).
 
+use crate::cache;
 use crate::caps;
 use crate::completion::Candidate;
 use crate::index::{LoadedManifest, Registry};
@@ -229,7 +230,9 @@ fn resolve_rule(p: &LoadedManifest, cmd: &CommandSpec, arg: &ArgSpec, locale: &s
 
 /// Tab-time dynamic completion: T1 runs `complete.command` directly (gated by
 /// the `exec` allowlist); T2+ calls the plugin's `complete` over RPC with the
-/// arg's `source`. Either failure path yields no candidates (never a broken Tab).
+/// arg's `source`. Both are bounded by [`rpc::complete_timeout`]; T2+ results
+/// are served from / written to the disk TTL cache ([`crate::cache`]). Any
+/// failure or timeout path yields no candidates — never a broken or frozen Tab.
 fn dynamic_rule(p: &LoadedManifest, cmd: &CommandSpec, arg: &ArgSpec, locale: &str) -> Completion {
     if p.manifest.tier == Tier::Declarative {
         let line = arg.complete.command.trim();
@@ -241,17 +244,21 @@ fn dynamic_rule(p: &LoadedManifest, cmd: &CommandSpec, arg: &ArgSpec, locale: &s
         // is one literal argv token here, but a syntax error under `sh -c`.
         // NOTE: `complete.filter` (regex extraction) is not yet applied; each
         // non-empty output line is taken verbatim as a candidate.
-        let mut parts = line.split_whitespace();
-        let Some(prog) = parts.next() else {
+        let argv: Vec<String> = line.split_whitespace().map(String::from).collect();
+        let Some((prog, rest)) = argv.split_first() else {
             return finalize(vec![], directive::NO_FILE);
         };
-        let out = Command::new(prog)
-            .args(parts)
-            .current_dir(&p.dir)
-            .stderr(Stdio::null())
-            .output();
+        // Bound the external command so a slow/hung `command` can't freeze Tab.
+        let (prog, rest, dir) = (prog.clone(), rest.to_vec(), p.dir.clone());
+        let out = rpc::with_timeout(rpc::complete_timeout(), move || {
+            Command::new(&prog)
+                .args(&rest)
+                .current_dir(&dir)
+                .stderr(Stdio::null())
+                .output()
+        });
         let cands = match out {
-            Ok(o) if o.status.success() => String::from_utf8_lossy(&o.stdout)
+            Some(Ok(o)) if o.status.success() => String::from_utf8_lossy(&o.stdout)
                 .lines()
                 .map(str::trim)
                 .filter(|l| !l.is_empty())
@@ -261,6 +268,12 @@ fn dynamic_rule(p: &LoadedManifest, cmd: &CommandSpec, arg: &ArgSpec, locale: &s
         };
         finalize(cands, directive::NO_FILE)
     } else {
+        let plugin = &p.manifest.name;
+        let key = cache::complete_key(&cmd.name, &arg.name, &arg.complete.source, locale);
+        // Serve a fresh cached set without spawning anything.
+        if let Some(values) = cache::read_complete(plugin, &key) {
+            return finalize(values, directive::NO_FILE);
+        }
         let Some((prog, args)) = p.spawn() else {
             return finalize(vec![], directive::NO_FILE);
         };
@@ -274,18 +287,27 @@ fn dynamic_rule(p: &LoadedManifest, cmd: &CommandSpec, arg: &ArgSpec, locale: &s
             "locale": locale,
         });
         let req = rpc::request(1, "complete", params);
-        let cands = match rpc::call_oneshot(&prog, &args, Some(&p.dir), &[req], true) {
-            Ok(ex) => ex
+        let dir = p.dir.clone();
+        let exchange = rpc::with_timeout(rpc::complete_timeout(), move || {
+            rpc::call_oneshot(&prog, &args, Some(&dir), &[req], true)
+        });
+        let (cands, ttl): (Vec<Candidate>, Option<u64>) = match exchange {
+            Some(Ok(ex)) => ex
                 .result_for(1)
                 .map(|r| {
-                    let (vals, _ttl) = rpc::parse_complete(r);
-                    vals.into_iter()
-                        .map(|v| cand(v.value, v.description))
-                        .collect::<Vec<_>>()
+                    let (vals, ttl) = rpc::parse_complete(r);
+                    (
+                        vals.into_iter().map(|v| cand(v.value, v.description)).collect(),
+                        ttl,
+                    )
                 })
-                .unwrap_or_default(),
-            Err(_) => vec![],
+                .unwrap_or((vec![], None)),
+            _ => (vec![], None),
         };
+        // Honor the plugin's TTL (§3.2): cache only when it asked us to.
+        if let Some(ttl) = ttl {
+            cache::write_complete(plugin, &key, &cands, ttl);
+        }
         finalize(cands, directive::NO_FILE)
     }
 }
@@ -438,6 +460,7 @@ mod tests {
     #[test]
     fn t1_dynamic_runs_command_under_capability() {
         use std::os::unix::fs::PermissionsExt;
+        let _g = crate::cache::test_isolate("engine-t1");
         // exec-form runs the `command` without a shell, so use a real executable
         // (one argv token) that prints three "branches".
         let root = std::env::temp_dir().join("gs-engine-t1");
@@ -532,6 +555,7 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn t2_dynamic_calls_plugin_complete_over_rpc() {
+        let _g = crate::cache::test_isolate("engine-t2");
         let root = std::env::temp_dir().join("gs-engine-t2");
         let _ = fs::remove_dir_all(&root);
         let dir = root.join("mock");
@@ -587,5 +611,49 @@ mod tests {
         );
         let _ = fs::remove_dir_all(&root);
         let _ = Path::new("/tmp"); // keep `Path` import used on all cfgs
+    }
+
+    // A fresh, unexpired cache entry is served verbatim without spawning the
+    // plugin runtime at all (here the runtime is bogus — it would yield nothing
+    // if ever launched).
+    #[cfg(unix)]
+    #[test]
+    fn t2_dynamic_served_from_cache_without_spawn() {
+        let _g = crate::cache::test_isolate("engine-t2cache");
+        let root = std::env::temp_dir().join("gs-engine-t2c");
+        let _ = fs::remove_dir_all(&root);
+        let dir = root.join("mockc");
+        fs::create_dir_all(&dir).unwrap();
+        fs::write(
+            dir.join("plugin.toml"),
+            r#"name="mockc"
+               tier="script"
+               runtime="false"
+               entry="nope"
+               describe_cache="static"
+               [[commands]]
+               name="paint"
+               run=""
+                 [[commands.args]]
+                 name="color"
+                 flag="--color"
+                 [commands.args.complete]
+                 kind="dynamic"
+                 source="colors""#,
+        )
+        .unwrap();
+        let key = crate::cache::complete_key("paint", "color", "colors", "en");
+        crate::cache::write_complete("mockc", &key, &[cand("cyan", None)], 60);
+
+        let reg = Registry::discover(std::slice::from_ref(&root));
+        let c = complete(
+            &reg,
+            SYSTEM,
+            &["mockc".into(), "paint".into(), "--color".into()],
+            "en",
+        );
+        let vals: Vec<&str> = c.candidates.iter().map(|c| c.value.as_str()).collect();
+        assert_eq!(vals, vec!["cyan"], "served from cache; runtime not spawned");
+        let _ = fs::remove_dir_all(&root);
     }
 }

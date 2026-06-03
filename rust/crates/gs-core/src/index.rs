@@ -10,6 +10,7 @@
 //! at most one process; a persistent `index.json` cache (§2.4) is a pure
 //! optimization layered on later.
 
+use crate::cache;
 use crate::manifest::{Capabilities, CommandSpec, PluginManifest, Tier};
 use crate::rpc;
 use std::collections::BTreeSet;
@@ -41,8 +42,11 @@ impl LoadedManifest {
     }
 
     /// Resolve the command tree: inline (T1 / `describe_cache != runtime`) or
-    /// fetched via the `describe` RPC (T2+ runtime). A describe failure yields an
-    /// empty tree — the plugin still lists, it just offers no sub-completions.
+    /// fetched via the `describe` RPC (T2+ runtime). A describe result is cached
+    /// to disk keyed by `(plugin.toml/entry mtime, protocol, locale)`, so only
+    /// the first Tab after a change pays for it (§2.4). The RPC is bounded by
+    /// [`rpc::describe_timeout`]; a timeout/failure yields an empty tree — the
+    /// plugin still lists, it just offers no sub-completions until next time.
     pub fn commands(&self, locale: &str) -> Vec<CommandSpec> {
         if self.manifest.commands_are_inline() {
             return self.manifest.commands.clone();
@@ -50,22 +54,41 @@ impl LoadedManifest {
         let Some((prog, args)) = self.spawn() else {
             return Vec::new();
         };
+        let name = &self.manifest.name;
+        let key = cache::DescribeKey::new(
+            &self.dir,
+            &self.manifest.entry,
+            self.manifest.protocol,
+            locale,
+        );
+        if let Some(result) = cache::read_describe(name, &key) {
+            if let Ok(d) = rpc::parse_describe(&result) {
+                return d.commands;
+            }
+        }
         let req = rpc::request(
             1,
             "describe",
             serde_json::json!({
                 "protocol": self.manifest.protocol,
                 "locale": locale,
-                "plugin": self.manifest.name,
+                "plugin": name,
             }),
         );
-        match rpc::call_oneshot(&prog, &args, Some(&self.dir), &[req], true) {
-            Ok(ex) => ex
-                .result_for(1)
-                .and_then(|r| rpc::parse_describe(r).ok())
-                .map(|d| d.commands)
-                .unwrap_or_default(),
-            Err(_) => Vec::new(),
+        let dir = self.dir.clone();
+        let exchange =
+            rpc::with_timeout(rpc::describe_timeout(), move || {
+                rpc::call_oneshot(&prog, &args, Some(&dir), &[req], true)
+            });
+        match exchange {
+            Some(Ok(ex)) => match ex.result_for(1) {
+                Some(r) => {
+                    cache::write_describe(name, &key, r);
+                    rpc::parse_describe(r).map(|d| d.commands).unwrap_or_default()
+                }
+                None => Vec::new(),
+            },
+            _ => Vec::new(), // timeout or spawn error → empty tree (non-fatal)
         }
     }
 
@@ -288,6 +311,7 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn t2_commands_come_from_runtime_describe() {
+        let _g = crate::cache::test_isolate("index-t2");
         let root = scratch("t2");
         let dir = write_plugin(
             &root,

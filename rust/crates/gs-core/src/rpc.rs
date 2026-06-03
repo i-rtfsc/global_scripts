@@ -72,6 +72,43 @@ pub fn request(id: i64, method: &str, params: Value) -> Value {
     json!({ "jsonrpc": "2.0", "id": id, "method": method, "params": params })
 }
 
+// ---- bounded calls -------------------------------------------------------
+
+/// Run `f` on a worker thread, returning its value, or `None` if it doesn't
+/// finish within `budget`. On timeout the worker is abandoned — its child
+/// process is reaped when this short-lived `gs` process exits — so a hung or
+/// slow plugin can never freeze the shell's Tab. Spec §3.4 (soft timeout).
+pub fn with_timeout<T: Send + 'static>(
+    budget: std::time::Duration,
+    f: impl FnOnce() -> T + Send + 'static,
+) -> Option<T> {
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let _ = tx.send(f());
+    });
+    rx.recv_timeout(budget).ok()
+}
+
+fn env_ms(key: &str, default: u64) -> u64 {
+    std::env::var(key)
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(default)
+}
+
+/// Soft budget for a Tab-time dynamic `complete` callback — per keystroke, so it
+/// must stay snappy. Override with `GS_COMPLETE_TIMEOUT_MS` (default 200ms).
+pub fn complete_timeout() -> std::time::Duration {
+    std::time::Duration::from_millis(env_ms("GS_COMPLETE_TIMEOUT_MS", 200))
+}
+
+/// Budget for a `describe` — it builds the command *structure* and is cached
+/// after the first call, so a brief one-time wait (e.g. an interpreter cold
+/// start) is acceptable. Override with `GS_DESCRIBE_TIMEOUT_MS` (default 1500ms).
+pub fn describe_timeout() -> std::time::Duration {
+    std::time::Duration::from_millis(env_ms("GS_DESCRIBE_TIMEOUT_MS", 1500))
+}
+
 /// A parsed JSON-RPC error object.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RpcError {
