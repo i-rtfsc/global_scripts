@@ -3,7 +3,7 @@ version     = "6.0.0"
 tier        = "script"
 runtime     = "python"
 entry       = "android6.py"
-description  = { zh = "Android 开发与调试（device+logcat 子集 · GS 6.0 移植）", en = "Android dev & debugging (device+logcat subset · GS 6.0 port)" }
+description  = { zh = "Android 开发与调试（全量 13 子插件 · GS 6.0 移植）", en = "Android dev & debugging (full 13-subplugin GS 6.0 port)" }
 author      = "Solo"
 homepage    = "https://github.com/i-rtfsc/global_scripts"
 license     = "MIT"
@@ -14,11 +14,16 @@ protocol    = 1
 describe_cache = "runtime"
 
 # T2 plugins spawn their own subprocesses (the core doesn't gate those), so these
-# are advisory/documentation: `exec` records that every command shells out to adb;
-# `fs` covers the selected-device state file (shared with the legacy android
-# plugin) and screencap's output file (resolved against the user's cwd).
+# are advisory/documentation:
+#   exec  — adb (every command), emulator (emulator.*), open/xdg-open (winscope
+#           HTML), python3 (winscope proxy).
+#   fs    — the selected-device state file (shared with the legacy android
+#           plugin), the user-cwd output files (screencap / perfetto / pull), and
+#           read-only access to the sibling legacy plugin tree for heavy assets
+#           (perfetto config.pbtx, Winscope HTML, frida .js) which are referenced
+#           in place rather than copied.
 [capabilities]
-exec = ["adb"]
-fs   = ["rw:$HOME/.config/global-scripts", "write:$PROJECT"]
+exec = ["adb", "emulator", "open", "xdg-open", "python3"]
+fs   = ["rw:$HOME/.config/global-scripts", "write:$PROJECT", "read:$GS_ROOT/plugins/android"]
 net  = false
 env  = ["ANDROID_SERIAL", "ANDROID_HOME", "ANDROID_SDK_ROOT"]
