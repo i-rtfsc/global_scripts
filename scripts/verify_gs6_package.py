@@ -151,6 +151,8 @@ def main() -> int:
         fail("release target mismatch: {} != {}".format(metadata.get("target"), args.target))
     if metadata.get("formal_plugins") != 15 or metadata.get("legacy_inventory") != 0:
         fail("unexpected inventory metadata: {}".format(metadata))
+    if metadata.get("signed") is not False:
+        fail("GS6 self-install packages must be marked as unsigned")
     binary = root / str(metadata.get("binary") or "")
     if not binary.is_file():
         fail("native binary is missing: {}".format(binary))

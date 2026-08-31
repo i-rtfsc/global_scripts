@@ -30,22 +30,13 @@ Windows runner 会验证 PowerShell 补全、当前会话环境变量回传和 `
 Unix 专属外部工具（例如 Homebrew、SSHFS 或 AOSP Bash 构建脚本）仍需在命令层面检查依赖；
 跨平台构建成功不表示这些外部工具会自动存在。
 
-## 正式签名
+## 未签名发布
 
-`develop` 推送生成并验证未签名的灰度 artifacts。只有 `v6.*` tag 才进入正式签名：
+GS6 是免费开源命令行工具，发布包不提供商业代码签名或 Apple notarization。所有平台产物
+均标记为 `signed: false`，由用户自行下载、校验和安装。
 
-- macOS：Developer ID `codesign`、hardened runtime、timestamp 和 Apple notarization。
-- Windows：PFX Authenticode SHA256 签名和可信时间戳。
+- 下载后应核对 ZIP 内的 `SHA256SUMS`。
+- macOS Gatekeeper 可能提示来源未验证；用户需自行确认来源后允许执行。
+- Windows SmartScreen 可能显示未知发布者；用户需自行确认来源后运行。
 
-仓库需要配置以下 Actions secrets：
-
-- `APPLE_CERTIFICATE_P12_BASE64`
-- `APPLE_CERTIFICATE_PASSWORD`
-- `APPLE_SIGNING_IDENTITY`
-- `APPLE_ID`
-- `APPLE_TEAM_ID`
-- `APPLE_APP_SPECIFIC_PASSWORD`
-- `WINDOWS_CERTIFICATE_PFX_BASE64`
-- `WINDOWS_CERTIFICATE_PASSWORD`
-
-缺少任一对应平台 secret 时，正式 tag workflow 会失败，不发布未签名正式包。
+Release workflow 不需要证书 secrets，也不会把未签名包描述成已签名软件。
