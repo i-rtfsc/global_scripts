@@ -77,86 +77,6 @@ jobs:
         run: >-
           ./scripts/verify_gs6_powershell.ps1
           -PackageRoot "dist/gs6-${{ matrix.target }}"
-      - name: Import Apple Developer ID certificate
-        if: startsWith(github.ref, 'refs/tags/v6.') && runner.os == 'macOS'
-        shell: bash
-        env:
-          APPLE_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-        run: |
-          test -n "$APPLE_CERTIFICATE_P12_BASE64"
-          test -n "$APPLE_CERTIFICATE_PASSWORD"
-          test -n "$APPLE_SIGNING_IDENTITY"
-          keychain="$RUNNER_TEMP/gs6-signing.keychain-db"
-          certificate="$RUNNER_TEMP/gs6-signing.p12"
-          CERTIFICATE_PATH="$certificate" python - <<'PY'
-          import base64
-          import os
-          from pathlib import Path
-
-          Path(os.environ["CERTIFICATE_PATH"]).write_bytes(
-              base64.b64decode(os.environ["APPLE_CERTIFICATE_P12_BASE64"])
-          )
-          PY
-          security create-keychain -p gs6-ci "$keychain"
-          security set-keychain-settings -lut 21600 "$keychain"
-          security unlock-keychain -p gs6-ci "$keychain"
-          security import "$certificate" -k "$keychain" -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple: -s -k gs6-ci "$keychain"
-          security list-keychains -d user -s "$keychain" login.keychain-db
-          codesign --force --options runtime --timestamp --sign "$APPLE_SIGNING_IDENTITY" \
-            "dist/gs6-${{ matrix.target }}/gs6"
-          codesign --verify --strict --verbose=2 "dist/gs6-${{ matrix.target }}/gs6"
-      - name: Sign Windows executable
-        if: startsWith(github.ref, 'refs/tags/v6.') && runner.os == 'Windows'
-        shell: pwsh
-        env:
-          WINDOWS_CERTIFICATE_PFX_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_PFX_BASE64 }}
-          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
-        run: |
-          if (-not $env:WINDOWS_CERTIFICATE_PFX_BASE64) { throw 'WINDOWS_CERTIFICATE_PFX_BASE64 is missing' }
-          if (-not $env:WINDOWS_CERTIFICATE_PASSWORD) { throw 'WINDOWS_CERTIFICATE_PASSWORD is missing' }
-          $certificate = Join-Path $env:RUNNER_TEMP 'gs6-signing.pfx'
-          [IO.File]::WriteAllBytes($certificate, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_PFX_BASE64))
-          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Filter signtool.exe -Recurse |
-            Where-Object { $_.FullName -match '\\x64\\signtool\.exe$' } |
-            Sort-Object FullName -Descending |
-            Select-Object -First 1
-          if (-not $signtool) { throw 'signtool.exe was not found' }
-          $binary = "dist/gs6-${{ matrix.target }}/gs6.exe"
-          & $signtool.FullName sign /fd SHA256 /f $certificate /p $env:WINDOWS_CERTIFICATE_PASSWORD /tr http://timestamp.digicert.com /td SHA256 $binary
-          if ($LASTEXITCODE -ne 0) { throw 'signtool sign failed' }
-          & $signtool.FullName verify /pa /v $binary
-          if ($LASTEXITCODE -ne 0) { throw 'signtool verify failed' }
-      - name: Finalize signed package
-        if: startsWith(github.ref, 'refs/tags/v6.') && (runner.os == 'macOS' || runner.os == 'Windows')
-        run: >-
-          python scripts/finalize_gs6_package.py
-          --root "dist/gs6-${{ matrix.target }}"
-          --archive "dist/gs6-${{ matrix.target }}.zip"
-      - name: Verify signed package
-        if: startsWith(github.ref, 'refs/tags/v6.') && (runner.os == 'macOS' || runner.os == 'Windows')
-        run: >-
-          python scripts/verify_gs6_package.py
-          --root "dist/gs6-${{ matrix.target }}"
-          --target "${{ matrix.target }}"
-      - name: Notarize macOS archive
-        if: startsWith(github.ref, 'refs/tags/v6.') && runner.os == 'macOS'
-        shell: bash
-        env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-        run: |
-          test -n "$APPLE_ID"
-          test -n "$APPLE_TEAM_ID"
-          test -n "$APPLE_APP_SPECIFIC_PASSWORD"
-          xcrun notarytool submit "dist/gs6-${{ matrix.target }}.zip" \
-            --apple-id "$APPLE_ID" \
-            --team-id "$APPLE_TEAM_ID" \
-            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
-            --wait
       - uses: actions/upload-artifact@v4
         with:
           name: gs6-${{ matrix.target }}
@@ -179,3 +99,6 @@ jobs:
         with:
           files: artifacts/*.zip
           generate_release_notes: true
+          body: |
+            These are unsigned open-source command-line binaries distributed for self-installation.
+            Verify the included SHA256SUMS before use. macOS Gatekeeper and Windows SmartScreen may display warnings.

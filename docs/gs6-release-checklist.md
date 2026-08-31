@@ -21,6 +21,6 @@ GS6 正式替换全局 5.2 前必须完成以下事项：
 16. 通过 `.github/workflows/gs6-release.yml` 生成并验证 macOS、Linux、Windows 对应架构的便携包。
 17. 执行 `bash scripts/verify_gs6_shells.sh`，确认 Bash、Zsh、Fish 的补全、环境变量回传和目录切换均通过。
 18. 使用隔离的 `GS6_PREFIX`/`HOME` 验证 `install_gs6.sh` 与 `uninstall_gs6.sh` 往返后不残留文件，也不修改全局 `gs`。
-19. 正式 tag 前配置 Apple Developer ID/notarization 和 Windows Authenticode secrets；tag workflow 必须完成签名验证和 macOS notarization。
+19. Release 页面明确说明产物未签名、由用户自行安装，并要求用户核对 `SHA256SUMS`。
 
 当前状态：核心框架、15 个正式插件、命令兼容性审计、Android 实机验证、独立安装/回滚演练和 release staging 已完成；多平台发布工作流仍需在 GitHub Actions 原生 runner 上实际跑通，因此暂不切换全局入口。

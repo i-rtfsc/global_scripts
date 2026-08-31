@@ -139,6 +139,7 @@ def build(binary: Path, output: Path, archive: Optional[Path], target: str) -> N
         "binary": binary_name,
         "platform": sys.platform,
         "target": target,
+        "signed": False,
         "formal_plugins": len(formal_names),
         "legacy_inventory": len(legacy_names),
     }
