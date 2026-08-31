@@ -29,3 +29,23 @@ python3 scripts/package_gs6.py \
 Windows runner 会验证 PowerShell 补全、当前会话环境变量回传和 `navigator` 目录切换。
 Unix 专属外部工具（例如 Homebrew、SSHFS 或 AOSP Bash 构建脚本）仍需在命令层面检查依赖；
 跨平台构建成功不表示这些外部工具会自动存在。
+
+## 正式签名
+
+`develop` 推送生成并验证未签名的灰度 artifacts。只有 `v6.*` tag 才进入正式签名：
+
+- macOS：Developer ID `codesign`、hardened runtime、timestamp 和 Apple notarization。
+- Windows：PFX Authenticode SHA256 签名和可信时间戳。
+
+仓库需要配置以下 Actions secrets：
+
+- `APPLE_CERTIFICATE_P12_BASE64`
+- `APPLE_CERTIFICATE_PASSWORD`
+- `APPLE_SIGNING_IDENTITY`
+- `APPLE_ID`
+- `APPLE_TEAM_ID`
+- `APPLE_APP_SPECIFIC_PASSWORD`
+- `WINDOWS_CERTIFICATE_PFX_BASE64`
+- `WINDOWS_CERTIFICATE_PASSWORD`
+
+缺少任一对应平台 secret 时，正式 tag workflow 会失败，不发布未签名正式包。
