@@ -39,7 +39,11 @@ def expected_files(version: str) -> Dict[Path, List[str]]:
             'VERSION="${{GS6_INSTALL_VERSION:-{}}}"'.format(install)
         ],
         ROOT / "scripts" / "verify_gs6_install_cycle.sh": [
-            'VERSION="${{GS6_INSTALL_VERSION:-{}}}"'.format(install)
+            'VERSION="${{GS6_INSTALL_VERSION:-{}}}"'.format(install),
+            'EXPECTED_VERSION="${{GS6_EXPECT_VERSION:-{}}}"'.format(version),
+        ],
+        ROOT / "scripts" / "verify_gs6.sh": [
+            'EXPECTED_VERSION="${{GS6_EXPECT_VERSION:-{}}}"'.format(version),
         ],
     }
     for manifest in sorted((ROOT / "plugins").glob("*/plugin.toml")):
@@ -104,6 +108,12 @@ def update(old_version: str, new_version: str) -> None:
         'VERSION="${{GS6_INSTALL_VERSION:-{}}}"'.format(old_install),
         'VERSION="${{GS6_INSTALL_VERSION:-{}}}"'.format(new_install),
     )
+    for script in ("verify_gs6.sh", "verify_gs6_install_cycle.sh"):
+        replace_once(
+            ROOT / "scripts" / script,
+            'EXPECTED_VERSION="${{GS6_EXPECT_VERSION:-{}}}"'.format(old_version),
+            'EXPECTED_VERSION="${{GS6_EXPECT_VERSION:-{}}}"'.format(new_version),
+        )
     for manifest in sorted((ROOT / "plugins").glob("*/plugin.toml")):
         replace_once(
             manifest,
