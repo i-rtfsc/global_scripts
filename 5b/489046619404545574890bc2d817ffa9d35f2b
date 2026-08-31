@@ -1,0 +1,35 @@
+scripts/finalize_gs6_package.py
+  s_9e0e88dd6aa6f2::t_510ce526bb84d5 15-16
+  h_8b376749578497 1-14,17-26
+docs/gs6-release-checklist.md
+  h_8b376749578497 24
+docs/gs6-cross-platform-release.md
+  s_9e0e88dd6aa6f2::t_510ce526bb84d5 42
+  h_8b376749578497 32-41,43-51
+.github/workflows/gs6-release.yml
+  s_9e0e88dd6aa6f2::t_510ce526bb84d5 6-7,80-82,87-91,108-124,130-159
+  h_8b376749578497 83-86,92-107,125-129
+scripts/prepare_gs6_release.py
+  h_8b376749578497 42-46,111-116
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "5b489046619404545574890bc2d817ffa9d35f2b",
+  "prompts": {},
+  "humans": {
+    "h_8b376749578497": {
+      "author": "Solo <anqi.huang@outlook.com>"
+    }
+  },
+  "sessions": {
+    "s_9e0e88dd6aa6f2": {
+      "agent_id": {
+        "tool": "copilot",
+        "id": "01a031c0-4100-7f10-938e-c5064fa43e93",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Solo <anqi.huang@outlook.com>"
+    }
+  }
+}
