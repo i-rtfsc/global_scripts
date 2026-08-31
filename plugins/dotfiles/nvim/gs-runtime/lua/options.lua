@@ -1,3 +1,8 @@
+-- Global Scripts Configuration
+-- Generated automatically - do not edit manually
+-- Generated at: 2026-03-23 15:40:42
+-- Configuration source: /Users/solo/code/github/global_scripts
+
 -- ============================================
 -- Neovim Options Configuration
 -- ============================================
@@ -41,6 +46,9 @@ opt.laststatus = 3               -- Global statusline
 opt.termguicolors = true         -- True color support
 opt.list = true                  -- Show invisible characters
 opt.listchars = { tab = "» ", trail = "·", nbsp = "␣" }
+opt.winminwidth = 20             -- Prevent ultra-narrow side windows
+opt.conceallevel = 2             -- Enable conceal for markdown rendering
+opt.concealcursor = "nc"        -- Show raw markers only while editing in insert mode
 
 -- ============================================
 -- Editing
@@ -120,6 +128,69 @@ opt.diffopt = "vertical,filler,internal,algorithm:histogram,indent-heuristic"
 opt.shortmess:append("c")        -- Don't show completion messages
 
 -- ============================================
+-- IDE UI Zoom (Editor + Sidebar)
+-- ============================================
+local default_gui_font = "JetBrainsMono Nerd Font:h17"
+if vim.o.guifont == nil or vim.o.guifont == "" then
+  vim.o.guifont = default_gui_font
+end
+
+local function is_gui_client()
+  return vim.g.neovide or vim.g.GuiLoaded or vim.fn.has("gui_running") == 1
+end
+
+local function parse_font_size(guifont)
+  local size = guifont:match(":h(%d+)")
+  if size then
+    return tonumber(size)
+  end
+  return 17
+end
+
+local function set_font_size(new_size)
+  if not is_gui_client() then
+    vim.notify("Terminal Neovim detected (iTerm2): use iTerm2 font zoom (Cmd+= / Cmd+- / Cmd+0)", vim.log.levels.WARN)
+    return
+  end
+
+  local safe_size = math.max(12, math.min(40, new_size))
+  local current = vim.o.guifont
+  if current == nil or current == "" then
+    current = default_gui_font
+  end
+
+  local updated
+  if current:match(":h%d+") then
+    updated = current:gsub(":h%d+", ":h" .. safe_size)
+  else
+    updated = current .. ":h" .. safe_size
+  end
+  vim.o.guifont = updated
+
+  if vim.g.neovide then
+    vim.g.neovide_scale_factor = safe_size / 17
+  end
+
+  vim.notify("UI font size: " .. safe_size, vim.log.levels.INFO)
+end
+
+_G.gs_ui_zoom_in = function()
+  set_font_size(parse_font_size(vim.o.guifont) + 1)
+end
+
+_G.gs_ui_zoom_out = function()
+  set_font_size(parse_font_size(vim.o.guifont) - 1)
+end
+
+_G.gs_ui_zoom_reset = function()
+  set_font_size(17)
+end
+
+vim.api.nvim_create_user_command("UIZoomIn", function() _G.gs_ui_zoom_in() end, {})
+vim.api.nvim_create_user_command("UIZoomOut", function() _G.gs_ui_zoom_out() end, {})
+vim.api.nvim_create_user_command("UIZoomReset", function() _G.gs_ui_zoom_reset() end, {})
+
+-- ============================================
 -- Autocommands
 -- ============================================
 
@@ -161,6 +232,37 @@ vim.api.nvim_create_autocmd("VimResized", {
     vim.cmd("wincmd =")
   end,
 })
+
+-- ============================================
+-- Go 文件使用 Tab 缩进 (参考 tmp/nvim)
+-- ============================================
+vim.api.nvim_create_autocmd({ "FileType" }, {
+  pattern = { "go" },
+  callback = function()
+    vim.opt_local.expandtab = false -- 使用 tab 字符
+    vim.opt_local.tabstop = 8
+    vim.opt_local.softtabstop = 8
+    vim.opt_local.shiftwidth = 8
+  end,
+})
+
+-- ============================================
+-- 退出时恢复光标样式 (参考 tmp/nvim)
+-- ============================================
+vim.api.nvim_create_autocmd({ "ExitPre" }, {
+  callback = function()
+    vim.opt.guicursor = "a:ver25-blinkon250-blinkoff400-blinkwait700"
+  end,
+})
+
+-- ============================================
+-- TrimWhitespace 命令 (参考 tmp/nvim)
+-- ============================================
+vim.api.nvim_create_user_command("TrimWhitespace", function()
+  local view = vim.fn.winsaveview()
+  vim.cmd([[%s/\s\+$//e]])
+  vim.fn.winrestview(view)
+end, {})
 
 -- Set filetypes
 vim.filetype.add({

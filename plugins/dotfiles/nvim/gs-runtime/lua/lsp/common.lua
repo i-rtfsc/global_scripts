@@ -1,3 +1,8 @@
+-- Global Scripts Configuration
+-- Generated automatically - do not edit manually
+-- Generated at: 2026-03-23 15:40:42
+-- Configuration source: /Users/solo/code/github/global_scripts
+
 -- ============================================
 -- 通用 LSP 配置
 -- 用于简单语言：HTML, CSS, JSON, YAML, Bash, Docker 等

@@ -34,17 +34,49 @@ jobs:
         run: |
           uv sync
 
+      - name: Compile GS6 Python plugins
+        run: |
+          python -m py_compile plugins/*/*.py plugins/*/*/*.py
+
       - name: Run unit tests
         run: |
           uv run pytest tests/unit/ -v -m "not slow" --tb=short
 
       - name: Run integration tests
         run: |
-          uv run pytest tests/integration/ -v -m "not slow" --tb=short
+          uv run pytest tests/integration/ -v --tb=short
 
       - name: Run E2E tests
         run: |
           uv run pytest tests/e2e/ -v --tb=short
+
+      - name: Run Rust core tests
+        working-directory: rust
+        run: cargo test --workspace
+
+      - name: Show Rust toolchain
+        run: rustc --version
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path rust/Cargo.toml --all -- --check
+
+      - name: Check repository diff whitespace
+        run: git diff --check
+
+      - name: Check generated artifacts are ignored
+        run: |
+          test -z "$(git ls-files --others --exclude-standard -- '*.pyc' '*.coverage' 'htmlcov/*' 'coverage.xml')"
+
+      - name: Verify GS 6.0 development front door
+        run: |
+          bash -n scripts/verify_gs6.sh
+          cargo build --manifest-path rust/Cargo.toml -p gs
+          cargo build --release --manifest-path rust/Cargo.toml -p gs
+          bash scripts/stage_gs6_release.sh
+          bash scripts/verify_gs6.sh
+
+      - name: Run Python plugin SDK self-test
+        run: python sdk/python/selftest.py
 
   coverage:
     runs-on: ubuntu-latest

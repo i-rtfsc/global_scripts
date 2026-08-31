@@ -1,9 +1,9 @@
 name        = "devenv"
-version     = "1.0.0"
+version     = "6.0.0-dev"
 tier        = "script"
 runtime     = "python"
 entry       = "devenv6.py"
-description  = { zh = "开发环境管理工具 - 快速安装和配置开发工具", en = "Development Environment Manager - Quick setup for development tools" }
+description  = { zh = "开发环境检查、计划与显式安装", en = "Development environment checks, plans and explicit installs" }
 author      = "Solo"
 category    = "development"
 priority    = 50
@@ -15,5 +15,5 @@ describe_cache = "runtime"
 # plugin; `exec` records the package managers `install` shells out to. The
 # per-tool `check` probes (e.g. `java -version`) also run as subprocesses.
 [capabilities]
-env  = ["PATH", "HOME"]
+env  = ["PATH", "HOME", "GS_DEVENV_BREW_BIN", "GS_DEVENV_SKIP_CHECK", "GS_FAKE_LOG"]
 exec = ["brew", "apt-get", "sudo", "sh", "bash"]

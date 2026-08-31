@@ -12,6 +12,10 @@ path = "src/main.rs"
 [dependencies]
 gs-core = { path = "../gs-core" }
 serde_json.workspace = true
+unicode-width.workspace = true
+terminal_size.workspace = true
+comfy-table.workspace = true
+textwrap.workspace = true
 
 # Reset SIGPIPE to default so `gs … | head` (and `source <(gs completions …)`)
 # terminate quietly instead of panicking on a broken pipe. Unix-only.

@@ -1,0 +1,18 @@
+name        = "vps"
+version     = "6.0.0-dev"
+tier        = "script"
+runtime     = "python"
+entry       = "vps.py"
+description = { zh = "VPS SSH、隧道与挂载管理", en = "VPS SSH, tunnel, and mount management" }
+author      = "Solo"
+license     = "Apache-2.0"
+category    = "system"
+priority    = 50
+protocol    = 1
+describe_cache = "runtime"
+
+[capabilities]
+exec = ["ssh", "autossh", "sshfs", "fusermount", "umount", "pgrep", "mountpoint"]
+fs = ["rw:$GS_VPS_MOUNT_POINT"]
+net = true
+env = ["PATH", "GS_VPS_HOST", "GS_VPS_USER", "GS_VPS_LOCAL_PORT", "GS_VPS_REMOTE_PORT", "GS_VPS_MAC_DIR", "GS_VPS_MOUNT_POINT"]

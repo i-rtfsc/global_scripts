@@ -2,6 +2,15 @@
 
 Global Scripts 的系统架构详解。
 
+## GS 6.0 范围边界
+
+GS 6.0 不包含 macOS `menubar` 应用。`plugins/menubar` 仅保留给 5.2
+兼容路径，GS 6.0 不为其创建 `plugin.toml`，也不将其纳入 Rust 前门、构建
+或验收。agent 状态灯功能已永久删除。
+
+GS 6.0 默认只发现 `$GS_ROOT/plugins` 中的正式插件。`examples/` 不属于发布面；
+仅在开发测试显式设置 `GS_INCLUDE_EXAMPLES=1` 时加载 demo 和 JSON 示例插件。
+
 ## 系统概览
 
 ```
@@ -320,7 +329,7 @@ class FunctionInfo:
     ├─> PluginLoader.load_all_plugins()
     │   ├─ 扫描 plugins/ 目录
     │   ├─ 扫描 custom/ 目录
-    │   ├─ (可选) 扫描 examples/ 目录
+    │   ├─ (可选，仅 `GS_INCLUDE_EXAMPLES=1`) 扫描 examples/ 目录
     │   │
     │   └─ 对每个插件目录:
     │       ├─ 读取 plugin.json

@@ -1,6 +1,5 @@
 //! On-disk caches for the completion hot path. Each `gs __complete` is a fresh
-//! process, so any reuse across Tab presses must be persisted to disk (a `gsd`
-//! warm pool would obviate this, but it's deferred). Two caches:
+//! process, so any reuse across Tab presses must be persisted to disk. Two caches:
 //!   - **describe** (`cache/describe/<plugin>.json`): a T2+ plugin's command tree
 //!     keyed by `(plugin.toml mtime, entry mtime, protocol, locale)`. Spec §2.4.
 //!   - **complete** (`cache/complete/<plugin>.json`): dynamic candidate values

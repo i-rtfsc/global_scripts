@@ -1,5 +1,5 @@
 name        = "navigator"
-version     = "6.0.0"
+version     = "6.0.0-dev"
 tier        = "declarative"
 description  = { zh = "目录快速导航工具 - 快速跳转到常用开发目录", en = "Directory navigation tool - Quick navigation to common development directories" }
 author      = "Solo"
@@ -66,7 +66,7 @@ cd      = "$HOME/code/vivo"
 name    = "list"
 summary = { zh = "列出所有可用目录", en = "List all available directories" }
 shell   = true
-run     = "echo '📂 Navigator 可用目录:' && echo '🏠 house          → $HOME/code/github/house' && echo '🌍 global-scripts → $HOME/code/github/global_scripts' && echo '📱 as-aosp        → $HOME/code/github/as-aosp' && echo '🤖 aosp           → $HOME/code/aosp' && echo '📲 lineage        → $HOME/code/lineage' && echo '🎨 flyme          → $HOME/code/flyme' && echo '🎯 miui           → $HOME/code/miui' && echo '💚 oppo           → $HOME/code/oppo' && echo '💙 vivo           → $HOME/code/vivo'"
+run     = "echo '📂 Navigator 可用目录:' && echo \"🏠 house          → $HOME/code/github/house\" && echo \"🌍 global-scripts → $HOME/code/github/global_scripts\" && echo \"📱 as-aosp        → $HOME/code/github/as-aosp\" && echo \"🤖 aosp           → $HOME/code/aosp\" && echo \"📲 lineage        → $HOME/code/lineage\" && echo \"🎨 flyme          → $HOME/code/flyme\" && echo \"🎯 miui           → $HOME/code/miui\" && echo \"💚 oppo           → $HOME/code/oppo\" && echo \"💙 vivo           → $HOME/code/vivo\""
 
 [[commands]]
 name    = "status"

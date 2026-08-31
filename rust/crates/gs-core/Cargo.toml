@@ -9,3 +9,4 @@ description = "Global Scripts core: router model, path resolution, dispatch deci
 serde.workspace = true
 serde_json.workspace = true
 toml.workspace = true
+regex.workspace = true
