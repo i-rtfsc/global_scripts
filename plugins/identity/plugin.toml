@@ -1,0 +1,26 @@
+name        = "identity"
+version     = "6.0.0-dev"
+tier        = "script"
+runtime     = "python"
+entry       = "identity.py"
+description = { zh = "私有身份、模型账号、Git 与 SSH 配置管理", en = "Private identity, model account, Git, and SSH configuration" }
+author      = "Solo"
+license     = "Apache-2.0"
+category    = "configuration"
+priority    = 10
+protocol    = 1
+describe_cache = "runtime"
+
+[groups]
+claude = { zh = "Claude 账号切换", en = "Claude account switching" }
+gpt = { zh = "GPT 账号切换", en = "GPT account switching" }
+gemini = { zh = "Gemini 账号切换", en = "Gemini account switching" }
+router = { zh = "API 中转节点管理", en = "API router node management" }
+git = { zh = "私有 Git 配置", en = "Private Git configuration" }
+ssh = { zh = "私有 SSH 配置", en = "Private SSH configuration" }
+
+[capabilities]
+exec = []
+fs = ["read:$GS_IDENTITY_DIR", "rw:$HOME/.config/global-scripts", "rw:$HOME/.gitconfig", "rw:$HOME/.ssh"]
+net = false
+env = ["HOME", "GS_ROOT", "GS_IDENTITY_DIR", "ANTHROPIC_BASE_URL", "ANTHROPIC_AUTH_TOKEN", "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC", "DISABLE_TELEMETRY", "API_TIMEOUT_MS", "OPENAI_API_KEY", "AGENT_ROUTER_TOKEN", "OPENAI_BASE_URL", "GOOGLE_GEMINI_BASE_URL", "GEMINI_API_KEY"]

@@ -39,6 +39,19 @@ pub fn bind(cmd: &CommandSpec, argv: &[String]) -> Result<Bound, String> {
         }
         if !no_more_flags && tok.starts_with('-') && tok.len() > 1 {
             let Some(arg) = cmd.arg_by_flag(tok) else {
+                // A trailing variadic positional is commonly used for safe
+                // pass-through options (for example grep's `-i`, `-A 2`).
+                // Preserve those tokens instead of treating them as core
+                // flags; commands without a variadic declaration still fail
+                // closed as before.
+                if let Some(variadic) = positionals.last().copied().filter(|a| a.variadic) {
+                    b.values
+                        .entry(variadic.name.clone())
+                        .or_default()
+                        .push(tok.clone());
+                    i += 1;
+                    continue;
+                }
                 return Err(format!("未知选项 '{tok}'"));
             };
             if arg.takes_value() {
@@ -325,6 +338,17 @@ mod tests {
     }
 
     #[test]
+    fn trailing_variadic_accepts_option_like_tokens() {
+        let add = cmd("add", GITX);
+        let b = bind(
+            &add,
+            &["file.rs".into(), "-A".into(), "2".into(), "-i".into()],
+        )
+        .unwrap();
+        assert_eq!(b.values["files"], vec!["file.rs", "-A", "2", "-i"]);
+    }
+
+    #[test]
     fn missing_required_and_unknown_flag_error() {
         let co = cmd("co", GITX);
         assert!(bind(&co, &[]).unwrap_err().contains("branch"));
@@ -434,7 +458,10 @@ mod tests {
         .unwrap()
         .capabilities;
         let e = plan_exec(&denied, &info, &[]).unwrap_err();
-        assert!(e.contains("echo"), "inner program gated, not the shell: {e}");
+        assert!(
+            e.contains("echo"),
+            "inner program gated, not the shell: {e}"
+        );
     }
 
     #[test]

@@ -1,3 +1,8 @@
+-- Global Scripts Configuration
+-- Generated automatically - do not edit manually
+-- Generated at: 2026-03-23 15:40:42
+-- Configuration source: /Users/solo/code/github/global_scripts
+
 -- ============================================
 -- Neovim Plugin Management with lazy.nvim
 -- Global Scripts - 全栈开发配置
@@ -199,10 +204,57 @@ local plugins = {
   },
 
   -- ==========================================
+  -- Markdown Render - Markdown 实时渲染
+  -- 在 Neovim 缓冲区内渲染标题/列表/代码块，更接近 IDE 阅读体验
+  -- ==========================================
+  {
+    "MeanderingProgrammer/render-markdown.nvim",
+    ft = { "markdown" },
+    dependencies = {
+      "nvim-treesitter/nvim-treesitter",
+      "nvim-tree/nvim-web-devicons",
+    },
+    config = function()
+      require("render-markdown").setup({
+        file_types = { "markdown" },
+        heading = {
+          enabled = true,
+          sign = false,
+          icons = { "# ", "## ", "### ", "#### ", "##### ", "###### " },
+        },
+        code = {
+          enabled = true,
+          sign = false,
+          width = "block",
+          right_pad = 1,
+        },
+        bullet = {
+          enabled = true,
+          icons = { "•", "◦", "▪", "▸" },
+        },
+        checkbox = {
+          enabled = true,
+        },
+        anti_conceal = {
+          enabled = false,
+        },
+      })
+
+      vim.keymap.set("n", "<leader>mr", function()
+        local ok, cmd = pcall(vim.cmd, "RenderMarkdown toggle")
+        if not ok then
+          vim.notify("RenderMarkdown is not available in current buffer", vim.log.levels.WARN)
+        end
+      end, { desc = "Toggle Markdown render" })
+    end,
+  },
+
+  -- ==========================================
   -- Mason - LSP 包管理器
   -- ==========================================
   {
     "williamboman/mason.nvim",
+    lazy = false,
     config = function()
       require("mason").setup({
         ui = {
@@ -213,6 +265,12 @@ local plugins = {
           },
         },
       })
+
+      vim.api.nvim_create_user_command("GSMason", function()
+        vim.cmd("Mason")
+      end, { desc = "Open Mason package manager" })
+
+      vim.keymap.set("n", "<leader>pm", "<cmd>Mason<CR>", { desc = "Open Mason" })
     end,
   },
 
@@ -227,32 +285,41 @@ local plugins = {
         ensure_installed = {
           "lua_ls",
           "pyright",
+          "ruff",
           "ts_ls",
           "eslint",
           "rust_analyzer",
           "gopls",
           "clangd",
           -- 注意：jdtls 不在这里，因为它需要特殊配置（使用 nvim-jdtls）
+          -- 注意：Kotlin 使用 kotlin-lsp（手动通过 :MasonInstall kotlin-lsp 安装）
           -- jdtls 服务器需要通过 Mason 手动安装，但不要让 mason-lspconfig 自动配置
           "html",
           "cssls",
           "tailwindcss",
           "jsonls",
           "yamlls",
+          "taplo",
+          "marksman",
+          "lemminx",
+          "graphql",
+          "astro",
+          "svelte",
+          "emmet_ls",
+          "terraformls",
+          "ansiblels",
+          "vimls",
+          "sqlls",
+          "intelephense",
+          "solargraph",
           "bashls",
           "dockerls",
+          "docker_compose_language_service",
+          "cmake",
         },
         automatic_installation = true,
-        -- 添加 handlers 来阻止自动配置 jdtls
-        handlers = {
-          -- 默认 handler：自动配置其他所有 LSP（但跳过 jdtls）
-          function(server_name)
-            if server_name == "jdtls" then
-              return  -- ⚠️ 跳过 jdtls，由 lsp/java.lua 通过 nvim-jdtls 管理
-            end
-            require("lspconfig")[server_name].setup({})
-          end,
-        },
+        -- 所有语言都在下方手动 setup，关闭自动 enable 避免同一 server 重复起两份。
+        automatic_enable = false,
       })
     end,
   },
@@ -263,6 +330,7 @@ local plugins = {
   -- ==========================================
   {
     "neovim/nvim-lspconfig",
+    event = { "BufReadPre", "BufNewFile" },
     dependencies = {
       "williamboman/mason-lspconfig.nvim",
       "hrsh7th/cmp-nvim-lsp",
@@ -274,8 +342,29 @@ local plugins = {
       -- 完全禁用弃用警告
       vim.deprecate = function() end
 
+      -- 兼容 Neovim 0.11+ 要求 position_encoding 参数
+      local util = vim.lsp.util
+      if util and not util.__gs_position_encoding_patched then
+        util.__gs_position_encoding_patched = true
+        local orig = util.make_position_params
+        util.make_position_params = function(win, encoding)
+          return orig(win, encoding or "utf-16")
+        end
+      end
+
       local lspconfig = require("lspconfig")
       local cmp_nvim_lsp = require("cmp_nvim_lsp")
+
+      local function goto_definition_at_mouse()
+        local m = vim.fn.getmousepos()
+        if m and m.winid and m.winid ~= 0 then
+          pcall(vim.api.nvim_set_current_win, m.winid)
+          if m.line and m.line > 0 and m.column and m.column > 0 then
+            pcall(vim.api.nvim_win_set_cursor, 0, { m.line, m.column - 1 })
+          end
+        end
+        vim.lsp.buf.definition()
+      end
 
       -- LSP 键位映射（当 LSP 附加到 buffer 时）
       local on_attach = function(client, bufnr)
@@ -290,19 +379,41 @@ local plugins = {
 
         opts.desc = "Show LSP definitions"
         vim.keymap.set("n", "gd", "<cmd>Telescope lsp_definitions<CR>", opts)
+        opts.desc = "Go to definition (JetBrains style)"
+        vim.keymap.set("n", "<C-b>", "<cmd>Telescope lsp_definitions<CR>", opts)
+        opts.desc = "Go to definition (Cmd+B)"
+        vim.keymap.set("n", "<D-b>", "<cmd>Telescope lsp_definitions<CR>", opts)
+        opts.desc = "Go to declaration (Cmd+Shift+B)"
+        vim.keymap.set("n", "<D-S-b>", vim.lsp.buf.declaration, opts)
+        opts.desc = "Go to definition with Cmd+Click"
+        vim.keymap.set("n", "<D-LeftMouse>", goto_definition_at_mouse, opts)
+        opts.desc = "Go to definition with Option+Click"
+        vim.keymap.set("n", "<A-LeftMouse>", goto_definition_at_mouse, opts)
+        opts.desc = "Go to definition with Shift+Click"
+        vim.keymap.set("n", "<S-LeftMouse>", goto_definition_at_mouse, opts)
+        opts.desc = "Go to definition with Ctrl+Click"
+        vim.keymap.set("n", "<C-LeftMouse>", goto_definition_at_mouse, opts)
 
         opts.desc = "Show LSP implementations"
         vim.keymap.set("n", "gi", "<cmd>Telescope lsp_implementations<CR>", opts)
+        opts.desc = "Go to implementation (Cmd+Alt+B)"
+        vim.keymap.set("n", "<D-A-b>", "<cmd>Telescope lsp_implementations<CR>", opts)
 
         opts.desc = "Show LSP type definitions"
         vim.keymap.set("n", "gt", "<cmd>Telescope lsp_type_definitions<CR>", opts)
+        opts.desc = "Go to type declaration (Cmd+Shift+B fallback)"
+        vim.keymap.set("n", "<D-t>", "<cmd>Telescope lsp_type_definitions<CR>", opts)
 
         -- 代码操作
         opts.desc = "See available code actions"
         vim.keymap.set({ "n", "v" }, "<leader>ca", vim.lsp.buf.code_action, opts)
+        opts.desc = "Code action (JetBrains style)"
+        vim.keymap.set("n", "<A-CR>", vim.lsp.buf.code_action, opts)
 
         opts.desc = "Smart rename"
         vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts)
+        opts.desc = "Rename symbol (JetBrains style)"
+        vim.keymap.set("n", "<S-F6>", vim.lsp.buf.rename, opts)
 
         -- 诊断
         opts.desc = "Show buffer diagnostics"
@@ -313,13 +424,29 @@ local plugins = {
 
         opts.desc = "Go to previous diagnostic"
         vim.keymap.set("n", "[d", vim.diagnostic.goto_prev, opts)
+        opts.desc = "Previous issue (JetBrains style)"
+        vim.keymap.set("n", "<S-F2>", vim.diagnostic.goto_prev, opts)
 
         opts.desc = "Go to next diagnostic"
         vim.keymap.set("n", "]d", vim.diagnostic.goto_next, opts)
+        opts.desc = "Next issue (JetBrains style)"
+        vim.keymap.set("n", "<F2>", vim.diagnostic.goto_next, opts)
 
         -- 文档
         opts.desc = "Show documentation for what is under cursor"
         vim.keymap.set("n", "K", vim.lsp.buf.hover, opts)
+        opts.desc = "Quick definition preview (Cmd+Y / Ctrl+Shift+I style)"
+        vim.keymap.set("n", "<D-y>", vim.lsp.buf.hover, opts)
+        opts.desc = "Go to super / parent symbol (Cmd+U style)"
+        vim.keymap.set("n", "<D-u>", vim.lsp.buf.type_definition, opts)
+
+        opts.desc = "Find usages (JetBrains style)"
+        vim.keymap.set("n", "<A-F7>", "<cmd>Telescope lsp_references<CR>", opts)
+
+        opts.desc = "Reformat code (JetBrains style)"
+        vim.keymap.set("n", "<C-A-l>", function()
+          vim.lsp.buf.format({ async = true })
+        end, opts)
 
         opts.desc = "Restart LSP"
         vim.keymap.set("n", "<leader>rs", ":LspRestart<CR>", opts)
@@ -327,6 +454,75 @@ local plugins = {
 
       -- 自动补全能力
       local capabilities = cmp_nvim_lsp.default_capabilities()
+
+      -- 通用 LSP 键位（确保 on_attach 缺失时也可用）
+      local lsp_keymaps_group = vim.api.nvim_create_augroup("GS_LspKeymaps", { clear = true })
+      vim.api.nvim_create_autocmd("LspAttach", {
+        group = lsp_keymaps_group,
+        callback = function(ev)
+          local bufnr = ev.buf
+          local ok, tbuiltin = pcall(require, "telescope.builtin")
+          local map = function(mode, lhs, rhs, desc)
+            vim.keymap.set(mode, lhs, rhs, { buffer = bufnr, silent = true, desc = desc })
+          end
+
+          map("n", "gD", vim.lsp.buf.declaration, "Go to declaration")
+          map("n", "gd", ok and tbuiltin.lsp_definitions or vim.lsp.buf.definition, "Go to definition")
+          map("n", "<C-b>", ok and tbuiltin.lsp_definitions or vim.lsp.buf.definition, "Go to definition (JetBrains style)")
+          map("n", "<D-b>", ok and tbuiltin.lsp_definitions or vim.lsp.buf.definition, "Go to definition (Cmd+B)")
+          map("n", "<D-S-b>", vim.lsp.buf.declaration, "Go to declaration (Cmd+Shift+B)")
+          map("n", "<D-LeftMouse>", goto_definition_at_mouse, "Go to definition with Cmd+Click")
+          map("n", "<A-LeftMouse>", goto_definition_at_mouse, "Go to definition with Option+Click")
+          map("n", "<S-LeftMouse>", goto_definition_at_mouse, "Go to definition with Shift+Click")
+          map("n", "<C-LeftMouse>", goto_definition_at_mouse, "Go to definition with Ctrl+Click")
+          map("n", "gi", ok and tbuiltin.lsp_implementations or vim.lsp.buf.implementation, "Go to implementation")
+          map("n", "<D-A-b>", ok and tbuiltin.lsp_implementations or vim.lsp.buf.implementation, "Go to implementation (Cmd+Alt+B)")
+          map("n", "gt", ok and tbuiltin.lsp_type_definitions or vim.lsp.buf.type_definition, "Type definition")
+          map("n", "<D-t>", ok and tbuiltin.lsp_type_definitions or vim.lsp.buf.type_definition, "Type declaration (Cmd+T)")
+          map("n", "gR", ok and tbuiltin.lsp_references or vim.lsp.buf.references, "References")
+          map("n", "<A-F7>", ok and tbuiltin.lsp_references or vim.lsp.buf.references, "Find usages (JetBrains style)")
+
+          map({ "n", "v" }, "<leader>ca", vim.lsp.buf.code_action, "Code action")
+          map("n", "<A-CR>", vim.lsp.buf.code_action, "Code action (JetBrains style)")
+          map("n", "<leader>rn", vim.lsp.buf.rename, "Rename symbol")
+          map("n", "<S-F6>", vim.lsp.buf.rename, "Rename symbol (JetBrains style)")
+
+          map("n", "[d", vim.diagnostic.goto_prev, "Prev diagnostic")
+          map("n", "]d", vim.diagnostic.goto_next, "Next diagnostic")
+          map("n", "<S-F2>", vim.diagnostic.goto_prev, "Previous issue (JetBrains style)")
+          map("n", "<F2>", vim.diagnostic.goto_next, "Next issue (JetBrains style)")
+          map("n", "<leader>d", vim.diagnostic.open_float, "Line diagnostics")
+          map("n", "<leader>D", ok and function() tbuiltin.diagnostics({ bufnr = 0 }) end or vim.diagnostic.setloclist, "Buffer diagnostics")
+
+          map("n", "K", vim.lsp.buf.hover, "Hover docs")
+          map("n", "<D-y>", vim.lsp.buf.hover, "Quick definition preview (Cmd+Y)")
+          map("n", "<D-u>", vim.lsp.buf.type_definition, "Go to parent/type symbol (Cmd+U)")
+          map("n", "<F4>", ok and tbuiltin.lsp_definitions or vim.lsp.buf.definition, "Edit source (F4)")
+          map("n", "<C-A-l>", function() vim.lsp.buf.format({ async = true }) end, "Reformat code (JetBrains style)")
+          map("n", "<leader>rs", function() vim.cmd("LspRestart") end, "Restart LSP")
+        end,
+      })
+
+      local recycle_group = vim.api.nvim_create_augroup("GS_LspRecycle", { clear = true })
+      vim.api.nvim_create_autocmd({ "BufDelete", "BufWipeout" }, {
+        group = recycle_group,
+        callback = function()
+          vim.defer_fn(function()
+            for _, client in ipairs(vim.lsp.get_active_clients()) do
+              local has_loaded_buffer = false
+              for _, buf in ipairs(vim.lsp.get_buffers_by_client_id(client.id)) do
+                if vim.api.nvim_buf_is_valid(buf) and vim.api.nvim_buf_is_loaded(buf) then
+                  has_loaded_buffer = true
+                  break
+                end
+              end
+              if not has_loaded_buffer then
+                vim.lsp.stop_client(client.id, true)
+              end
+            end
+          end, 120)
+        end,
+      })
 
       -- 修复 position_encoding 警告（支持 UTF-16）
       capabilities.offsetEncoding = { "utf-16" }
@@ -366,6 +562,9 @@ local plugins = {
       local default_config = {
         capabilities = capabilities,
         on_attach = on_attach,
+        flags = {
+          debounce_text_changes = 150,
+        },
       }
 
       -- Web
@@ -382,6 +581,68 @@ local plugins = {
 
       -- Docker
       lspconfig.dockerls.setup(default_config)
+
+      -- CMake
+      lspconfig.cmake.setup(default_config)
+
+      -- Docs / Config / Infra
+      if lspconfig.marksman then
+        lspconfig.marksman.setup(default_config)
+      end
+      if lspconfig.taplo then
+        lspconfig.taplo.setup(default_config)
+      end
+      if lspconfig.lemminx then
+        lspconfig.lemminx.setup(default_config)
+      end
+      if lspconfig.terraformls then
+        lspconfig.terraformls.setup(default_config)
+      end
+      if lspconfig.ansiblels then
+        lspconfig.ansiblels.setup(default_config)
+      end
+      if lspconfig.vimls then
+        lspconfig.vimls.setup(default_config)
+      end
+      if lspconfig.sqlls then
+        lspconfig.sqlls.setup(default_config)
+      end
+
+      -- Frontend
+      if lspconfig.graphql then
+        lspconfig.graphql.setup(default_config)
+      end
+      if lspconfig.astro then
+        lspconfig.astro.setup(default_config)
+      end
+      if lspconfig.svelte then
+        lspconfig.svelte.setup(default_config)
+      end
+      if lspconfig.emmet_ls then
+        lspconfig.emmet_ls.setup(vim.tbl_deep_extend("force", default_config, {
+          filetypes = {
+            "html", "css", "scss", "sass", "javascriptreact", "typescriptreact", "svelte", "vue",
+          },
+        }))
+      end
+
+      -- Backend
+      if lspconfig.intelephense then
+        lspconfig.intelephense.setup(default_config)
+      end
+      if lspconfig.solargraph then
+        lspconfig.solargraph.setup(default_config)
+      end
+      if lspconfig.ruff then
+        lspconfig.ruff.setup(default_config)
+      end
+
+      if lspconfig.docker_compose_language_service then
+        lspconfig.docker_compose_language_service.setup(default_config)
+      end
+
+      -- Kotlin
+      require("lsp.kotlin").setup(on_attach, capabilities)
     end,
   },
 
@@ -535,7 +796,7 @@ local plugins = {
     config = function()
       require("nvim-tree").setup({
         view = {
-          width = 35,
+          width = 42,
           relativenumber = true,
         },
         renderer = {
@@ -1014,6 +1275,36 @@ local plugins = {
   },
 
   -- ==========================================
+  -- OSC52 Clipboard - 远程/终端复制桥接
+  -- ==========================================
+  {
+    "ojroques/nvim-osc52",
+    event = "VeryLazy",
+    config = function()
+      local ok, osc52 = pcall(require, "osc52")
+      if not ok then
+        return
+      end
+
+      osc52.setup({
+        max_length = 0,
+        silent = true,
+        trim = false,
+      })
+
+      local copy = function()
+        if vim.v.event.operator == "y" and vim.v.event.regname == "+" then
+          osc52.copy_register("+")
+        end
+      end
+
+      vim.api.nvim_create_autocmd("TextYankPost", {
+        callback = copy,
+      })
+    end,
+  },
+
+  -- ==========================================
   -- Illuminate - 高亮相同单词
   -- ==========================================
   {
@@ -1061,5 +1352,18 @@ require("lazy").setup(plugins, {
   },
   change_detection = {
     notify = false,
+  },
+  performance = {
+    rtp = {
+      disabled_plugins = {
+        "gzip",
+        "zip",
+        "zipPlugin",
+        "tar",
+        "tarPlugin",
+        "tohtml",
+        "tutor",
+      },
+    },
   },
 })

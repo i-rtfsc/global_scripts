@@ -144,6 +144,8 @@ plugins/*/.temp/
 # 特定插件的缓存和日志
 plugins/system/clash/logs/
 plugins/system/clash/conf/cache.db
+plugins/android/frida/frida-server
+plugins/android/frida/frida-inject
 
 # 测试输出
 test/
@@ -208,6 +210,7 @@ secrets.txt
 # 运行时文件
 *.pid
 *.lock
+!rust/Cargo.lock
 *.sock
 
 # Claude AI 相关
@@ -242,3 +245,5 @@ debug.sh
 temp_*.sh
 
 .coverage
+htmlcov/
+coverage.xml

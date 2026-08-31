@@ -1,8 +1,8 @@
-name        = "android6"
-version     = "6.0.0"
+name        = "android"
+version     = "6.0.0-dev"
 tier        = "script"
 runtime     = "python"
-entry       = "android6.py"
+entry       = "android.py"
 description  = { zh = "Android 开发与调试（全量 13 子插件 · GS 6.0 移植）", en = "Android dev & debugging (full 13-subplugin GS 6.0 port)" }
 author      = "Solo"
 homepage    = "https://github.com/i-rtfsc/global_scripts"
@@ -12,6 +12,22 @@ keywords    = ["android", "adb", "debugging", "mobile", "development"]
 priority    = 20
 protocol    = 1
 describe_cache = "runtime"
+
+[groups]
+app      = { zh = "应用管理", en = "Application management" }
+build    = { zh = "Android 系统构建", en = "Android system builds" }
+device   = { zh = "设备连接与选择", en = "Device connection and selection" }
+dump     = { zh = "系统信息导出", en = "System information dumps" }
+emulator = { zh = "模拟器管理", en = "Emulator management" }
+frida    = { zh = "Frida 动态插桩", en = "Frida instrumentation" }
+fs       = { zh = "设备文件系统", en = "Device filesystem" }
+input    = { zh = "输入事件控制", en = "Input event control" }
+logcat   = { zh = "日志查看与过滤", en = "Log viewing and filtering" }
+perfetto = { zh = "Perfetto 性能追踪", en = "Perfetto tracing" }
+proc     = { zh = "进程管理与监控", en = "Process management and monitoring" }
+surface  = { zh = "显示和刷新率控制", en = "Display and refresh-rate control" }
+system   = { zh = "Android 系统修改", en = "Android system changes" }
+winscope = { zh = "窗口与图层分析", en = "Window and layer analysis" }
 
 # T2 plugins spawn their own subprocesses (the core doesn't gate those), so these
 # are advisory/documentation:

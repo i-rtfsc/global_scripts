@@ -1,0 +1,19 @@
+name        = "vscode"
+version     = "6.0.0-dev"
+tier        = "script"
+runtime     = "python"
+entry       = "vscode.py"
+description = { zh = "VS Code 配置检查、计划与启动", en = "VS Code profile inspection, planning and launch" }
+author      = "Solo"
+license     = "Apache-2.0"
+category    = "development"
+keywords    = ["vscode", "profiles", "editor"]
+priority    = 50
+protocol    = 1
+describe_cache = "runtime"
+
+[capabilities]
+fs  = ["read:$HOME/.vscode-profiles", "read:$HOME/.config/Code", "read:$HOME/Library/Application Support/Code"]
+exec = ["code"]
+net = false
+env = ["HOME", "PATH", "GS_VSCODE_BIN"]

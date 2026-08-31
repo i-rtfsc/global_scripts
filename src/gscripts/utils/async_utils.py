@@ -6,6 +6,7 @@ Global Scripts - 异步工具函数
 """
 import asyncio
 import concurrent.futures
+import aiofiles
 from typing import Any, Callable, Coroutine, List, Optional, Dict
 from pathlib import Path
 from functools import wraps
@@ -219,13 +220,31 @@ class AsyncTaskManager:
     async def add_task(self, name: str, coro: Coroutine) -> str:
         """添加任务"""
         if name in self.tasks:
+            # The caller has already constructed the coroutine. Close it when
+            # rejecting a duplicate so Python does not emit an un-awaited
+            # coroutine warning.
+            close = getattr(coro, "close", None)
+            if close:
+                close()
             raise ValueError(f"任务 {name} 已存在")
 
+        started = False
+
         async def _limited_task():
+            nonlocal started
             async with self.semaphore:
+                started = True
                 return await coro
 
         task = asyncio.create_task(_limited_task())
+
+        def _close_unstarted(done_task: asyncio.Task) -> None:
+            if done_task.cancelled() and not started:
+                close = getattr(coro, "close", None)
+                if close:
+                    close()
+
+        task.add_done_callback(_close_unstarted)
         self.tasks[name] = task
         return name
 

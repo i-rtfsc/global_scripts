@@ -1,0 +1,17 @@
+name        = "flyme"
+version     = "6.0.0-dev"
+tier        = "script"
+runtime     = "python"
+entry       = "flyme.py"
+description = { zh = "FlymeOS 开发工具", en = "FlymeOS development tools" }
+author      = "Solo"
+category    = "mobile"
+priority    = 50
+protocol    = 1
+describe_cache = "runtime"
+
+[capabilities]
+exec = []
+fs = []
+net = false
+env = []

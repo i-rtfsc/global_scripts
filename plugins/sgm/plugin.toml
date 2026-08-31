@@ -1,0 +1,24 @@
+name        = "sgm"
+version     = "6.0.0-dev"
+tier        = "script"
+runtime     = "python"
+entry       = "sgm.py"
+description = { zh = "SGM 构建、连接、Gerrit 与 SSH 配置工具", en = "SGM build, connection, Gerrit, and SSH configuration tools" }
+author      = "Solo"
+license     = "Apache-2.0"
+category    = "enterprise"
+priority    = 30
+protocol    = 1
+describe_cache = "runtime"
+
+[groups]
+build = { zh = "应用构建与部署", en = "Application build and deployment" }
+connect = { zh = "服务器与文件系统连接", en = "Server and filesystem connections" }
+git = { zh = "Gerrit 推送", en = "Gerrit push" }
+ssh = { zh = "SGM SSH 配置", en = "SGM SSH configuration" }
+
+[capabilities]
+exec = ["git", "ssh", "sshfs", "adb", "gradlew"]
+fs = ["read:$GS_SGM_DIR", "rw:$HOME/.ssh", "rw:$HOME/.config/global-scripts", "rw:$PROJECT"]
+net = true
+env = ["HOME", "PATH", "GS_ROOT", "GS_SGM_DIR", "GS_SGM_ADB_BIN", "GS_SGM_SSH_BIN", "GS_SGM_SSHFS_BIN", "GS_SGM_SERVER", "GS_SGM_SSH_PORT", "GS_SGM_REMOTE_PATH", "GS_SGM_MOUNT_POINT", "ANDROID_SERIAL"]

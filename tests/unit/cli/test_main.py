@@ -77,6 +77,7 @@ class TestMainFunction:
         mock_cli_instance = Mock()
         mock_cli_instance.run = AsyncMock()
         mock_cli_class.return_value = mock_cli_instance
+        mock_asyncio.side_effect = lambda coroutine: coroutine.close()
 
         # Act
         main()
@@ -88,13 +89,17 @@ class TestMainFunction:
         mock_asyncio.assert_called_once()
 
     @patch('gscripts.cli.main.GlobalScriptsCLI')
-    @patch('gscripts.cli.main.asyncio.run', side_effect=Exception("Test error"))
+    @patch('gscripts.cli.main.asyncio.run')
     @patch('gscripts.cli.main.set_correlation_id')
     @patch('gscripts.cli.main.correlation_id', return_value='test-corr-id')
     def test_main_handles_exception(self, mock_corr_id, mock_set_corr, mock_asyncio, mock_cli_class):
         """Test main() handles exceptions and exits with code 1"""
         # Arrange
         from gscripts.cli.main import main
+        def fail_after_close(coroutine):
+            coroutine.close()
+            raise Exception("Test error")
+        mock_asyncio.side_effect = fail_after_close
 
         # Act & Assert
         with pytest.raises(SystemExit) as exc_info:
@@ -114,6 +119,7 @@ class TestMainFunction:
         mock_cli_instance = Mock()
         mock_cli_instance.run = AsyncMock()
         mock_cli_class.return_value = mock_cli_instance
+        mock_asyncio.side_effect = lambda coroutine: coroutine.close()
 
         # Act
         main()

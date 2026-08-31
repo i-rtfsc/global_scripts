@@ -1,0 +1,99 @@
+name: GS6 Multi-platform Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v6.*'
+
+jobs:
+  package:
+    name: ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15-intel
+            target: x86_64-apple-darwin
+          - runner: macos-15
+            target: aarch64-apple-darwin
+          - runner: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+          - runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+          - runner: windows-2022
+            target: x86_64-pc-windows-msvc
+            extension: .exe
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify native runner architecture
+        shell: bash
+        run: |
+          rustc -vV
+          rustc -vV | grep -q "host: ${{ matrix.target }}"
+      - name: Install Unix shell test dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y zsh fish
+      - name: Install Fish on macOS
+        if: runner.os == 'macOS'
+        run: brew install fish
+      - name: Run native Rust tests
+        run: cargo test --workspace --manifest-path rust/Cargo.toml
+      - name: Compile Python plugin entries
+        run: python -m compileall -q plugins sdk/python scripts/package_gs6.py scripts/verify_gs6_package.py
+      - name: Build native release binary
+        run: cargo build --release --manifest-path rust/Cargo.toml --target ${{ matrix.target }}
+      - name: Package portable distribution
+        shell: bash
+        run: |
+          python scripts/package_gs6.py \
+            --binary "rust/target/${{ matrix.target }}/release/gs${{ matrix.extension }}" \
+            --output "dist/gs6-${{ matrix.target }}" \
+            --archive "dist/gs6-${{ matrix.target }}.zip" \
+            --target "${{ matrix.target }}"
+      - name: Verify portable distribution natively
+        run: >-
+          python scripts/verify_gs6_package.py
+          --root "dist/gs6-${{ matrix.target }}"
+          --target "${{ matrix.target }}"
+      - name: Verify Bash, Zsh, and Fish integration
+        if: runner.os != 'Windows'
+        shell: bash
+        run: >-
+          GS6_BIN="$PWD/dist/gs6-${{ matrix.target }}/gs6"
+          bash scripts/verify_gs6_shells.sh
+      - name: Verify PowerShell integration
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: >-
+          ./scripts/verify_gs6_powershell.ps1
+          -PackageRoot "dist/gs6-${{ matrix.target }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gs6-${{ matrix.target }}
+          path: dist/gs6-${{ matrix.target }}.zip
+          if-no-files-found: error
+
+  github-release:
+    if: startsWith(github.ref, 'refs/tags/v6.')
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: gs6-*
+          path: artifacts
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*.zip
+          generate_release_notes: true

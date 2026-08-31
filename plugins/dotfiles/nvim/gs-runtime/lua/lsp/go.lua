@@ -1,3 +1,8 @@
+-- Global Scripts Configuration
+-- Generated automatically - do not edit manually
+-- Generated at: 2026-03-23 15:40:42
+-- Configuration source: /Users/solo/code/github/global_scripts
+
 -- ============================================
 -- Go LSP 配置模块
 -- ============================================

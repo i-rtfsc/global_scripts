@@ -59,6 +59,9 @@ Global Scripts 是一个强大的命令行工具管理框架，旨在简化日�
 
 ### 安装
 
+> 当前安装流程安装的是 GS 5.2。GS 6.0 仍处于源码开发验收阶段，请勿用本节替换全局 `gs`；
+> GS6 开发入口见 [GS 6.0 迁移状态](./docs/gs6-migration-status.md)。
+
 由于Global Scripts使用UV管理依赖，CLI写死使用UV运行，强烈推荐使用此方式：
 
 ```bash

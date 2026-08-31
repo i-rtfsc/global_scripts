@@ -1,0 +1,18 @@
+name        = "dotfiles"
+version     = "6.0.0-dev"
+tier        = "script"
+runtime     = "python"
+entry       = "dotfiles6.py"
+description = { zh = "配置文件检查、计划与安全应用", en = "Dotfiles inspection, planning and safe apply" }
+author      = "Solo"
+license     = "Apache-2.0"
+category    = "system"
+keywords    = ["dotfiles", "shell", "vim", "nvim", "tmux"]
+priority    = 50
+protocol    = 1
+describe_cache = "runtime"
+
+[capabilities]
+fs  = ["read:$GS_ROOT/plugins/dotfiles", "rw:$HOME/.config", "rw:$HOME/.zshrc", "rw:$HOME/.vimrc", "rw:$HOME/.tmux.conf", "rw:$HOME/.gitconfig"]
+net = false
+env = ["GS_ROOT", "HOME", "SHELL"]

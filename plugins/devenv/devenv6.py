@@ -76,6 +76,8 @@ def _platform():
 
 def _check_installed(tool):
     """Run a tool's platform ``check`` command; True if it exits 0."""
+    if os.environ.get("GS_DEVENV_SKIP_CHECK") == "1":
+        return False
     osname, _ = _platform()
     pconf = (tool or {}).get(osname)
     check = (pconf or {}).get("check")
@@ -107,7 +109,8 @@ def _table(headers, rows):
     for r in rows:
         for i in range(cols):
             widths[i] = max(widths[i], _w(r[i]))
-    fmt = lambda cells: "  ".join(_pad(cells[i], widths[i]) for i in range(cols))
+    def fmt(cells):
+        return "  ".join(_pad(cells[i], widths[i]) for i in range(cols))
     lines = [fmt(headers), "  ".join("-" * widths[i] for i in range(cols))]
     lines += [fmt(r) for r in rows]
     return "\n".join(lines)
@@ -241,7 +244,7 @@ def presets(ctx):
     return 0
 
 
-def _install_tool(ctx, name):
+def _install_tool(ctx, name, execute=False):
     tools = _tools()
     t = tools.get(name)
     if not t:
@@ -268,31 +271,38 @@ def _install_tool(ctx, name):
     else:
         ctx.emit_output("stderr", "不支持的安装方式: {}\n".format(method))
         return 1
-    ctx.emit_progress(message="installing {}".format(name), stage="install")
-    ctx.emit_output("stdout", "▶ {}\n".format(cmd))
-    try:
-        r = subprocess.run(cmd, shell=True, timeout=600)
-    except Exception as e:
-        ctx.emit_output("stderr", "安装异常: {}\n".format(e))
-        return 1
-    if r.returncode == 0 and _check_installed(t):
-        ctx.emit_output("stdout", "✅ {} 安装成功\n".format(t.get("name", name)))
+    if not execute:
+        ctx.emit_output("stdout", "[dry-run] {}\n  command: {}\n  不会执行安装\n".format(t.get("name", name), cmd))
         return 0
-    ctx.emit_output("stderr", "❌ {} 安装失败\n".format(name))
-    return 1
+    if method == "brew":
+        argv = [os.environ.get("GS_DEVENV_BREW_BIN", "brew"), "install"] + (["--cask"] if pconf.get("cask") else []) + [pconf.get("package", "")]
+    elif method == "apt":
+        argv = ["sudo", "apt-get", "install", "-y", pconf.get("package", "")]
+    else:
+        argv = ["sh", "-c", cmd]
+    try:
+        result = subprocess.run(argv, text=True, timeout=1800)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        ctx.emit_output("stderr", "安装执行失败: {}\n".format(exc))
+        return 1
+    return result.returncode
 
 
 @plugin.command(
     name="install",
     summary={"zh": "安装工具或预设环境", "en": "Install a tool or preset"},
-    usage="gs devenv install <tool|preset> [--required-only]",
-    examples=["gs devenv install jdk", "gs devenv install essential"],
+    usage="gs devenv install <tool|preset> <--dry-run|--yes> [--required-only]",
+    examples=["gs devenv install jdk --dry-run", "gs devenv install essential --dry-run"],
     args=[
         {"name": "target", "type": "string", "required": True,
          "description": {"zh": "工具或预设名", "en": "Tool or preset name"},
          "complete": {"kind": "dynamic", "source": "tools"}},
         {"name": "required_only", "type": "bool", "flag": "--required-only",
          "description": {"zh": "预设仅装必选", "en": "Preset: required only"}},
+        {"name": "dry_run", "type": "bool", "flag": "--dry-run",
+         "description": {"zh": "仅生成安装计划", "en": "Plan installation only"}},
+        {"name": "yes", "type": "bool", "flag": "--yes",
+         "description": {"zh": "确认执行安装", "en": "Confirm installation"}},
     ],
 )
 def install(ctx):
@@ -300,17 +310,21 @@ def install(ctx):
     if not target:
         ctx.emit_output("stderr", "请指定要安装的工具或预设（见 `gs devenv list`）\n")
         return 2
+    execute = _flag(ctx, "yes")
+    if execute == _flag(ctx, "dry_run"):
+        ctx.emit_output("stderr", "必须且只能指定 --dry-run 或 --yes\n")
+        return 2
     presets_map, tools = _presets(), _tools()
     if target in presets_map:
         skip_optional = _flag(ctx, "required_only")
-        return _install_preset(ctx, target, skip_optional, set())
+        return _install_preset(ctx, target, skip_optional, set(), execute)
     if target in tools:
-        return _install_tool(ctx, target)
+        return _install_tool(ctx, target, execute)
     ctx.emit_output("stderr", "未找到工具或预设: {}\n".format(target))
     return 1
 
 
-def _install_preset(ctx, name, skip_optional, seen):
+def _install_preset(ctx, name, skip_optional, seen, execute=False):
     if name in seen:
         return 0
     seen.add(name)
@@ -318,11 +332,11 @@ def _install_preset(ctx, name, skip_optional, seen):
     tools = _tools()
     rc = 0
     for sub in preset.get("includes", []):
-        rc |= _install_preset(ctx, sub, skip_optional, seen)
+        rc |= _install_preset(ctx, sub, skip_optional, seen, execute)
     for tool_name in preset.get("tools", []):
         if skip_optional and not tools.get(tool_name, {}).get("required", False):
             continue
-        rc |= _install_tool(ctx, tool_name)
+        rc |= _install_tool(ctx, tool_name, execute)
     return 1 if rc else 0
 
 

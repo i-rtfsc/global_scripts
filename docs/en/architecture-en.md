@@ -2,6 +2,14 @@
 
 Detailed system architecture of Global Scripts.
 
+## GS 6.0 scope boundaries
+
+GS 6.0 does not include the macOS `menubar` application or agent status light.
+With `GS_ROOT` set, discovery is isolated to the source tree's formal `plugins/`;
+`examples/`, user plugins, `GS_PLUGIN_PATH`, and legacy `router.json` are ignored.
+Set `GS_INCLUDE_EXAMPLES=1` to load examples for development tests, or
+`GS_ALLOW_LEGACY=1` to explicitly opt into legacy/user-plugin compatibility.
+
 ## System Overview
 
 ```
@@ -251,7 +259,7 @@ System Startup
     ├─> PluginLoader.load_all_plugins()
     │   ├─ Scan plugins/ directory
     │   ├─ Scan custom/ directory
-    │   ├─ (Optional) Scan examples/ directory
+    │   ├─ (Optional, only with `GS_INCLUDE_EXAMPLES=1`) Scan examples/ directory
     │   │
     │   └─ For each plugin directory:
     │       ├─ Read plugin.json
