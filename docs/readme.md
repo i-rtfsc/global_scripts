@@ -33,6 +33,7 @@
 |------|------|
 | [贡献指南](./contributing.md) | 如何贡献代码 |
 | [更新日志](./changelog.md) | 版本历史 |
+| [GS 6.0 迁移状态](./gs6-migration-status.md) | GS6 迁移、隔离和验收状态 |
 
 ### 高级主题
 

@@ -7,8 +7,8 @@
 //!
 //! Tiers: T2 (script) uses [`call_oneshot`] — one process per `gs` invocation
 //! that may answer 1–2 requests (e.g. `describe` then `complete`) before its
-//! stdin closes and it exits. T3 (resident) and T4 (wasm) reuse the framing and
-//! message types but need a different transport (deferred).
+//! stdin closes and it exits. T4 modules use the same transport through the
+//! `wasmtime` WASI CLI; T3 resident-process reuse remains a later optimization.
 
 use crate::manifest::CommandSpec;
 use serde::Deserialize;
@@ -97,16 +97,18 @@ fn env_ms(key: &str, default: u64) -> u64 {
 }
 
 /// Soft budget for a Tab-time dynamic `complete` callback — per keystroke, so it
-/// must stay snappy. Override with `GS_COMPLETE_TIMEOUT_MS` (default 200ms).
+/// must stay snappy. The first Python/WASM cold start gets 500ms; subsequent
+/// calls are normally served from the completion cache. Override with
+/// `GS_COMPLETE_TIMEOUT_MS`.
 pub fn complete_timeout() -> std::time::Duration {
-    std::time::Duration::from_millis(env_ms("GS_COMPLETE_TIMEOUT_MS", 200))
+    std::time::Duration::from_millis(env_ms("GS_COMPLETE_TIMEOUT_MS", 500))
 }
 
 /// Budget for a `describe` — it builds the command *structure* and is cached
 /// after the first call, so a brief one-time wait (e.g. an interpreter cold
-/// start) is acceptable. Override with `GS_DESCRIBE_TIMEOUT_MS` (default 1500ms).
+/// start) is acceptable. Override with `GS_DESCRIBE_TIMEOUT_MS` (default 3000ms).
 pub fn describe_timeout() -> std::time::Duration {
-    std::time::Duration::from_millis(env_ms("GS_DESCRIBE_TIMEOUT_MS", 1500))
+    std::time::Duration::from_millis(env_ms("GS_DESCRIBE_TIMEOUT_MS", 3000))
 }
 
 /// A parsed JSON-RPC error object.

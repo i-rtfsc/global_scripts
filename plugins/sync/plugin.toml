@@ -1,0 +1,18 @@
+name        = "sync"
+version     = "6.0.0-dev"
+tier        = "script"
+runtime     = "python"
+entry       = "sync.py"
+description = { zh = "Git 工作区文件同步工具", en = "Git worktree file synchronization" }
+author      = "Solo"
+license     = "Apache-2.0"
+category    = "development"
+priority    = 50
+protocol    = 1
+describe_cache = "runtime"
+
+[capabilities]
+exec = ["git"]
+fs = ["read:$PROJECT", "rw:$GS_SYNC_TARGET_BASE"]
+net = false
+env = ["PATH", "GS_SYNC_SOURCE_BASE", "GS_SYNC_TARGET_BASE", "GS_SYNC_VPS_HOST", "GS_SYNC_VPS_USER"]

@@ -5,7 +5,7 @@ Tests parser management command functionality.
 """
 
 import pytest
-from unittest.mock import Mock, AsyncMock, patch, mock_open
+from unittest.mock import Mock, patch, mock_open
 from pathlib import Path
 import json
 
@@ -26,7 +26,11 @@ def mock_config_manager():
 def mock_plugin_service():
     """Mock PluginService"""
     service = Mock()
-    service.get_all_plugins = AsyncMock(return_value=[])
+
+    async def get_all_plugins():
+        return []
+
+    service.get_all_plugins = get_all_plugins
     return service
 
 
@@ -34,9 +38,12 @@ def mock_plugin_service():
 def mock_plugin_executor():
     """Mock PluginExecutor"""
     executor = Mock()
-    executor.execute_plugin_function = AsyncMock(
-        return_value=CommandResult(success=True, output="test output")
-    )
+
+    async def execute_plugin_function(*args, **kwargs):
+        del args, kwargs
+        return CommandResult(success=True, output="test output")
+
+    executor.execute_plugin_function = execute_plugin_function
     return executor
 
 
@@ -128,87 +135,81 @@ class TestParserCommandRouting:
     @pytest.mark.asyncio
     async def test_execute_routes_to_list_parsers(self, parser_command):
         """Test execute routes 'list' to _list_parsers"""
-        # Arrange
-        with patch.object(
-            parser_command,
-            "_list_parsers",
-            return_value=CommandResult(success=True, output="Parser list"),
-        ) as mock_list:
-            # Act
+        calls = []
+        async def list_parsers(args):
+            calls.append(args)
+            return CommandResult(success=True, output="Parser list")
+        with patch.object(parser_command, "_list_parsers", new=list_parsers):
             result = await parser_command.execute(["list"])
 
         # Assert
         assert result.success is True
         assert result.output == "Parser list"
-        mock_list.assert_called_once()
+        assert calls == [[]]
 
     @pytest.mark.asyncio
     async def test_execute_routes_to_parser_info(self, parser_command):
         """Test execute routes 'info' to _parser_info"""
         # Arrange
-        with patch.object(
-            parser_command,
-            "_parser_info",
-            return_value=CommandResult(success=True, output="Parser info"),
-        ) as mock_info:
+        calls = []
+
+        async def parser_info(args):
+            calls.append(args)
+            return CommandResult(success=True, output="Parser info")
+
+        with patch.object(parser_command, "_parser_info", new=parser_info):
             # Act
             result = await parser_command.execute(["info", "python"])
 
         # Assert
         assert result.success is True
         assert result.output == "Parser info"
-        mock_info.assert_called_once()
+        assert calls == [["python"]]
 
     @pytest.mark.asyncio
     async def test_execute_routes_to_enable_parser(self, parser_command):
         """Test execute routes 'enable' to _enable_parser"""
-        # Arrange
-        with patch.object(
-            parser_command,
-            "_enable_parser",
-            return_value=CommandResult(success=True, output="Parser enabled"),
-        ) as mock_enable:
-            # Act
+        calls = []
+        async def enable_parser(args):
+            calls.append(args)
+            return CommandResult(success=True, output="Parser enabled")
+        with patch.object(parser_command, "_enable_parser", new=enable_parser):
             result = await parser_command.execute(["enable", "python"])
 
         # Assert
         assert result.success is True
         assert result.output == "Parser enabled"
-        mock_enable.assert_called_once()
+        assert calls == [["python"]]
 
     @pytest.mark.asyncio
     async def test_execute_routes_to_disable_parser(self, parser_command):
         """Test execute routes 'disable' to _disable_parser"""
-        # Arrange
-        with patch.object(
-            parser_command,
-            "_disable_parser",
-            return_value=CommandResult(success=True, output="Parser disabled"),
-        ) as mock_disable:
-            # Act
+        calls = []
+        async def disable_parser(args):
+            calls.append(args)
+            return CommandResult(success=True, output="Parser disabled")
+        with patch.object(parser_command, "_disable_parser", new=disable_parser):
             result = await parser_command.execute(["disable", "python"])
 
         # Assert
         assert result.success is True
         assert result.output == "Parser disabled"
-        mock_disable.assert_called_once()
+        assert calls == [["python"]]
 
     @pytest.mark.asyncio
     async def test_execute_routes_to_test_parser(self, parser_command):
         """Test execute routes 'test' to _test_parser"""
-        # Arrange
-        with patch.object(
-            parser_command,
-            "_test_parser",
-            return_value=CommandResult(success=True, output="Parser test result"),
-        ) as mock_test:
-            # Act
+        calls = []
+        async def test_parser(args):
+            calls.append(args)
+            return CommandResult(success=True, output="Parser test result")
+        with patch.object(parser_command, "_test_parser", new=test_parser):
             result = await parser_command.execute(["test", "plugin.py"])
 
         # Assert
         assert result.success is True
         assert result.output == "Parser test result"
-        mock_test.assert_called_once()
+        assert calls == [["plugin.py"]]
 
 
 class TestListParsers:

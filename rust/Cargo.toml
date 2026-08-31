@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/gs-core", "crates/gs", "crates/gsd"]
+members = ["crates/gs-core", "crates/gs"]
 
 [workspace.package]
 version = "0.6.0-dev"
@@ -14,6 +14,11 @@ serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 # plugin.toml manifests (GS 6.0 plugin protocol — tmp/phase0-plugin-protocol.md §1).
 toml = "0.8"
+unicode-width = "0.2"
+terminal_size = "0.4"
+comfy-table = "7"
+textwrap = "0.16"
+regex = "1"
 
 # Launcher: optimize for a small, fast-starting binary.
 [profile.release]

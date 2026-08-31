@@ -98,10 +98,26 @@ uv sync
 
 ### 4. 运行安装脚本
 
+> 此脚本配置 GS 5.2 legacy 环境。GS 6.0 尚未发布为全局入口；开发验证请使用
+> `rust/target/debug/gs` 和 `scripts/verify_gs6.sh`。
+
 ```bash
 # 使用 UV 运行安装脚本，配置 shell 环境
 uv run python scripts/setup.py
 ```
+
+### GS6 独立灰度安装
+
+```bash
+cargo build --release --manifest-path rust/Cargo.toml
+bash scripts/stage_gs6_release.sh
+bash scripts/install_gs6.sh --yes
+```
+
+该流程只安装 `gs6`，不会覆盖全局 `gs`。如果源码树中存在私有
+`custom/userspace/identity` 或 `custom/userspace/sgm`，且用户配置目录没有同名目标，
+安装器会创建来源符号链接，不复制私钥或公司配置。设置
+`GS6_LINK_PRIVATE_ASSETS=0` 可禁用该行为。
 
 ### 5. 重新加载 Shell 配置
 
@@ -371,4 +387,3 @@ python3 -m json.tool plugins/android/plugin.json
 - 💬 [GitHub Issues](https://github.com/i-rtfsc/global_scripts/issues)
 - 📚 [在线文档](https://github.com/i-rtfsc/global_scripts/tree/main/docs)
 - ❓ 运行 `gs help` 获取内置帮助
-

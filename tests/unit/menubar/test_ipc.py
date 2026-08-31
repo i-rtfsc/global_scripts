@@ -118,7 +118,7 @@ class TestIPCServer:
     @pytest.mark.asyncio
     async def test_server_start_creates_socket(self, temp_socket_path):
         """Test server start creates socket file"""
-        from gscripts.menubar.ipc import IPCServer
+        from gscripts.menubar.ipc import IPCServer, resolve_socket_path
 
         server = IPCServer(socket_path=temp_socket_path)
 
@@ -134,7 +134,7 @@ class TestIPCServer:
     @pytest.mark.asyncio
     async def test_server_stop_removes_socket(self, temp_socket_path):
         """Test server stop removes socket file"""
-        from gscripts.menubar.ipc import IPCServer
+        from gscripts.menubar.ipc import IPCServer, resolve_socket_path
 
         server = IPCServer(socket_path=temp_socket_path)
 
@@ -184,7 +184,7 @@ class TestIPCServer:
     @pytest.mark.asyncio
     async def test_server_handles_invalid_json(self, temp_socket_path):
         """Test server gracefully handles invalid JSON"""
-        from gscripts.menubar.ipc import IPCServer
+        from gscripts.menubar.ipc import IPCServer, resolve_socket_path
 
         messages_received = []
 
@@ -200,7 +200,7 @@ class TestIPCServer:
             # Send invalid JSON manually
             import socket as sock
             client_sock = sock.socket(sock.AF_UNIX, sock.SOCK_STREAM)
-            client_sock.connect(str(temp_socket_path))
+            client_sock.connect(str(resolve_socket_path(temp_socket_path)))
             client_sock.sendall(b"invalid json\n")
             client_sock.close()
 

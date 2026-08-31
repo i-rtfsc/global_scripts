@@ -88,7 +88,10 @@ pub fn complete(
             // A front-door command with (shallow) subcommands.
             if let Some((_, _, subs)) = system.iter().find(|(c, _, _)| c == head) {
                 if rest.is_empty() {
-                    let v = subs.iter().map(|s| cand(*s, None)).collect();
+                    let v = subs
+                        .iter()
+                        .map(|s| cand(*s, Some(format!("{} 子命令", s))))
+                        .collect();
                     return finalize(v, directive::NO_FILE);
                 }
                 return finalize(vec![], directive::NO_FILE);
@@ -106,16 +109,69 @@ pub fn complete(
 /// complete a chosen command's arguments.
 fn complete_in_plugin(p: &LoadedManifest, rest: &[String], locale: &str) -> Completion {
     let cmds = p.commands(locale);
-    match rest.split_first() {
-        // `gs <plugin> <Tab>` → the plugin's command names.
-        None => finalize(command_candidates(&cmds, locale), directive::NO_FILE),
-        Some((name, argtoks)) => match cmds.iter().find(|c| !c.hidden && &c.name == name) {
-            Some(cmd) => resolve_args(p, cmd, argtoks, locale),
-            // Word isn't a full command yet → keep offering command names (the
-            // shell filters by the partial).
-            None => finalize(command_candidates(&cmds, locale), directive::NO_FILE),
-        },
+    if rest.is_empty() {
+        return finalize(
+            namespace_candidates(p, &cmds, &[], locale),
+            directive::NO_FILE,
+        );
     }
+
+    // Resolve dotted commands typed either as one token (`prompt.set`) or as
+    // multiple shell words (`prompt set`). Longest match wins, mirroring
+    // dispatch_manifest in the front door.
+    if let Some((cmd, consumed)) = (1..=rest.len()).rev().find_map(|take| {
+        let joined = rest[..take].join(".");
+        cmds.iter()
+            .find(|c| !c.hidden && c.name == joined)
+            .map(|c| (c, take))
+    }) {
+        return resolve_args(p, cmd, &rest[consumed..], locale);
+    }
+
+    let cands = namespace_candidates(p, &cmds, rest, locale);
+    if !cands.is_empty() {
+        return finalize(cands, directive::NO_FILE);
+    }
+    finalize(command_candidates(&cmds, locale), directive::NO_FILE)
+}
+
+/// Candidates one namespace level below `prefix`. At the plugin root this
+/// turns `prompt.set`/`prompt.current` into one `prompt` group; after
+/// `gs system prompt` it offers `set`/`current`/`themes`.
+fn namespace_candidates(
+    plugin: &LoadedManifest,
+    cmds: &[CommandSpec],
+    prefix: &[String],
+    locale: &str,
+) -> Vec<Candidate> {
+    let prefix = if prefix.is_empty() {
+        String::new()
+    } else {
+        format!("{}.", prefix.join("."))
+    };
+    cmds.iter()
+        .filter(|c| !c.hidden && c.name.starts_with(&prefix))
+        .filter_map(|c| {
+            let remaining = &c.name[prefix.len()..];
+            let next = remaining.split('.').next()?;
+            let group_path = if prefix.is_empty() {
+                next.to_string()
+            } else {
+                format!("{}.{}", prefix.trim_end_matches('.'), next)
+            };
+            let description = if remaining.contains('.') {
+                plugin
+                    .manifest
+                    .groups
+                    .get(&group_path)
+                    .and_then(|text| pick(text, locale))
+                    .or_else(|| Some(format!("{} 命令组", next)))
+            } else {
+                pick(&c.summary, locale)
+            };
+            Some(cand(next, description))
+        })
+        .collect()
 }
 
 fn command_candidates(cmds: &[CommandSpec], locale: &str) -> Vec<Candidate> {
@@ -218,7 +274,13 @@ fn resolve_rule(p: &LoadedManifest, cmd: &CommandSpec, arg: &ArgSpec, locale: &s
         // Unknown → let the shell do default (file) completion.
         CompleteKind::None => finalize(vec![], directive::DEFAULT),
         CompleteKind::Enum => {
-            let v = arg.complete.values.iter().map(|s| cand(s, None)).collect();
+            let description = pick(&arg.description, locale);
+            let v = arg
+                .complete
+                .values
+                .iter()
+                .map(|s| cand(s, description.clone()))
+                .collect();
             finalize(v, directive::NO_FILE)
         }
         // File pattern filtering is deferred; plain native file completion.
@@ -242,8 +304,6 @@ fn dynamic_rule(p: &LoadedManifest, cmd: &CommandSpec, arg: &ArgSpec, locale: &s
         // Exec form (no shell): matches the doc's "exec" semantics and avoids
         // shell-metacharacter hazards — e.g. git's `--format=%(refname:short)`
         // is one literal argv token here, but a syntax error under `sh -c`.
-        // NOTE: `complete.filter` (regex extraction) is not yet applied; each
-        // non-empty output line is taken verbatim as a candidate.
         let argv: Vec<String> = line.split_whitespace().map(String::from).collect();
         let Some((prog, rest)) = argv.split_first() else {
             return finalize(vec![], directive::NO_FILE);
@@ -262,7 +322,11 @@ fn dynamic_rule(p: &LoadedManifest, cmd: &CommandSpec, arg: &ArgSpec, locale: &s
                 .lines()
                 .map(str::trim)
                 .filter(|l| !l.is_empty())
-                .map(|l| cand(l, None))
+                .filter_map(|l| {
+                    let mut value = filter_candidate(arg.complete.filter.trim(), l)?;
+                    value.description = pick(&arg.description, locale);
+                    Some(value)
+                })
                 .collect(),
             _ => vec![],
         };
@@ -277,6 +341,8 @@ fn dynamic_rule(p: &LoadedManifest, cmd: &CommandSpec, arg: &ArgSpec, locale: &s
         let Some((prog, args)) = p.spawn() else {
             return finalize(vec![], directive::NO_FILE);
         };
+        let all_env: std::collections::BTreeMap<String, String> = std::env::vars().collect();
+        let env = caps::filter_env(p.capabilities(), &all_env);
         let params = serde_json::json!({
             "command": cmd.name,
             "arg": arg.name,
@@ -285,6 +351,7 @@ fn dynamic_rule(p: &LoadedManifest, cmd: &CommandSpec, arg: &ArgSpec, locale: &s
             "args": {},
             "cwd": p.dir.to_string_lossy(),
             "locale": locale,
+            "env": env,
         });
         let req = rpc::request(1, "complete", params);
         let dir = p.dir.clone();
@@ -297,7 +364,14 @@ fn dynamic_rule(p: &LoadedManifest, cmd: &CommandSpec, arg: &ArgSpec, locale: &s
                 .map(|r| {
                     let (vals, ttl) = rpc::parse_complete(r);
                     (
-                        vals.into_iter().map(|v| cand(v.value, v.description)).collect(),
+                        vals.into_iter()
+                            .map(|v| {
+                                cand(
+                                    v.value,
+                                    v.description.or_else(|| pick(&arg.description, locale)),
+                                )
+                            })
+                            .collect(),
                         ttl,
                     )
                 })
@@ -310,6 +384,18 @@ fn dynamic_rule(p: &LoadedManifest, cmd: &CommandSpec, arg: &ArgSpec, locale: &s
         }
         finalize(cands, directive::NO_FILE)
     }
+}
+
+fn filter_candidate(pattern: &str, line: &str) -> Option<Candidate> {
+    if pattern.is_empty() {
+        return Some(cand(line, None));
+    }
+    let re = regex::Regex::new(pattern).ok()?;
+    let value = re
+        .captures(line)
+        .and_then(|caps| caps.get(1).or_else(|| caps.get(0)))?
+        .as_str();
+    Some(cand(value, None))
 }
 
 #[cfg(test)]
@@ -326,10 +412,7 @@ mod tests {
         }
     }
 
-    const SYSTEM: &[(&str, &str, &[&str])] = &[
-        ("version", "显示版本号", &[]),
-        ("hooks", "状态灯 hooks", &["install", "uninstall", "status"]),
-    ];
+    const SYSTEM: &[(&str, &str, &[&str])] = &[("version", "显示版本号", &[])];
 
     fn gitx() -> LoadedManifest {
         manifest(
@@ -385,20 +468,11 @@ mod tests {
         let c = complete(&reg, SYSTEM, &[], "en");
         let vals: Vec<&str> = c.candidates.iter().map(|c| c.value.as_str()).collect();
         assert!(vals.contains(&"version"));
-        assert!(vals.contains(&"hooks"));
         assert!(vals.contains(&"gitx"));
         assert_eq!(c.directive, directive::NO_FILE);
         // descriptions flow through
         let gv = c.candidates.iter().find(|c| c.value == "gitx").unwrap();
         assert_eq!(gv.description.as_deref(), Some("Git shortcuts"));
-    }
-
-    #[test]
-    fn system_subcommands() {
-        let reg = registry(vec![]);
-        let c = complete(&reg, SYSTEM, &["hooks".into()], "en");
-        let vals: Vec<&str> = c.candidates.iter().map(|c| c.value.as_str()).collect();
-        assert_eq!(vals, vec!["install", "status", "uninstall"]);
     }
 
     #[test]
@@ -416,6 +490,29 @@ mod tests {
                 .as_deref(),
             Some("Checkout")
         );
+    }
+
+    #[test]
+    fn dotted_commands_complete_as_space_namespaces() {
+        let reg = registry(vec![manifest(
+            r#"name="system"
+               tier="declarative"
+               [[commands]]
+               name="prompt.set"
+               summary={en="Set theme"}
+               run="echo set"
+               [[commands]]
+               name="prompt.current"
+               summary={en="Current theme"}
+               run="echo current""#,
+            ".",
+        )]);
+        let root = complete(&reg, SYSTEM, &["system".into()], "en");
+        let root_values: Vec<&str> = root.candidates.iter().map(|c| c.value.as_str()).collect();
+        assert_eq!(root_values, vec!["prompt"]);
+        let group = complete(&reg, SYSTEM, &["system".into(), "prompt".into()], "en");
+        let group_values: Vec<&str> = group.candidates.iter().map(|c| c.value.as_str()).collect();
+        assert_eq!(group_values, vec!["current", "set"]);
     }
 
     #[test]
@@ -495,6 +592,16 @@ mod tests {
         assert_eq!(vals, vec!["dev", "main", "release"]);
         assert_eq!(c.directive, directive::NO_FILE);
         let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn t1_dynamic_filter_extracts_first_capture() {
+        assert_eq!(
+            filter_candidate("^item:(.+)$", "item:alpha").unwrap().value,
+            "alpha"
+        );
+        assert!(filter_candidate("^item:(.+)$", "other").is_none());
+        assert_eq!(filter_candidate("", "raw").unwrap().value, "raw");
     }
 
     #[test]

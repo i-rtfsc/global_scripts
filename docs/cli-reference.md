@@ -140,7 +140,11 @@ gs plugin info android
 │ 状态     │ ✅ 已启用   │
 └──────────┴─────────────┘
 
-📜 可用命令表格（包含命令、子插件、函数、类型、用法、描述）
+📜 GS 6.0 使用自适应信息面板和分组命令列表；插件列表使用自适应表格。
+
+`gs6 android` 显示插件基本信息及按子插件分组的命令；`gs6 android device` 只显示 device 命令组。具体命令保持原始输出。
+
+当 `plugin info` 后面的词组成完整命令路径时，会直接执行该命令。例如 `gs6 plugin info android app list-3rd` 等价于 `gs6 android app list-3rd`；后续参数会继续传给该命令。
 ```
 
 ### gs plugin enable

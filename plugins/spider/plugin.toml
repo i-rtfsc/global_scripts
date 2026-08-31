@@ -1,0 +1,19 @@
+name        = "spider"
+version     = "6.0.0-dev"
+tier        = "script"
+runtime     = "python"
+entry       = "spider.py"
+description = { zh = "网络文章识别与受控抓取", en = "Article classification and controlled crawling" }
+author      = "Solo"
+license     = "Apache-2.0"
+category    = "tools"
+keywords    = ["spider", "crawler", "blog"]
+priority    = 50
+protocol    = 1
+describe_cache = "runtime"
+
+[capabilities]
+exec = ["python", "python3"]
+net = true
+fs  = ["rw:$PROJECT"]
+env = ["GS_ROOT", "HOME", "PATH"]

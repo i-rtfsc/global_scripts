@@ -372,6 +372,7 @@ class TestAsyncTaskManager:
 
         # Assert
         assert result is True
+        await asyncio.gather(*manager.tasks.values(), return_exceptions=True)
 
     @pytest.mark.asyncio
     async def test_cancel_nonexistent_task_returns_false(self):
@@ -402,6 +403,7 @@ class TestAsyncTaskManager:
 
         # Assert
         assert count == 2
+        await asyncio.gather(*manager.tasks.values(), return_exceptions=True)
 
     @pytest.mark.asyncio
     async def test_get_status_returns_task_statuses(self):
@@ -430,3 +432,5 @@ class TestAsyncTaskManager:
         # Quick task should be done, long task should be running
         assert statuses["quick"] == "完成"
         assert statuses["long"] == "运行中"
+        manager.cancel_all()
+        await asyncio.gather(*manager.tasks.values(), return_exceptions=True)

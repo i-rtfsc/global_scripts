@@ -78,6 +78,8 @@ def show_banner():
         print(art)
         print("Global Scripts - Modern Plugin Framework")
         print(f"Version: {GS_VERSION}")
+    if GS_VERSION.startswith("5."):
+        print("Legacy setup: this installer configures GS 5.2. GS 6.0 uses rust/target/debug/gs and scripts/verify_gs6.sh.")
 
 
 def select_language(auto_mode: bool = False) -> str:
@@ -227,8 +229,6 @@ async def main():
     custom_plugins_list = []
     if custom_root.exists():
         # 使用 PluginDiscovery 递归查找所有 plugin.json 文件
-        custom_discovery = PluginDiscovery(custom_root)
-
         # 递归发现所有插件目录
         def find_all_plugin_dirs(root_dir):
             """递归查找所有包含 plugin.json 的目录"""

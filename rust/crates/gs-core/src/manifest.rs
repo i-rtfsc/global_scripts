@@ -259,6 +259,11 @@ pub struct PluginManifest {
     pub category: String,
     #[serde(default)]
     pub keywords: Vec<String>,
+    /// Optional descriptions for dotted command namespaces (for example
+    /// `device` in `device.devices`). Shell completion uses these before the
+    /// user has selected a leaf command.
+    #[serde(default)]
+    pub groups: BTreeMap<String, I18n>,
     #[serde(default = "default_priority")]
     pub priority: i64,
     #[serde(default = "default_true")]
@@ -319,10 +324,7 @@ impl PluginManifest {
                     let has_run = !c.run.trim().is_empty();
                     let has_cd = !c.cd.trim().is_empty();
                     if has_run && has_cd {
-                        return Err(format!(
-                            "T1 命令 `{}` 不能同时设置 `run` 和 `cd`",
-                            c.name
-                        ));
+                        return Err(format!("T1 命令 `{}` 不能同时设置 `run` 和 `cd`", c.name));
                     }
                     if !has_run && !has_cd {
                         return Err(format!(

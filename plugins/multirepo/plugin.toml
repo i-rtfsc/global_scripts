@@ -1,0 +1,19 @@
+name        = "multirepo"
+version     = "6.0.0-dev"
+tier        = "script"
+runtime     = "python"
+entry       = "multirepo.py"
+description = { zh = "多仓库状态、计划与安全应用", en = "Multi-repo status, plans and safe apply" }
+author      = "Solo"
+license     = "Apache-2.0"
+category    = "development"
+keywords    = ["repo", "git", "manifest"]
+priority    = 50
+protocol    = 1
+describe_cache = "runtime"
+
+[capabilities]
+fs  = ["rw:$PROJECT"]
+exec = ["git", "repo"]
+net = true
+env = ["PWD", "GS_ROOT", "HOME"]

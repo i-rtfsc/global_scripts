@@ -27,7 +27,8 @@ pub struct LoadedManifest {
 impl LoadedManifest {
     /// The interpreter program + argv to spawn this plugin (T2/T3). `python` →
     /// `python3`; other runtimes map 1:1. `entry` is resolved against `dir`.
-    /// Returns `None` for T1 (never spawned) and T4 wasm (deferred).
+    /// T4 uses the `wasmtime` CLI as a WASI command. The module speaks the same
+    /// framed JSON-RPC protocol over stdin/stdout as T2/T3.
     pub fn spawn(&self) -> Option<(String, Vec<String>)> {
         match self.manifest.tier {
             Tier::Script | Tier::Rpc => {
@@ -37,7 +38,14 @@ impl LoadedManifest {
                     vec![entry.to_string_lossy().into_owned()],
                 ))
             }
-            Tier::Declarative | Tier::Wasm => None,
+            Tier::Wasm => {
+                let entry = self.dir.join(&self.manifest.entry);
+                Some((
+                    std::env::var("GS_WASMTIME_BIN").unwrap_or_else(|_| "wasmtime".into()),
+                    vec!["run".into(), entry.to_string_lossy().into_owned()],
+                ))
+            }
+            Tier::Declarative => None,
         }
     }
 
@@ -76,15 +84,16 @@ impl LoadedManifest {
             }),
         );
         let dir = self.dir.clone();
-        let exchange =
-            rpc::with_timeout(rpc::describe_timeout(), move || {
-                rpc::call_oneshot(&prog, &args, Some(&dir), &[req], true)
-            });
+        let exchange = rpc::with_timeout(rpc::describe_timeout(), move || {
+            rpc::call_oneshot(&prog, &args, Some(&dir), &[req], true)
+        });
         match exchange {
             Some(Ok(ex)) => match ex.result_for(1) {
                 Some(r) => {
                     cache::write_describe(name, &key, r);
-                    rpc::parse_describe(r).map(|d| d.commands).unwrap_or_default()
+                    rpc::parse_describe(r)
+                        .map(|d| d.commands)
+                        .unwrap_or_default()
                 }
                 None => Vec::new(),
             },
@@ -208,11 +217,11 @@ impl Registry {
     }
 }
 
-/// Map a manifest `runtime` to the program to spawn. `python` resolves to
-/// `python3` (the de-facto interpreter on macOS/most Linux); everything else is
-/// used verbatim.
+/// Map a manifest `runtime` to the platform's conventional Python launcher;
+/// everything else is used verbatim.
 pub fn runtime_program(runtime: &str) -> String {
     match runtime {
+        "python" if cfg!(windows) => "python".into(),
         "python" => "python3".into(),
         other => other.into(),
     }
@@ -221,21 +230,30 @@ pub fn runtime_program(runtime: &str) -> String {
 /// Plugin-discovery roots, highest priority first (earlier roots shadow later
 /// ones for a given plugin name):
 ///   1. `$GS_PLUGIN_PATH` — explicit, `:`-separated override (power users).
-///   2. `$GS_ROOT/plugins` + `$GS_ROOT/examples` — the repo / dev tree.
-///   3. `~/.config/global-scripts/plugins` — user-installed plugins; the durable
-///      location that works with **no** `GS_ROOT` set.
+///   2. `$GS_ROOT/plugins` — the repo / dev tree. `$GS_ROOT/examples` is only
+///      included when `GS_INCLUDE_EXAMPLES=1`.
+///   3. `~/.config/global-scripts/plugins` — user-installed plugins, used when
+///      no `GS_ROOT` is set or `GS_ALLOW_LEGACY=1` explicitly opts in.
 pub fn default_roots() -> Vec<PathBuf> {
     let mut roots = Vec::new();
-    if let Some(pp) = std::env::var_os("GS_PLUGIN_PATH") {
-        roots.extend(std::env::split_paths(&pp));
+    let isolated = std::env::var_os("GS_ROOT").is_some()
+        && std::env::var_os("GS_ALLOW_LEGACY").as_deref() != Some(std::ffi::OsStr::new("1"));
+    if !isolated {
+        if let Some(pp) = std::env::var_os("GS_PLUGIN_PATH") {
+            roots.extend(std::env::split_paths(&pp));
+        }
     }
     if let Some(gs_root) = std::env::var_os("GS_ROOT") {
         let r = PathBuf::from(gs_root);
         roots.push(r.join("plugins"));
-        roots.push(r.join("examples"));
+        if std::env::var_os("GS_INCLUDE_EXAMPLES").as_deref() == Some(std::ffi::OsStr::new("1")) {
+            roots.push(r.join("examples"));
+        }
     }
-    if let Some(home) = crate::home_dir() {
-        roots.push(home.join(".config/global-scripts/plugins"));
+    if !isolated {
+        if let Some(home) = crate::home_dir() {
+            roots.push(home.join(".config/global-scripts/plugins"));
+        }
     }
     roots
 }
@@ -343,9 +361,34 @@ mod tests {
 
     #[test]
     fn runtime_program_maps_python() {
-        assert_eq!(runtime_program("python"), "python3");
+        assert_eq!(
+            runtime_program("python"),
+            if cfg!(windows) { "python" } else { "python3" }
+        );
         assert_eq!(runtime_program("bash"), "bash");
         assert_eq!(runtime_program("node"), "node");
+    }
+
+    #[test]
+    fn wasm_spawn_uses_wasmtime_cli() {
+        let root = scratch("wasm-spawn");
+        let dir = write_plugin(
+            &root,
+            "wasm-demo",
+            r#"name="wasm-demo"
+               tier="wasm"
+               entry="plugin.wasm"
+               describe_cache="static"
+               [[commands]]
+               name="hello""#,
+        );
+        fs::write(dir.join("plugin.wasm"), b"wasm-fixture").unwrap();
+        let reg = Registry::discover(std::slice::from_ref(&root));
+        let (program, args) = reg.get("wasm-demo").unwrap().spawn().unwrap();
+        assert!(program.ends_with("wasmtime"));
+        assert_eq!(args[0], "run");
+        assert!(args[1].ends_with("plugin.wasm"));
+        let _ = fs::remove_dir_all(&root);
     }
 
     // T2 runtime-describe path, exercised with a `sh` mock plugin that ignores
@@ -421,9 +464,19 @@ mod tests {
     #[test]
     fn default_roots_puts_explicit_path_first() {
         let _g = crate::cache::test_isolate("index-roots");
+        let old_root = std::env::var_os("GS_ROOT");
+        let old_legacy = std::env::var_os("GS_ALLOW_LEGACY");
+        std::env::remove_var("GS_ROOT");
+        std::env::remove_var("GS_ALLOW_LEGACY");
         std::env::set_var("GS_PLUGIN_PATH", "/opt/gs-plugins");
         let roots = default_roots();
         assert_eq!(roots.first(), Some(&PathBuf::from("/opt/gs-plugins")));
         std::env::remove_var("GS_PLUGIN_PATH");
+        if let Some(value) = old_root {
+            std::env::set_var("GS_ROOT", value);
+        }
+        if let Some(value) = old_legacy {
+            std::env::set_var("GS_ALLOW_LEGACY", value);
+        }
     }
 }

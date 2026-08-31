@@ -5,9 +5,10 @@ Provides Unix domain socket-based IPC for CLI ↔ Menu Bar communication.
 """
 
 import asyncio
+import hashlib
 import json
-import os
 import socket
+import tempfile
 from pathlib import Path
 from typing import Dict, Any, Optional, Callable
 import logging
@@ -21,11 +22,24 @@ def get_socket_path() -> Path:
     return config_dir / "menubar.sock"
 
 
+def resolve_socket_path(socket_path: Path) -> Path:
+    """Return an AF_UNIX-safe path, shortening long paths deterministically."""
+    path = Path(socket_path)
+    # macOS sockaddr_un.sun_path is only 104 bytes including the terminating NUL.
+    # Keep a little headroom for platform differences and filesystem encoding.
+    if len(str(path).encode("utf-8")) <= 100:
+        return path
+
+    digest = hashlib.sha256(str(path).encode("utf-8")).hexdigest()[:16]
+    return Path(tempfile.gettempdir()) / f"global-scripts-{digest}.sock"
+
+
 class IPCClient:
     """IPC client for sending messages from CLI to menu bar"""
 
     def __init__(self, socket_path: Optional[Path] = None):
         self.socket_path = socket_path or get_socket_path()
+        self.connect_path = resolve_socket_path(self.socket_path)
 
     def send_message(self, message: Dict[str, Any], timeout: float = 1.0) -> bool:
         """
@@ -38,8 +52,8 @@ class IPCClient:
         Returns:
             True if sent successfully, False otherwise
         """
-        if not self.socket_path.exists():
-            logger.debug(f"Socket not found: {self.socket_path}")
+        if not self.connect_path.exists():
+            logger.debug(f"Socket not found: {self.connect_path}")
             return False
 
         try:
@@ -47,7 +61,7 @@ class IPCClient:
             sock.settimeout(timeout)
 
             try:
-                sock.connect(str(self.socket_path))
+                sock.connect(str(self.connect_path))
                 data = json.dumps(message).encode("utf-8")
                 sock.sendall(data + b"\n")
                 return True
@@ -103,6 +117,7 @@ class IPCServer:
         self, socket_path: Optional[Path] = None, message_handler: Optional[Callable] = None
     ):
         self.socket_path = socket_path or get_socket_path()
+        self.bind_path = resolve_socket_path(self.socket_path)
         self.message_handler = message_handler or self._default_handler
         self.server: Optional[asyncio.Server] = None
         self._running = False
@@ -143,19 +158,26 @@ class IPCServer:
             return
 
         # Remove stale socket file
-        if self.socket_path.exists():
-            try:
-                self.socket_path.unlink()
-            except Exception as e:
-                logger.warning(f"Failed to remove stale socket: {e}")
+        for path in {self.socket_path, self.bind_path}:
+            if path.exists() or path.is_symlink():
+                try:
+                    path.unlink()
+                except Exception as e:
+                    logger.warning(f"Failed to remove stale socket {path}: {e}")
 
         # Ensure parent directory exists
         self.socket_path.parent.mkdir(parents=True, exist_ok=True)
+        self.bind_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Start Unix socket server
         self.server = await asyncio.start_unix_server(
-            self.handle_client, path=str(self.socket_path)
+            self.handle_client, path=str(self.bind_path)
         )
+
+        # Preserve the caller-visible path for status checks and existing tests.
+        # Clients resolve the same deterministic short path before connecting.
+        if self.bind_path != self.socket_path:
+            self.socket_path.symlink_to(self.bind_path)
 
         self._running = True
         logger.info(f"IPC server started: {self.socket_path}")
@@ -172,11 +194,12 @@ class IPCServer:
             await self.server.wait_closed()
 
         # Clean up socket file
-        if self.socket_path.exists():
-            try:
-                self.socket_path.unlink()
-            except Exception as e:
-                logger.warning(f"Failed to remove socket: {e}")
+        for path in {self.socket_path, self.bind_path}:
+            if path.exists() or path.is_symlink():
+                try:
+                    path.unlink()
+                except Exception as e:
+                    logger.warning(f"Failed to remove socket {path}: {e}")
 
         logger.info("IPC server stopped")
 

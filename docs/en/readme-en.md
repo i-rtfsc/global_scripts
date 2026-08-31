@@ -33,6 +33,7 @@ Welcome to the Global Scripts documentation center! This provides complete docum
 |----------|-------------|
 | [Contributing Guide](./contributing-en.md) | How to contribute code |
 | [Changelog](../changelog.md) | Version history |
+| [GS 6.0 Migration Status](./gs6-migration-status-en.md) | GS6 migration and isolation status |
 
 ### Advanced Topics
 
