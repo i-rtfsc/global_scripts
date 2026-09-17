@@ -3,8 +3,6 @@ name: GS6 Multi-platform Release
 on:
   workflow_dispatch:
   push:
-    branches:
-      - develop
     tags:
       - 'v6.*'
 
