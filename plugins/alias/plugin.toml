@@ -1,6 +1,6 @@
 name        = "alias"
 version     = "6.0.0-dev"
-tier        = "script"
+tier        = "rpc"
 runtime     = "python"
 entry       = "alias.py"
 description = { zh = "Shell 别名管理与校验", en = "Shell alias inspection and validation" }

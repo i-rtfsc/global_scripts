@@ -3,7 +3,7 @@
 Rust 二进制必须针对操作系统和 CPU 架构分别编译，不能将 macOS ARM64 二进制直接用于
 Intel Mac、Linux 或 Windows。
 
-`.github/workflows/gs6-release.yml` 当前生成以下便携 ZIP：
+`.github/workflows/release.yml` 当前生成以下便携 ZIP：
 
 - `x86_64-apple-darwin`
 - `aarch64-apple-darwin`
@@ -11,7 +11,7 @@ Intel Mac、Linux 或 Windows。
 - `aarch64-unknown-linux-gnu`
 - `x86_64-pc-windows-msvc`
 
-每个 ZIP 包含原生 `gs6` 二进制、正式插件、Python SDK、主题、Shell 补全、
+每个 ZIP 包含原生 `gs` 二进制、正式插件、Python SDK、主题、Shell 补全、
 Bash/Zsh/Fish/PowerShell Shell init 和 `SHA256SUMS`。原生二进制会从自身所在目录发现 `plugins/`
 与 `sdk/`，便携包不依赖 Bash wrapper。
 
@@ -19,10 +19,10 @@ Bash/Zsh/Fish/PowerShell Shell init 和 `SHA256SUMS`。原生二进制会从自�
 
 ```bash
 cargo build --release --manifest-path rust/Cargo.toml
-python3 scripts/package_gs6.py \
+python3 scripts/package_gs.py \
   --binary rust/target/release/gs \
-  --output dist/gs6-aarch64-apple-darwin \
-  --archive dist/gs6-aarch64-apple-darwin.zip \
+  --output dist/gs-aarch64-apple-darwin \
+  --archive dist/gs-aarch64-apple-darwin.zip \
   --target aarch64-apple-darwin
 ```
 

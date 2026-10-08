@@ -1,6 +1,6 @@
 name        = "vscode"
 version     = "6.0.0-dev"
-tier        = "script"
+tier        = "rpc"
 runtime     = "python"
 entry       = "vscode.py"
 description = { zh = "VS Code 配置检查、计划与启动", en = "VS Code profile inspection, planning and launch" }

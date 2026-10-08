@@ -10,11 +10,11 @@ The global `gs` entry remains GS 5.2 and was not modified.
 - Rust workspace: 3 front-door unit tests, 18 E2E tests, 57 core tests passed.
 - Python non-slow suite: 844 passed, 148 deselected, no warnings.
 - Python SDK self-test: passed.
-- `scripts/verify_gs6.sh`: passed.
-- `scripts/audit_gs6_ready.sh`: passed.
-- Release staging: `dist/gs6-dev/` independently runs `doctor`, plugin discovery, and system commands.
+- `scripts/verify_gs.sh`: passed.
+- `scripts/audit_release_ready.sh`: passed.
+- Release staging: `dist/gs/` independently runs `doctor`, plugin discovery, and system commands.
 - GS5.2 backup SHA256 matches `/Users/solo/.local/bin/gs`.
-- Isolated install/rollback rehearsal passed; `gs6` installs separately and does not replace `gs`.
+- Isolated install/rollback rehearsal passed; `gs` installs into `~/.local` and does not touch system-wide entries.
 - Dotfiles, MultiRepo, Spider, VS Code, DevEnv and T4/WASM execution paths have isolated real-process verification.
 - Android device verification passed, including real screencap and 2-second screenrecord.
 
@@ -22,7 +22,7 @@ The global `gs` entry remains GS 5.2 and was not modified.
 
 The earlier conclusion that only the global-entry decision remained was too
 optimistic. The runtime and staging checks passed, but command-level parity was
-not yet measured. The current source of truth is `docs/gs6-command-parity.md`.
+not yet measured. The current source of truth is `docs/command-parity.md`.
 
 Before switching, command parity must be resolved and multi-platform release
 artifacts must pass their native workflow checks. Keep the current backup and

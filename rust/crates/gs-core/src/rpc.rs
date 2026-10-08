@@ -166,6 +166,23 @@ fn parse_response(msg: Value) -> Response {
     Response { id, result, error }
 }
 
+/// Fold one framed message from a plugin into `ex`: an `id`-bearing message is a
+/// response, a `method == "event"` notification is collected, anything else is
+/// ignored. Returns true when the message was a response. Shared by the T2
+/// one-shot reader and the T3 resident client so both classify frames alike.
+pub fn absorb(msg: Value, ex: &mut Exchange) -> bool {
+    if msg.get("id").is_some() {
+        ex.responses.push(parse_response(msg));
+        return true;
+    }
+    if msg.get("method").and_then(Value::as_str) == Some("event") {
+        if let Some(p) = msg.get("params") {
+            ex.events.push(p.clone());
+        }
+    }
+    false
+}
+
 /// A `describe` result (§2.2). `commands` reuses [`CommandSpec`] — the runtime
 /// tree is isomorphic to a manifest's, so the same type loads from both.
 #[derive(Debug, Clone, Deserialize)]
@@ -277,14 +294,7 @@ pub fn call_oneshot(
     let mut reader = BufReader::new(stdout);
     let mut ex = Exchange::default();
     while let Some(msg) = read_message(&mut reader)? {
-        if msg.get("id").is_some() {
-            ex.responses.push(parse_response(msg));
-        } else if msg.get("method").and_then(Value::as_str) == Some("event") {
-            if let Some(p) = msg.get("params") {
-                ex.events.push(p.clone());
-            }
-        }
-        // other notifications are ignored
+        absorb(msg, &mut ex); // other notifications are ignored
     }
     let _ = child.wait();
     Ok(ex)

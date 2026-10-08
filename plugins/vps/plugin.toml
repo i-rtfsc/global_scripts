@@ -1,6 +1,6 @@
 name        = "vps"
 version     = "6.0.0-dev"
-tier        = "script"
+tier        = "rpc"
 runtime     = "python"
 entry       = "vps.py"
 description = { zh = "VPS SSH、隧道与挂载管理", en = "VPS SSH, tunnel, and mount management" }

@@ -95,7 +95,6 @@ end
 # ============================================
 if command -v zoxide >/dev/null
     zoxide init fish | source
-    abbr -a -g cd 'z'
 end
 
 # ============================================

@@ -1,0 +1,183 @@
+# ---------------------------------------------------------------------------
+# init.toml —— `gs init` 的步骤清单
+# ---------------------------------------------------------------------------
+# 能力在插件里,顺序在这里。每条 step:
+#   id     有意义的步骤名(执行顺序就是这里的先后顺序)
+#   group  分组,--group=/--without= 按它筛选
+#   run    要执行的命令(插件名 + 子命令 + 参数),不带门禁标志
+#   gate   该命令要求 --dry-run/--yes 时置 true,由 `gs init` 按自身模式追加
+#   root   安装动作需要 root(gs 不会自己提权,只打印该执行的 sudo 命令)
+#   desc   说明(zh/en)
+#
+# run 写成"今天就能跑"的命令;插件拆分/合并完成后只改 run 这一行。
+# 不沿用 ~/new-system 的编号命名 —— 名字要能自解释。
+
+[[steps]]
+id = "inventory"
+group = "inventory"
+run = ["disk", "list"]
+desc = { zh = "硬件与磁盘盘点(只读)", en = "Hardware and disk inventory" }
+
+[[steps]]
+id = "mirror-repo"
+group = "mirror"
+run = ["system", "repo", "tsinghua"]
+gate = true
+desc = { zh = "git-repo 走清华镜像", en = "Point git-repo at the Tsinghua mirror" }
+
+[[steps]]
+id = "mirror-brew"
+group = "mirror"
+run = ["system", "brew", "tsinghua"]
+gate = true
+desc = { zh = "Homebrew 走清华镜像", en = "Point Homebrew at the Tsinghua mirror" }
+
+[[steps]]
+id = "shell-config"
+group = "config"
+run = ["dotfiles", "install", "fish"]
+gate = true
+desc = { zh = "安装 fish 配置", en = "Install the fish configuration" }
+
+[[steps]]
+id = "base-tools"
+group = "base"
+run = ["devenv", "install", "essential"]
+gate = true
+root = true
+desc = { zh = "基础 CLI 工具集", en = "Essential CLI tools" }
+
+[[steps]]
+id = "docker"
+group = "docker"
+run = ["devenv", "install", "docker"]
+gate = true
+root = true
+desc = { zh = "Docker 引擎", en = "Docker engine" }
+
+[[steps]]
+id = "rust"
+group = "langs"
+run = ["devenv", "install", "cargo"]
+gate = true
+root = true
+desc = { zh = "Rust(cargo)", en = "Rust (cargo)" }
+
+[[steps]]
+id = "go"
+group = "langs"
+run = ["devenv", "install", "go"]
+gate = true
+root = true
+desc = { zh = "Go", en = "Go" }
+
+[[steps]]
+id = "java"
+group = "langs"
+run = ["devenv", "install", "jdk"]
+gate = true
+root = true
+desc = { zh = "JDK", en = "JDK" }
+
+[[steps]]
+id = "python"
+group = "langs"
+run = ["devenv", "install", "python3"]
+gate = true
+root = true
+desc = { zh = "Python 3", en = "Python 3" }
+
+[[steps]]
+id = "node"
+group = "langs"
+run = ["devenv", "install", "node"]
+gate = true
+root = true
+desc = { zh = "Node.js", en = "Node.js" }
+
+[[steps]]
+id = "vscode"
+group = "tools"
+run = ["devenv", "install", "vscode"]
+gate = true
+root = true
+desc = { zh = "VS Code", en = "VS Code" }
+
+[[steps]]
+id = "tmux"
+group = "tools"
+run = ["devenv", "install", "tmux"]
+gate = true
+root = true
+desc = { zh = "tmux", en = "tmux" }
+
+[[steps]]
+id = "aosp-deps"
+group = "android"
+run = ["devenv", "install", "android-dev"]
+gate = true
+root = true
+desc = { zh = "AOSP 编译依赖", en = "AOSP build dependencies" }
+
+[[steps]]
+id = "android-tools"
+group = "android"
+run = ["devenv", "install", "adb"]
+gate = true
+root = true
+desc = { zh = "adb / 平台工具", en = "adb and platform tools" }
+
+# --- 以下步骤依赖尚未落地的领域插件(gs init --list 会标"尚未创建")---
+
+[[steps]]
+id = "mount-disks"
+group = "storage"
+run = ["disk", "mount"]
+gate = true
+root = true
+desc = { zh = "数据盘挂载(不含格式化)", en = "Mount data disks (no formatting)" }
+
+[[steps]]
+id = "workspaces"
+group = "storage"
+run = ["disk", "create", "workspaces"]
+gate = true
+desc = { zh = "创建工作区目录", en = "Create workspace directories" }
+
+[[steps]]
+id = "gpu-driver"
+group = "gpu"
+run = ["gpu", "install", "driver"]
+gate = true
+root = true
+desc = { zh = "NVIDIA 驱动(装完需重启)", en = "NVIDIA driver (reboot afterwards)" }
+
+[[steps]]
+id = "cuda"
+group = "gpu"
+run = ["gpu", "install", "cuda"]
+gate = true
+root = true
+desc = { zh = "CUDA Toolkit", en = "CUDA Toolkit" }
+
+[[steps]]
+id = "gpu-container"
+group = "gpu"
+run = ["gpu", "install", "container"]
+gate = true
+root = true
+desc = { zh = "容器使用 GPU 支持", en = "GPU support for containers" }
+
+[[steps]]
+id = "ai-train"
+group = "ai"
+run = ["ai", "install", "train"]
+gate = true
+desc = { zh = "训练环境(PyTorch 等)", en = "Training stack (PyTorch etc.)" }
+
+[[steps]]
+id = "ai-infer"
+group = "ai"
+run = ["ai", "install", "infer"]
+gate = true
+desc = { zh = "推理环境(vLLM / llama.cpp)", en = "Inference stack (vLLM / llama.cpp)" }

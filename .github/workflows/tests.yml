@@ -69,11 +69,11 @@ jobs:
 
       - name: Verify GS 6.0 development front door
         run: |
-          bash -n scripts/verify_gs6.sh
+          bash -n scripts/verify_gs.sh
           cargo build --manifest-path rust/Cargo.toml -p gs
           cargo build --release --manifest-path rust/Cargo.toml -p gs
-          bash scripts/stage_gs6_release.sh
-          bash scripts/verify_gs6.sh
+          bash scripts/stage_release.sh
+          bash scripts/verify_gs.sh
 
       - name: Run Python plugin SDK self-test
         run: python sdk/python/selftest.py

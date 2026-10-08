@@ -100,7 +100,7 @@ def _config_path(ctx) -> Path:
 
 def _write_config(path: Path, value: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    fd, tmp_name = tempfile.mkstemp(prefix=".gs6-", suffix=".json", dir=path.parent)
+    fd, tmp_name = tempfile.mkstemp(prefix=".gs-", suffix=".json", dir=path.parent)
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as stream:
             json.dump(value, stream, indent=2, ensure_ascii=False)

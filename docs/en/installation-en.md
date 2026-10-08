@@ -34,7 +34,7 @@ cd global_scripts-v6
 ### 3. Run Setup Script
 
 > This script configures the legacy GS 5.2 environment. GS 6.0 is not yet the
-> global entry; use `rust/target/debug/gs` and `scripts/verify_gs6.sh` for development verification.
+> global entry; use `rust/target/debug/gs` and `scripts/verify_gs.sh` for development verification.
 
 ```bash
 # Initialize project
@@ -45,15 +45,15 @@ python scripts/setup.py
 
 ```bash
 cargo build --release --manifest-path rust/Cargo.toml
-bash scripts/stage_gs6_release.sh
-bash scripts/install_gs6.sh --yes
+bash scripts/stage_release.sh
+bash scripts/install_gs.sh --yes
 ```
 
-This installs only `gs6` and does not replace global `gs`. When private
+This installs only `gs`. When private
 `custom/userspace/identity` or `custom/userspace/sgm` directories exist in the
 source checkout, the installer links them into the user configuration directory
 if no target already exists. It never copies those private assets. Set
-`GS6_LINK_PRIVATE_ASSETS=0` to disable this behavior.
+`GS_LINK_PRIVATE_ASSETS=0` to disable this behavior.
 
 The setup script will automatically:
 - Create virtual environment

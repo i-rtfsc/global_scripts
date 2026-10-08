@@ -1,6 +1,6 @@
 # GS6 命令兼容性审计
 
-本报告由 `scripts/audit_gs6_command_parity.py` 基于 GS 5.2 实际插件加载结果和
+本报告由 `scripts/audit_command_parity.py` 基于 GS 5.2 实际插件加载结果和
 GS6 运行时 `describe` 数据生成。命令数量不同不直接表示功能缺失：GS6 可以将多个
 重复命令合并为带参数的通用命令，但必须在审计脚本中记录明确映射。
 
@@ -28,7 +28,7 @@ GS6 运行时 `describe` 数据生成。命令数量不同不直接表示功能�
 运行审计：
 
 ```bash
-uv run python scripts/audit_gs6_command_parity.py
+uv run python scripts/audit_command_parity.py
 ```
 
 存在缺失命令时脚本返回退出码 1。正式替换全局 GS5.2 前，缺失项必须迁移完成，

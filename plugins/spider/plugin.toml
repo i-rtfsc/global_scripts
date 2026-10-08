@@ -1,6 +1,6 @@
 name        = "spider"
 version     = "6.0.0-dev"
-tier        = "script"
+tier        = "rpc"
 runtime     = "python"
 entry       = "spider.py"
 description = { zh = "网络文章识别与受控抓取", en = "Article classification and controlled crawling" }

@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BIN="$ROOT/rust/target/release/gs"
-DIST="$ROOT/dist/gs6-dev"
+DIST="$ROOT/dist/gs"
 [[ -x "$BIN" ]] || { echo "build release gs first" >&2; exit 2; }
 
 mkdir -p "$DIST/plugins"
@@ -12,6 +12,8 @@ find "$DIST/legacy" -maxdepth 1 -type f -name '*.json' -delete
 cp "$BIN" "$DIST/gs"
 rsync -a --delete --delete-excluded --exclude '__pycache__' --exclude '*.pyc' "$ROOT/sdk/" "$DIST/sdk/"
 rsync -a --delete --delete-excluded "$ROOT/themes/" "$DIST/themes/"
+# `config/init.toml` is what `gs init` reads, so the distribution needs it too.
+rsync -a --delete --delete-excluded "$ROOT/config/" "$DIST/config/"
 for manifest in "$ROOT"/plugins/*/plugin.toml; do
   dir="$(dirname "$manifest")"
   name="$(basename "$dir")"
@@ -40,7 +42,7 @@ done
 if [[ -d "$DIST/cache" ]]; then
   find "$DIST/cache" -depth -delete
 fi
-cat > "$DIST/gs6" <<'SH'
+cat > "$DIST/gs-launch" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
 SOURCE="${BASH_SOURCE[0]}"
@@ -51,17 +53,23 @@ while [[ -L "$SOURCE" ]]; do
 done
 ROOT="$(cd "$(dirname "$SOURCE")" && pwd)"
 export GS_ROOT="$ROOT"
-export GS_COMMAND_NAME="gs6"
-export GS_COMMAND_PATH="$ROOT/gs6"
-export GS_CACHE_DIR="${GS6_CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/global-scripts/gs6-dev}"
+# The invocation name decides what the tool calls itself, so the same wrapper
+# serves whatever name it is linked under.
+export GS_COMMAND_NAME="$(basename "$0")"
+export GS_COMMAND_PATH="$ROOT/$(basename "$0")"
+export GS_CACHE_DIR="${GS_CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/global-scripts/gs}"
 exec "$ROOT/gs" "$@"
 SH
-chmod 755 "$DIST/gs6"
-GS_ROOT="$DIST" GS_COMMAND_NAME=gs6 GS_COLOR=1 "$DIST/gs" completions fish > "$DIST/gs6.fish"
-cp "$DIST/gs6.fish" "$DIST/gs6-conf.fish"
-GS_ROOT="$DIST" GS_COMMAND_NAME=gs6 GS_COLOR=1 "$DIST/gs" completions bash > "$DIST/gs6.bash"
-GS_ROOT="$DIST" GS_COMMAND_NAME=gs6 GS_COLOR=1 "$DIST/gs" completions zsh > "$DIST/_gs6"
-STAGE_CACHE="$(mktemp -d "${TMPDIR:-/tmp}/gs6-stage-cache.XXXXXX")"
+chmod 755 "$DIST/gs-launch"
+GS_ROOT="$DIST" GS_COMMAND_NAME=gs GS_COLOR=1 "$DIST/gs" completions fish > "$DIST/gs.fish"
+cp "$DIST/gs.fish" "$DIST/gs-conf.fish"
+GS_ROOT="$DIST" GS_COMMAND_NAME=gs GS_COLOR=1 "$DIST/gs" completions bash > "$DIST/gs.bash"
+GS_ROOT="$DIST" GS_COMMAND_NAME=gs GS_COLOR=1 "$DIST/gs" completions zsh > "$DIST/_gs"
+# Completions for the `gs` name as well, so an install can use either entry.
+GS_ROOT="$DIST" GS_COMMAND_NAME=gs "$DIST/gs" completions fish > "$DIST/gs.fish"
+GS_ROOT="$DIST" GS_COMMAND_NAME=gs "$DIST/gs" completions bash > "$DIST/gs.bash"
+GS_ROOT="$DIST" GS_COMMAND_NAME=gs "$DIST/gs" completions zsh > "$DIST/_gs"
+STAGE_CACHE="$(mktemp -d "${TMPDIR:-/tmp}/gs-stage-cache.XXXXXX")"
 GS_ROOT="$DIST" GS_CACHE_DIR="$STAGE_CACHE" "$DIST/gs" doctor >/dev/null
 GS_ROOT="$DIST" GS_CACHE_DIR="$STAGE_CACHE" "$DIST/gs" plugin list >/dev/null
 GS_ROOT="$DIST" GS_CACHE_DIR="$STAGE_CACHE" "$DIST/gs" system proxy status >/dev/null
@@ -70,5 +78,5 @@ find "$DIST" -type f -name '*.pyc' -delete
 find "$DIST" -maxdepth 1 -type d -name cache -prune -exec rm -rf {} +
 rm -rf "$STAGE_CACHE"
 (cd "$DIST" && find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 shasum -a 256 > SHA256SUMS)
-printf 'GS6 staging ready: %s\n' "$DIST"
+printf 'Staging ready: %s\n' "$DIST"
 printf 'This directory is not installed globally.\n'

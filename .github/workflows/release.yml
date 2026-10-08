@@ -47,38 +47,38 @@ jobs:
       - name: Run native Rust tests
         run: cargo test --workspace --manifest-path rust/Cargo.toml
       - name: Compile Python plugin entries
-        run: python -m compileall -q plugins sdk/python scripts/package_gs6.py scripts/verify_gs6_package.py
+        run: python -m compileall -q plugins sdk/python scripts/package_gs.py scripts/verify_package.py
       - name: Build native release binary
         run: cargo build --release --manifest-path rust/Cargo.toml --target ${{ matrix.target }}
       - name: Package portable distribution
         shell: bash
         run: |
-          python scripts/package_gs6.py \
+          python scripts/package_gs.py \
             --binary "rust/target/${{ matrix.target }}/release/gs${{ matrix.extension }}" \
-            --output "dist/gs6-${{ matrix.target }}" \
-            --archive "dist/gs6-${{ matrix.target }}.zip" \
+            --output "dist/gs-${{ matrix.target }}" \
+            --archive "dist/gs-${{ matrix.target }}.zip" \
             --target "${{ matrix.target }}"
       - name: Verify portable distribution natively
         run: >-
-          python scripts/verify_gs6_package.py
-          --root "dist/gs6-${{ matrix.target }}"
+          python scripts/verify_package.py
+          --root "dist/gs-${{ matrix.target }}"
           --target "${{ matrix.target }}"
       - name: Verify Bash, Zsh, and Fish integration
         if: runner.os != 'Windows'
         shell: bash
         run: >-
-          GS6_BIN="$PWD/dist/gs6-${{ matrix.target }}/gs6"
-          bash scripts/verify_gs6_shells.sh
+          GS_BIN="$PWD/dist/gs-${{ matrix.target }}/gs"
+          bash scripts/verify_shells.sh
       - name: Verify PowerShell integration
         if: runner.os == 'Windows'
         shell: pwsh
         run: >-
-          ./scripts/verify_gs6_powershell.ps1
-          -PackageRoot "dist/gs6-${{ matrix.target }}"
+          ./scripts/verify_powershell.ps1
+          -PackageRoot "dist/gs-${{ matrix.target }}"
       - uses: actions/upload-artifact@v4
         with:
-          name: gs6-${{ matrix.target }}
-          path: dist/gs6-${{ matrix.target }}.zip
+          name: gs-${{ matrix.target }}
+          path: dist/gs-${{ matrix.target }}.zip
           if-no-files-found: error
 
   github-release:
@@ -90,7 +90,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: gs6-*
+          pattern: gs-*
           path: artifacts
           merge-multiple: true
       - uses: softprops/action-gh-release@v2

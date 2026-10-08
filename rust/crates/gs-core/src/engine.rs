@@ -338,9 +338,6 @@ fn dynamic_rule(p: &LoadedManifest, cmd: &CommandSpec, arg: &ArgSpec, locale: &s
         if let Some(values) = cache::read_complete(plugin, &key) {
             return finalize(values, directive::NO_FILE);
         }
-        let Some((prog, args)) = p.spawn() else {
-            return finalize(vec![], directive::NO_FILE);
-        };
         let all_env: std::collections::BTreeMap<String, String> = std::env::vars().collect();
         let env = caps::filter_env(p.capabilities(), &all_env);
         let params = serde_json::json!({
@@ -354,9 +351,9 @@ fn dynamic_rule(p: &LoadedManifest, cmd: &CommandSpec, arg: &ArgSpec, locale: &s
             "env": env,
         });
         let req = rpc::request(1, "complete", params);
-        let dir = p.dir.clone();
+        let manifest = p.clone();
         let exchange = rpc::with_timeout(rpc::complete_timeout(), move || {
-            rpc::call_oneshot(&prog, &args, Some(&dir), &[req], true)
+            crate::daemon::send(&manifest, &[req], true)
         });
         let (cands, ttl): (Vec<Candidate>, Option<u64>) = match exchange {
             Some(Ok(ex)) => ex

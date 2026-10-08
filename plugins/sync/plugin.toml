@@ -1,6 +1,6 @@
 name        = "sync"
 version     = "6.0.0-dev"
-tier        = "script"
+tier        = "rpc"
 runtime     = "python"
 entry       = "sync.py"
 description = { zh = "Git 工作区文件同步工具", en = "Git worktree file synchronization" }

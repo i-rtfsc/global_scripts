@@ -1,6 +1,6 @@
 name        = "grep"
 version     = "6.0.0-dev"
-tier        = "script"
+tier        = "rpc"
 runtime     = "python"
 entry       = "grep.py"
 description = { zh = "安全代码搜索工具（GS 6.0 预览）", en = "Safe code search utilities (GS 6.0 preview)" }

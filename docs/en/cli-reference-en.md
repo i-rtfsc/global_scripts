@@ -142,9 +142,9 @@ Output example:
 
 GS 6.0 uses an adaptive information panel and grouped command list; plugin lists use an adaptive table.
 
-`gs6 android` shows plugin metadata and commands grouped by sub-plugin; `gs6 android device` shows only the device group. Leaf commands preserve their native output.
+`gs android` shows plugin metadata and commands grouped by sub-plugin; `gs android device` shows only the device group. Leaf commands preserve their native output.
 
-When the words after `plugin info` form a complete command path, GS6 executes it directly. For example, `gs6 plugin info android app list-3rd` is equivalent to `gs6 android app list-3rd`, with any remaining arguments passed through to the command.
+When the words after `plugin info` form a complete command path, GS6 executes it directly. For example, `gs plugin info android app list-3rd` is equivalent to `gs android app list-3rd`, with any remaining arguments passed through to the command.
 ```
 
 ### gs plugin enable

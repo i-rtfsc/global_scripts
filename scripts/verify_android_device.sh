@@ -27,8 +27,8 @@ grep -q $'\tdevice' <<<"$devices"
 "$BIN" android emulator status >/dev/null
 "$BIN" android input home >/dev/null
 test_file="$ROOT/plugins/android/plugin.toml"
-remote_file="/data/local/tmp/gs6-plugin-test.toml"
-pull_dir="$ROOT/.gs6-device-test"
+remote_file="/data/local/tmp/gs-plugin-test.toml"
+pull_dir="$ROOT/.gs-device-test"
 mkdir -p "$pull_dir"
 "$BIN" android fs push "$test_file" "$remote_file" >/dev/null
 "$BIN" android fs pull "$remote_file" "$pull_dir/plugin.toml" >/dev/null

@@ -16,8 +16,15 @@ serde_json = { version = "1", features = ["preserve_order"] }
 toml = "0.8"
 unicode-width = "0.2"
 terminal_size = "0.4"
-comfy-table = "7"
-textwrap = "0.16"
+# Terminal presentation. tabled draws/aligns every table and panel (`ansi` keeps
+# widths right when cells carry colour), anstyle/anstream own colour and the
+# "is this a terminal" decision, indicatif reports long work, inquire drives
+# pickers in front of a human.
+tabled = { version = "0.17", features = ["derive", "ansi"] }
+anstyle = "1"
+anstream = "0.6"
+indicatif = "0.17"
+inquire = "0.7"
 regex = "1"
 
 # Launcher: optimize for a small, fast-starting binary.

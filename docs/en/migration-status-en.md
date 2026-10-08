@@ -1,6 +1,6 @@
 # GS 6.0 Migration Status
 
-[中文](../gs6-migration-status.md)
+[中文](../migration-status.md)
 
 GS 6.0 uses the formal plugin names and the in-place `plugins/` tree. All formal
 plugins currently report `6.0.0-dev`; the global 5.2 entry remains unchanged.
@@ -21,5 +21,12 @@ plugins. Flyme, Sync, VPS, Identity, SGM, and the remaining MultiRepo commands h
 Command parity is complete, but staging success alone
 does not mean full GS5.2 feature parity.
 
-See [the release checklist](../gs6-release-checklist.md) before changing the
+Formal plugins now run as **T3 resident daemons** (`tier = "rpc"`): the plugin
+process is kept alive behind a Unix socket in `$GS_CACHE_DIR/daemon/`, so a warm
+call costs single-digit milliseconds instead of paying a ~60 ms Python cold
+start. `GS_DAEMON=0` disables it, `GS_DAEMON_IDLE_MS` bounds how long an unused
+daemon lives, and any resident failure falls back to the one-shot transport.
+See [ADR 004](../adr/004-resident-plugin-daemons.md).
+
+See [the release checklist](../release-checklist.md) before changing the
 global `gs` entry.

@@ -15,10 +15,10 @@
 use gs_core::index::{LoadedManifest, Registry};
 use gs_core::manifest::CommandSpec;
 use gs_core::{load_router, resolve, router_index_path, CommandEntry, Resolution};
-use std::io::IsTerminal;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use unicode_width::UnicodeWidthStr;
+
+mod ui;
 
 fn main() {
     // Behave like a normal Unix filter: a closed reader (e.g. `gs … | head`, or
@@ -52,7 +52,7 @@ fn configure_distribution_env() {
         std::env::set_var("GS_COMMAND_PATH", &executable);
     }
     if std::env::var_os("GS_CACHE_DIR").is_none() {
-        if let Some(cache) = default_gs6_cache_dir() {
+        if let Some(cache) = default_cache_dir() {
             std::env::set_var("GS_CACHE_DIR", cache);
         }
     }
@@ -63,20 +63,20 @@ fn distribution_root_from_exe(executable: &Path) -> Option<PathBuf> {
     (root.join("plugins").is_dir() && root.join("sdk").is_dir()).then(|| root.to_path_buf())
 }
 
-fn default_gs6_cache_dir() -> Option<PathBuf> {
+fn default_cache_dir() -> Option<PathBuf> {
     #[cfg(windows)]
     {
         return std::env::var_os("LOCALAPPDATA")
             .map(PathBuf::from)
             .or_else(gs_core::home_dir)
-            .map(|root| root.join("global-scripts").join("gs6"));
+            .map(|root| root.join("global-scripts").join("gs"));
     }
     #[cfg(not(windows))]
     {
         std::env::var_os("XDG_CACHE_HOME")
             .map(PathBuf::from)
             .or_else(|| gs_core::home_dir().map(|home| home.join(".cache")))
-            .map(|root| root.join("global-scripts").join("gs6"))
+            .map(|root| root.join("global-scripts").join("gs"))
     }
 }
 
@@ -92,10 +92,14 @@ fn configure_color_env() {
         std::env::var("GS_COLOR").ok().as_deref(),
         Some("0") | Some("false") | Some("off")
     );
-    if forced || (!disabled && std::io::stdout().is_terminal()) {
-        // comfy-table follows NO_COLOR. GS_COLOR=1/GS_FORCE_COLOR=1 is the
-        // explicit application-level override for users who want ANSI output.
+    if forced {
+        // The explicit application-level override for callers who want ANSI
+        // even when the destination is a file or a pipe.
         std::env::remove_var("NO_COLOR");
+    } else if disabled {
+        // anstream (and tabled's colour) follow NO_COLOR, so an explicit opt-out
+        // has to be expressed that way; children inherit it too.
+        std::env::set_var("NO_COLOR", "1");
     }
 }
 
@@ -110,6 +114,8 @@ fn run(args: &[String]) -> i32 {
         Some("doctor") => return cmd_doctor(),
         Some("refresh") => return cmd_refresh(&args[1..]),
         Some("__complete") => return cmd_complete(&args[1..]),
+        Some("__daemon") => return cmd_daemon(&args[1..]),
+        Some("init") => return cmd_init(&args[1..]),
         Some("completions") => return cmd_completions(&args[1..]),
         Some("shell-init") => return cmd_shell_init(&args[1..]),
         Some("plugin") => match args.get(1).map(String::as_str) {
@@ -176,6 +182,297 @@ fn cmd_plugin_unknown(command: &str) -> i32 {
     1
 }
 
+/// `gs init` —— 按 `$GS_ROOT/config/init.toml` 的步骤清单初始化这台机器。
+///
+/// 装什么由各插件负责(能力在插件里),这里只负责**顺序与筛选**。清单是数据,
+/// 所以插件拆分/合并后只要改 `run` 一行,`gs init` 的用法不变。
+///
+/// 模式(与其它有副作用的命令一致,必须显式指定其一):
+///   `--list`     只看清单
+///   `--dry-run`  逐步预览(把 `--dry-run` 透传给需要门禁的命令)
+///   `--yes`      真正执行(把 `--yes` 透传)
+/// 筛选:`--group=a,b` `--only=<id|插件>` `--skip=<id|插件>` `--without=<组>`
+fn cmd_init(args: &[String]) -> i32 {
+    use gs_core::init::{Filter, Plan};
+
+    let mut mode = String::new();
+    let mut filter = Filter::default();
+    let split = |value: &str| -> Vec<String> {
+        value
+            .split(',')
+            .map(str::trim)
+            .filter(|part| !part.is_empty())
+            .map(String::from)
+            .collect()
+    };
+    for arg in args {
+        match arg.as_str() {
+            "--list" | "--dry-run" | "--yes" => {
+                if !mode.is_empty() && mode != *arg {
+                    eprintln!("错误: --list/--dry-run/--yes 只能指定一个");
+                    return 2;
+                }
+                mode = arg.clone();
+            }
+            _ if arg.starts_with("--group=") => filter.groups = split(&arg["--group=".len()..]),
+            _ if arg.starts_with("--only=") => filter.only = split(&arg["--only=".len()..]),
+            _ if arg.starts_with("--skip=") => filter.skip = split(&arg["--skip=".len()..]),
+            _ if arg.starts_with("--without=") => {
+                filter.without = split(&arg["--without=".len()..])
+            }
+            other => {
+                eprintln!("错误: 未知参数 '{other}'");
+                eprintln!("用法: {name} init <--list|--dry-run|--yes> [--group=…] [--only=…] [--skip=…] [--without=…]", name = command_name());
+                return 2;
+            }
+        }
+    }
+    if mode.is_empty() {
+        eprintln!(
+            "用法: {name} init <--list|--dry-run|--yes> [--group=…] [--only=…] [--skip=…] [--without=…]",
+            name = command_name()
+        );
+        eprintln!("  --list     查看步骤清单(不改任何东西)");
+        eprintln!("  --dry-run  逐步预览");
+        eprintln!("  --yes      真正执行(需要 root 的步骤会让你用 sudo 再跑一次)");
+        return 2;
+    }
+
+    let root_dir = std::env::var("GS_ROOT").unwrap_or_else(|_| ".".into());
+    let path = PathBuf::from(&root_dir).join("config/init.toml");
+    let text = match std::fs::read_to_string(&path) {
+        Ok(text) => text,
+        Err(error) => {
+            eprintln!("错误: 读不到步骤清单 {}: {error}", path.display());
+            return 1;
+        }
+    };
+    let plan = match Plan::parse(&text) {
+        Ok(plan) => plan,
+        Err(message) => {
+            eprintln!("错误: {message}");
+            return 1;
+        }
+    };
+
+    let locale = detect_locale();
+    let selected = plan.select(&filter);
+    if selected.is_empty() {
+        eprintln!("没有匹配的步骤(检查 --group/--only/--skip/--without)");
+        return 2;
+    }
+
+    // 每一步是否真的能跑:插件存在 + 命令存在。
+    let roots = engine_roots();
+    let step_state = |step: &gs_core::init::Step| -> Result<(), String> {
+        let plugin = step.plugin();
+        let manifest = match Registry::find_checked(&roots, plugin) {
+            Ok(Some(manifest)) => manifest,
+            Ok(None) => return Err(format!("插件 '{plugin}' 尚未创建")),
+            Err(message) => return Err(message),
+        };
+        let rest = &step.run[1..];
+        let known = (1..=rest.len()).rev().any(|take| {
+            let joined = rest[..take].join(".");
+            manifest
+                .commands(&locale)
+                .iter()
+                .any(|c| !c.hidden && c.name == joined)
+        });
+        if !known {
+            return Err(format!("命令 '{}' 尚未实现", step.run.join(" ")));
+        }
+        Ok(())
+    };
+
+    #[derive(tabled::Tabled)]
+    struct Row {
+        #[tabled(rename = "步骤")]
+        id: String,
+        #[tabled(rename = "分组")]
+        group: String,
+        #[tabled(rename = "命令")]
+        command: String,
+        #[tabled(rename = "说明")]
+        description: String,
+        #[tabled(rename = "状态")]
+        status: String,
+    }
+
+    let is_root = unsafe { libc::geteuid() } == 0;
+    let mut rows = Vec::new();
+    let mut pending = Vec::new();
+    for step in &selected {
+        let state = step_state(step);
+        let status = match &state {
+            Ok(()) if step.root && !is_root => "需要 sudo".to_string(),
+            Ok(()) => "就绪".to_string(),
+            Err(why) => why.clone(),
+        };
+        rows.push(Row {
+            id: step.id.clone(),
+            group: step.group.clone(),
+            command: step.run.join(" "),
+            description: ui::truncate(
+                &step.description(&locale),
+                ui::width().saturating_sub(44).max(20),
+            ),
+            status,
+        });
+        pending.push((*step).clone());
+    }
+    let mut table = ui::table(rows);
+    ui::right(&mut table, 0);
+    ui::print(&table);
+
+    let implemented = selected.iter().filter(|s| step_state(s).is_ok()).count();
+    ui::note(&format!(
+        "共 {} 步 · 已实现 {} · 待实现 {}",
+        selected.len(),
+        implemented,
+        selected.len() - implemented
+    ));
+
+    if mode == "--list" {
+        return 0;
+    }
+
+    let flag = if mode == "--yes" {
+        "--yes"
+    } else {
+        "--dry-run"
+    };
+    let mut failures = 0usize;
+    let mut skipped_root = Vec::new();
+    let mut skipped_missing = Vec::new();
+    for step in &pending {
+        if let Err(why) = step_state(step) {
+            skipped_missing.push(format!("{} ({why})", step.id));
+            continue;
+        }
+        if step.root && !is_root {
+            skipped_root.push(step.id.clone());
+            continue;
+        }
+        let argv = step.argv(Some(flag));
+        ui::write_line("");
+        ui::write_line(&format!(
+            "{} {}",
+            ui::styled(&format!("==> {}", step.id), ui::accent()),
+            ui::styled(&argv.join(" "), ui::dim())
+        ));
+        let code = run(&argv);
+        if code != 0 {
+            failures += 1;
+            eprintln!(
+                "步骤 '{}' 失败(退出 {code});修好后可用 `{name} init --only={} --yes` 单独重跑",
+                step.id,
+                step.id,
+                name = command_name()
+            );
+            break;
+        }
+    }
+
+    if !skipped_root.is_empty() {
+        ui::write_line("");
+        ui::note(&format!(
+            "以下步骤需要 root,gs 不会自己提权,请用 sudo 重跑:{}",
+            skipped_root.join(", ")
+        ));
+        ui::write_line(&format!(
+            "  sudo {name} init --only={} --yes",
+            skipped_root.first().cloned().unwrap_or_default(),
+            name = command_name()
+        ));
+    }
+    if !skipped_missing.is_empty() && mode == "--yes" {
+        ui::note(&format!(
+            "跳过尚未实现的步骤:{}",
+            skipped_missing.join(", ")
+        ));
+    }
+    if failures > 0 {
+        1
+    } else {
+        0
+    }
+}
+
+/// Ask which plugin to act on. Only reachable in front of a terminal: scripted
+/// runs still get the usage error they can handle.
+fn pick_plugin(action: &str) -> Option<String> {
+    if !ui::interactive() {
+        return None;
+    }
+    let registry = Registry::discover(&engine_roots());
+    let options: Vec<String> = registry
+        .plugins
+        .iter()
+        .map(|p| {
+            let state = if p.manifest.enabled {
+                ""
+            } else {
+                " (已禁用)"
+            };
+            format!("{}{state}", p.manifest.name)
+        })
+        .collect();
+    if options.is_empty() {
+        return None;
+    }
+    let answer = inquire::Select::new(&format!("选择要{action}的插件"), options)
+        .with_page_size(15)
+        .prompt();
+    answer.ok().map(|choice| {
+        choice
+            .split(" (已禁用)")
+            .next()
+            .unwrap_or(&choice)
+            .to_string()
+    })
+}
+
+/// `gs __daemon <plugin> <socket>` — internal: run a T3 resident plugin daemon.
+/// Hidden from help; started by `gs_core::daemon` when a T3 plugin is first
+/// used and lives until it goes idle or the plugin exits. It outlives its
+/// client, so its stderr goes to `$GS_CACHE_DIR/daemon/<plugin>.<gen>.log`
+/// rather than to any terminal.
+fn cmd_daemon(args: &[String]) -> i32 {
+    let (Some(name), Some(socket)) = (args.first(), args.get(1)) else {
+        eprintln!(
+            "用法: {name} __daemon <plugin> <socket>",
+            name = command_name()
+        );
+        return 2;
+    };
+    let plugin = match Registry::find_checked(&engine_roots(), name) {
+        Ok(Some(p)) => p,
+        Ok(None) => {
+            eprintln!("错误: 未找到插件 '{name}'");
+            return 2;
+        }
+        Err(msg) => {
+            eprintln!("错误: 插件 '{name}' 的 plugin.toml 无效：");
+            eprintln!("  {msg}");
+            return 2;
+        }
+    };
+    let Some(mut spec) = gs_core::daemon::resident_spec(&plugin) else {
+        eprintln!("错误: 插件 '{name}' 不是常驻(rpc)插件或常驻传输已禁用");
+        return 2;
+    };
+    // The client's path wins: it is the address that caller will reconnect to.
+    spec.socket = PathBuf::from(socket);
+    match gs_core::daemon::run(spec) {
+        Ok(()) => 0,
+        Err(error) => {
+            eprintln!("gs __daemon: {error}");
+            1
+        }
+    }
+}
+
 /// Print the GS 6.0 development version. The legacy `GS_VERSION=5.2.0` shell
 /// variable is intentionally ignored so a stale 5.2 environment cannot make
 /// the development binary report the wrong generation.
@@ -185,22 +482,57 @@ fn cmd_version() -> i32 {
 }
 
 fn cmd_help() -> i32 {
-    println!("Global Scripts 6.0 development CLI");
-    println!();
-    println!("用法: {} <命令> [参数…]", command_name());
-    println!();
-    println!("系统命令:");
-    for (name, summary, _) in SYSTEM_CMDS {
-        println!("  {:<12} {summary}", name);
+    #[derive(tabled::Tabled)]
+    struct Entry {
+        #[tabled(rename = "命令")]
+        name: String,
+        #[tabled(rename = "说明")]
+        summary: String,
     }
-    println!();
-    println!("插件命令:");
+
+    let name = command_name();
+    ui::write_line(&ui::styled(
+        "Global Scripts 6.0 development CLI",
+        ui::accent(),
+    ));
+    ui::write_line(&ui::styled(
+        &format!("用法: {name} <命令> [参数…]"),
+        ui::dim(),
+    ));
+    ui::write_line("");
+
+    let systems: Vec<Entry> = SYSTEM_CMDS
+        .iter()
+        .map(|(name, summary, _)| Entry {
+            name: (*name).to_string(),
+            summary: (*summary).to_string(),
+        })
+        .collect();
+    let systems = ui::titled("系统命令", systems, true);
+    ui::print(&systems);
+    ui::write_line("");
+
     let registry = Registry::discover(&engine_roots());
-    for p in registry.enabled() {
-        let summary =
-            gs_core::manifest::pick(&p.manifest.description, &detect_locale()).unwrap_or_default();
-        println!("  {:<12} {}", p.manifest.name, summary);
+    let mut plugins: Vec<Entry> = registry
+        .enabled()
+        .map(|p| Entry {
+            name: p.manifest.name.clone(),
+            summary: gs_core::manifest::pick(&p.manifest.description, &detect_locale())
+                .unwrap_or_default(),
+        })
+        .collect();
+    // Help is for looking things up: alphabetical beats priority order here.
+    plugins.sort_by(|a, b| a.name.cmp(&b.name));
+    let summary_budget = ui::width().saturating_sub(24).max(24);
+    for entry in &mut plugins {
+        entry.summary = ui::truncate(&entry.summary, summary_budget);
     }
+    let plugins = ui::titled("插件命令", plugins, true);
+    ui::print(&plugins);
+    ui::write_line("");
+    ui::note(&format!(
+        "用 `{name} <插件> --help` 查看某个插件的命令；`{name} help` 会随插件变化。"
+    ));
     0
 }
 
@@ -226,23 +558,43 @@ fn cmd_status() -> i32 {
                 .count()
         })
         .unwrap_or(0);
-    println!("GS 6.0 状态");
-    println!(
-        "  manifest 插件: {} 个（启用 {}，禁用 {}）",
-        registry.plugins.len(),
-        enabled,
-        disabled
-    );
-    println!("  legacy 插件:   {} 个", legacy);
-    println!("  插件根目录:    {} 个", engine_roots().len());
-    println!(
-        "  router.json:   {}",
-        if router.is_some() {
-            "可用"
-        } else {
-            "未发现（不影响 GS 6.0 插件）"
-        }
-    );
+
+    #[derive(tabled::Tabled)]
+    struct Fact {
+        #[tabled(rename = "")]
+        key: String,
+        #[tabled(rename = "")]
+        value: String,
+    }
+    let rows = vec![
+        Fact {
+            key: "manifest 插件".into(),
+            value: format!(
+                "{} 个（启用 {}，禁用 {}）",
+                registry.plugins.len(),
+                enabled,
+                disabled
+            ),
+        },
+        Fact {
+            key: "legacy 插件".into(),
+            value: format!("{legacy} 个"),
+        },
+        Fact {
+            key: "插件根目录".into(),
+            value: format!("{} 个", engine_roots().len()),
+        },
+        Fact {
+            key: "router.json".into(),
+            value: if router.is_some() {
+                "可用".into()
+            } else {
+                "未发现（不影响 GS 6.0 插件）".into()
+            },
+        },
+    ];
+    let table = ui::facts("GS 6.0 状态", rows);
+    ui::print(&table);
     0
 }
 
@@ -284,46 +636,143 @@ fn cmd_doctor() -> i32 {
         .map(|p| PathBuf::from(p).join("sdk/python/gs_plugin").is_dir())
         .unwrap_or(false);
     let all_ok = root_ok && invalid.is_empty() && missing_entries.is_empty();
-    println!("GS 6.0 体检");
-    println!(
-        "  GS_ROOT:       {}",
-        if root_ok {
-            "正常"
-        } else {
-            "未设置或不存在"
-        }
-    );
-    println!(
-        "  plugin.toml:   {} 个，{} 个有效",
-        manifest_files,
-        manifest_files.saturating_sub(invalid.len())
-    );
-    println!(
-        "  Python SDK:    {}",
-        if sdk_ok {
-            "可用"
-        } else {
-            "未发现（T1 仍可用）"
-        }
-    );
-    println!(
-        "  T2 entry:      {}",
-        if missing_entries.is_empty() {
-            "完整"
-        } else {
-            "有缺失"
-        }
-    );
-    println!(
-        "  结果:          {}",
-        if all_ok { "通过" } else { "发现问题" }
-    );
+    #[derive(tabled::Tabled)]
+    struct Check {
+        #[tabled(rename = "")]
+        item: String,
+        #[tabled(rename = "")]
+        result: String,
+    }
+    let rows = vec![
+        Check {
+            item: "GS_ROOT".into(),
+            result: if root_ok {
+                "正常".into()
+            } else {
+                "未设置或不存在".into()
+            },
+        },
+        Check {
+            item: "plugin.toml".into(),
+            result: format!(
+                "{} 个，{} 个有效",
+                manifest_files,
+                manifest_files.saturating_sub(invalid.len())
+            ),
+        },
+        Check {
+            item: "Python SDK".into(),
+            result: if sdk_ok {
+                "可用".into()
+            } else {
+                "未发现（T1 仍可用）".into()
+            },
+        },
+        Check {
+            item: "T2/T3 entry".into(),
+            result: if missing_entries.is_empty() {
+                "完整".into()
+            } else {
+                "有缺失".into()
+            },
+        },
+        Check {
+            item: "结果".into(),
+            result: if all_ok {
+                "通过".into()
+            } else {
+                "发现问题".into()
+            },
+        },
+    ];
+    let table = ui::facts("GS 6.0 体检", rows);
+    ui::print(&table);
     for error in invalid.iter().take(10) {
-        println!("  - {error}");
+        ui::write_line(&format!("  - {}", ui::styled(error, ui::fail())));
     }
     for error in missing_entries.iter().take(10) {
-        println!("  - {error}");
+        ui::write_line(&format!("  - {}", ui::styled(error, ui::warn())));
     }
+
+    // 元数据检查(警告,不影响退出码):命令用了点号分组却没在 manifest 里声明,
+    // `gs <插件>` 就没有组描述可显示 —— 这正是分组显示不好看的根因。
+    let locale = detect_locale();
+    let mut undeclared: Vec<String> = Vec::new();
+    for p in Registry::discover(&engine_roots()).plugins.iter() {
+        let prefixes: std::collections::BTreeSet<String> = p
+            .commands(&locale)
+            .iter()
+            .filter(|c| !c.hidden)
+            .filter_map(|c| c.name.split_once('.').map(|(group, _)| group.to_string()))
+            .collect();
+        let missing: Vec<String> = prefixes
+            .into_iter()
+            .filter(|group| !p.manifest.groups.contains_key(group))
+            .collect();
+        if !missing.is_empty() {
+            undeclared.push(format!(
+                "{}: 缺 [groups] 声明 — {}",
+                p.manifest.name,
+                missing.join(", ")
+            ));
+        }
+    }
+    if undeclared.is_empty() {
+        ui::note("分组元数据: 全部插件的分组都有 [groups] 声明");
+    } else {
+        for warning in &undeclared {
+            ui::write_line(&format!("  ! {}", ui::styled(warning, ui::warn())));
+        }
+    }
+
+    // shell 集成现状:环境文件在哪、哪些 rc 引用了它。
+    // 这一节回答"gs 到底往我的 shell 里放了什么"。
+    let home = gs_core::home_dir();
+    let env_shells = ["bash", "zsh", "fish"];
+    let consumers: Vec<(&str, String)> = vec![
+        ("~/.bashrc", ".bashrc".to_string()),
+        ("~/.zshrc", ".zshrc".to_string()),
+        ("fish", ".config/fish/config.fish".to_string()),
+    ];
+    let mut shell_lines: Vec<String> = Vec::new();
+    if let Some(home) = home {
+        let env_dir = home.join(".config/global-scripts/shell");
+        let present: Vec<&str> = env_shells
+            .iter()
+            .copied()
+            .filter(|shell| env_dir.join(format!("gs-env.{shell}")).is_file())
+            .collect();
+        shell_lines.push(format!(
+            "环境文件 {} ({})",
+            env_dir.display(),
+            if present.is_empty() {
+                "缺失".to_string()
+            } else {
+                present.join("/")
+            }
+        ));
+        for (label, relative) in &consumers {
+            let path = home.join(relative);
+            let referenced = std::fs::read_to_string(&path)
+                .map(|text| text.contains("gs-env."))
+                .unwrap_or(false);
+            shell_lines.push(format!(
+                "{label} 引用 {} {}",
+                if referenced { "✓" } else { "✗" },
+                ui::truncate(&path.display().to_string(), 60)
+            ));
+        }
+    }
+    ui::note(&format!("Shell 集成: {}", shell_lines.join(" · ")));
+
+    ui::write_line(&ui::styled(
+        if all_ok {
+            "全部通过"
+        } else {
+            "需要处理"
+        },
+        if all_ok { ui::ok() } else { ui::fail() },
+    ));
     if all_ok {
         0
     } else {
@@ -469,74 +918,6 @@ fn dispatch_manifest(p: &LoadedManifest, rest: &[String]) -> i32 {
     }
 }
 
-fn display_width(value: &str) -> usize {
-    let mut visible = String::new();
-    let mut escape = false;
-    for c in value.chars() {
-        if escape {
-            if c.is_ascii_alphabetic() {
-                escape = false;
-            }
-            continue;
-        }
-        if c == '\u{1b}' {
-            escape = true;
-            continue;
-        }
-        visible.push(c);
-    }
-    UnicodeWidthStr::width(visible.as_str())
-}
-
-fn paint(value: impl AsRef<str>, code: &str) -> String {
-    let disabled = matches!(
-        std::env::var("GS_COLOR").ok().as_deref(),
-        Some("0") | Some("false") | Some("off")
-    );
-    let forced = matches!(
-        std::env::var("GS_FORCE_COLOR").ok().as_deref(),
-        Some("1") | Some("true") | Some("on")
-    );
-    if !disabled && (std::io::stdout().is_terminal() || forced) {
-        format!("\x1b[{code}m{}\x1b[0m", value.as_ref())
-    } else {
-        value.as_ref().to_string()
-    }
-}
-
-fn panel_line(content: impl AsRef<str>, total: usize) -> String {
-    let inner = total.saturating_sub(2);
-    let content = content.as_ref();
-    let width = display_width(content);
-    format!("│{}{}│", content, " ".repeat(inner.saturating_sub(width)))
-}
-
-fn print_panel_text(content: &str, total: usize, color: &str, indent: &str) {
-    let width = total.saturating_sub(2).max(20);
-    let options = textwrap::Options::new(width)
-        .subsequent_indent(indent)
-        .break_words(false);
-    for line in textwrap::wrap(content, options) {
-        println!("{}", panel_line(paint(line.as_ref(), color), total));
-    }
-}
-
-fn terminal_width() -> usize {
-    if let Ok(value) = std::env::var("COLUMNS") {
-        if let Ok(width) = value.parse::<usize>() {
-            if width >= 60 {
-                return width;
-            }
-        }
-    }
-    if let Some((terminal_size::Width(width), _)) = terminal_size::terminal_size() {
-        if width >= 60 {
-            return width as usize;
-        }
-    }
-    80
-}
-
 fn show_in_plugin_table(plugin: &str, spec: &CommandSpec) -> bool {
     let _ = plugin;
     !spec.hidden
@@ -577,66 +958,99 @@ fn print_plugin_overview(
         "插件"
     };
     let title = group
-        .map(|g| format!("{} / {g}", p.manifest.name))
+        .map(|g| format!("插件 · {} / {g}", p.manifest.name))
         .unwrap_or_else(|| p.manifest.name.clone());
-    let total = terminal_width().max(80);
-    let inner = total.saturating_sub(2);
     let visible_count = cmds
         .iter()
         .filter(|spec| show_in_plugin_table(&p.manifest.name, spec))
         .count();
-    let border = |left: &str, right: &str| format!("{left}{}{}", "─".repeat(inner), right);
-    println!(
-        "{}",
-        paint(
-            format!(
-                "╭─ 🔌 插件详情: {title} {}╮",
-                "─".repeat(
-                    inner.saturating_sub(display_width(&format!("─ 🔌 插件详情: {title} ")) + 1)
-                        + 1
-                )
-            ),
-            "2;36"
-        )
-    );
-    println!("{}", panel_line("", total));
+
+    // Header block: the facts a caller needs before running anything.
     if group.is_none() {
-        println!(
-            "{}",
-            panel_line(format!("  {}", paint("📋 基本信息", "1;35")), total)
-        );
-        let priority = p.manifest.priority.to_string();
-        let count = visible_count.to_string();
-        for (label, value) in [
-            ("名称", p.manifest.name.as_str()),
-            ("版本", p.manifest.version.as_str()),
-            ("作者", p.manifest.author.as_str()),
-            ("描述", description.as_str()),
-            (
-                "状态",
-                if p.manifest.enabled {
-                    "✅ 已启用"
-                } else {
-                    "已禁用"
-                },
-            ),
-            ("类型", plugin_type),
-            ("优先级", priority.as_str()),
-            ("命令数", count.as_str()),
-        ] {
-            print_panel_text(&format!("  {label:<8} {value}"), total, "33", "           ");
+        #[derive(tabled::Tabled)]
+        struct Fact {
+            #[tabled(rename = "")]
+            key: String,
+            #[tabled(rename = "")]
+            value: String,
         }
-        println!("{}", panel_line("", total));
+        let facts = vec![
+            Fact {
+                key: "名称".into(),
+                value: p.manifest.name.clone(),
+            },
+            Fact {
+                key: "版本".into(),
+                value: p.manifest.version.clone(),
+            },
+            Fact {
+                key: "作者".into(),
+                value: p.manifest.author.clone(),
+            },
+            Fact {
+                key: "描述".into(),
+                value: description.clone(),
+            },
+            Fact {
+                key: "状态".into(),
+                value: if p.manifest.enabled {
+                    "已启用".into()
+                } else {
+                    "已禁用".into()
+                },
+            },
+            Fact {
+                key: "类型".into(),
+                value: plugin_type.into(),
+            },
+            Fact {
+                key: "优先级".into(),
+                value: p.manifest.priority.to_string(),
+            },
+            Fact {
+                key: "命令数".into(),
+                value: visible_count.to_string(),
+            },
+        ];
+        let table = ui::facts(&format!("插件 · {title}"), facts);
+        ui::print(&table);
+        ui::write_line("");
     }
-    let section = if let Some(g) = group {
-        format!("📜 {g} 命令")
-    } else {
-        format!("📜 命令 ({} 个)", visible_count)
-    };
-    println!(
-        "{}",
-        panel_line(format!("  {}", paint(section, "1;35")), total)
-    );
+
+    // Command tree: one section per group, so a group reads as a heading rather
+    // than as one more row in the same table (`app  Application management`).
+    #[derive(tabled::Tabled)]
+    struct Cmd {
+        #[tabled(rename = "")]
+        name: String,
+        #[tabled(rename = "")]
+        usage: String,
+        #[tabled(rename = "")]
+        summary: String,
+    }
+
+    let width = ui::width();
+    let show_summary = width >= 96;
+    let usage_w = cmds
+        .iter()
+        .map(|spec| {
+            command_usage(
+                &format!(
+                    "{} {} {}",
+                    command,
+                    p.manifest.name,
+                    spec.name.replace('.', " ")
+                ),
+                spec,
+            )
+            .len()
+        })
+        .max()
+        .unwrap_or(0)
+        .min(38);
+    // name + usage + the listing's own indentation/padding
+    let summary_budget = width.saturating_sub(usage_w + 16).max(16);
+
     let mut groups = std::collections::BTreeMap::<String, Vec<&CommandSpec>>::new();
     for spec in cmds
         .iter()
@@ -647,38 +1061,58 @@ fn print_plugin_overview(
             .or_default()
             .push(spec);
     }
-    for (name, specs) in groups {
-        if group.is_none() && !name.is_empty() {
-            let desc = p
-                .manifest
-                .groups
-                .get(&name)
-                .and_then(|d| pick(d, locale))
-                .unwrap_or_default();
-            print_panel_text(&format!("  {name}  {desc}"), total, "1;36", "    ");
-        }
-        for spec in specs {
-            let leaf = spec.leaf();
-            let usage = command_usage(
-                &format!(
-                    "{} {} {}",
-                    command,
-                    p.manifest.name,
-                    spec.name.replace('.', " ")
-                ),
-                spec,
-            );
-            let summary = pick(&spec.summary, locale).unwrap_or_default();
-            print_panel_text(
-                &format!("    {leaf:<24} {usage} · {summary}"),
-                total,
-                "2",
-                "                              ",
-            );
-        }
+    if group.is_none() {
+        let named_groups = groups.keys().filter(|name| !name.is_empty()).count();
+        ui::note(&format!("命令 · {visible_count} 条 · {named_groups} 组"));
     }
-    println!("{}", panel_line("", total));
-    println!("{}", paint(border("╰", "╯"), "2;36"));
+
+    // Ungrouped commands first (they are the plugin's own verbs), then the
+    // declared groups; `pick` gives each section its localised description.
+    let mut sections: Vec<(String, String, Vec<&CommandSpec>)> = Vec::new();
+    if let Some(top) = groups.remove("") {
+        sections.push((String::new(), String::new(), top));
+    }
+    for (name, specs) in groups {
+        let detail = p
+            .manifest
+            .groups
+            .get(&name)
+            .and_then(|d| pick(d, locale))
+            .unwrap_or_default();
+        sections.push((name, detail, specs));
+    }
+
+    for (name, detail, specs) in sections {
+        if !name.is_empty() {
+            ui::section(&name, &detail);
+        }
+        let rows = specs
+            .iter()
+            .map(|spec| {
+                let usage = command_usage(
+                    &format!(
+                        "{} {} {}",
+                        command,
+                        p.manifest.name,
+                        spec.name.replace('.', " ")
+                    ),
+                    spec,
+                );
+                let summary = pick(&spec.summary, locale).unwrap_or_default();
+                Cmd {
+                    name: ui::styled(spec.leaf(), ui::accent()),
+                    usage: ui::styled(&ui::truncate(&usage, usage_w), ui::dim()),
+                    summary: if show_summary {
+                        ui::truncate(&summary, summary_budget)
+                    } else {
+                        String::new()
+                    },
+                }
+            })
+            .collect();
+        let table = ui::listing(rows);
+        ui::print(&table);
+    }
     0
 }
 
@@ -862,12 +1296,12 @@ fn invoke_t2(p: &LoadedManifest, cmd: &CommandSpec, argv: &[String], locale: &st
             "env": p.manifest.capabilities.env,
         },
     });
-    let Some((prog, pargs)) = p.spawn() else {
+    if p.spawn().is_none() {
         eprintln!("错误: 无法确定插件 '{}' 的启动方式", p.manifest.name);
         return 1;
-    };
+    }
     let req = rpc::request(1, "invoke", params);
-    match rpc::call_oneshot(&prog, &pargs, Some(&p.dir), &[req], false) {
+    match gs_core::daemon::send(p, &[req], false) {
         Ok(ex) => {
             let mut streamed = false;
             for e in &ex.events {
@@ -977,6 +1411,11 @@ fn powershell_quote(s: &str) -> String {
     format!("'{}'", s.replace('\'', "''"))
 }
 
+/// Fish single-quote escaping: inside `'…'` only `\` and `'` need escaping.
+fn fish_quote(s: &str) -> String {
+    format!("'{}'", s.replace('\\', "\\\\").replace('\'', "\\'"))
+}
+
 /// Replace the current process with `cmd` (Unix) so exit status and signals
 /// propagate with no extra fork/wait. Falls back to spawn+wait elsewhere.
 #[cfg(unix)]
@@ -1013,9 +1452,16 @@ fn legacy_command_count(name: &str) -> usize {
 
 /// List GS 6.0 manifests and legacy router entries without requiring Python.
 fn cmd_plugin_list(_args: &[String]) -> i32 {
-    use comfy_table::{
-        presets::UTF8_FULL_CONDENSED, Attribute, Cell, Color, ContentArrangement, Table,
-    };
+    #[derive(tabled::Tabled)]
+    struct Row {
+        #[tabled(rename = "插件")]
+        name: String,
+        #[tabled(rename = "命令")]
+        commands: String,
+        #[tabled(rename = "说明")]
+        description: String,
+    }
+
     let registry = Registry::discover(&engine_roots());
     let formal_names: std::collections::BTreeSet<&str> = registry
         .plugins
@@ -1023,26 +1469,33 @@ fn cmd_plugin_list(_args: &[String]) -> i32 {
         .map(|plugin| plugin.manifest.name.as_str())
         .collect();
     let locale = detect_locale();
-    let mut rows = Vec::<(String, String, String, String, String, i64, String, bool)>::new();
-    for p in &registry.plugins {
-        let state = if p.manifest.enabled { "✓" } else { "✗" };
-        let description =
-            gs_core::manifest::pick(&p.manifest.description, &locale).unwrap_or_default();
-        rows.push((
-            p.manifest.name.clone(),
-            state.into(),
-            format!("{:?}", p.manifest.tier).to_lowercase(),
-            p.manifest.version.clone(),
-            description,
-            p.manifest.priority,
-            p.commands(&locale)
+    // A plugin's command tree may need a process (T2/T3 `describe`), so the
+    // first listing after an edit can take a moment: say so instead of hanging.
+    let progress = ui::spinner("读取插件命令…");
+    let mut rows: Vec<(i64, String, Row, bool)> = registry
+        .plugins
+        .iter()
+        .map(|p| {
+            let description =
+                gs_core::manifest::pick(&p.manifest.description, &locale).unwrap_or_default();
+            let hidden = p
+                .commands(&locale)
                 .iter()
                 .filter(|c| !c.hidden)
                 .count()
-                .to_string(),
-            p.manifest.enabled,
-        ));
-    }
+                .to_string();
+            (
+                p.manifest.priority,
+                p.manifest.name.clone(),
+                Row {
+                    name: p.manifest.name.clone(),
+                    commands: hidden,
+                    description,
+                },
+                p.manifest.enabled,
+            )
+        })
+        .collect();
     if let Some(root) = std::env::var_os("GS_ROOT") {
         let legacy_dir = PathBuf::from(root).join("legacy");
         if let Ok(entries) = std::fs::read_dir(legacy_dir) {
@@ -1076,154 +1529,130 @@ fn cmd_plugin_list(_args: &[String]) -> i32 {
                     })
                     .unwrap_or("");
                 rows.push((
-                    name.into(),
-                    "✓".into(),
-                    "legacy".into(),
-                    value
-                        .get("version")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("1.0.0")
-                        .into(),
-                    format!("{}（未迁移）", desc),
                     value.get("priority").and_then(|v| v.as_i64()).unwrap_or(50),
-                    legacy_command_count(name).to_string(),
+                    name.into(),
+                    Row {
+                        name: name.into(),
+                        commands: legacy_command_count(name).to_string(),
+                        description: format!("{desc}（未迁移）"),
+                    },
                     true,
                 ));
             }
         }
     }
-    rows.sort_by(|a, b| a.5.cmp(&b.5).then_with(|| a.0.cmp(&b.0)));
+    progress.finish_and_clear();
+    // A list is for finding things, so read it alphabetically; priority order
+    // stays where it actually matters (completion ranking).
+    rows.sort_by(|a, b| a.1.cmp(&b.1));
     if rows.is_empty() {
-        println!("  （没有发现插件）");
+        ui::note("没有发现插件");
         return 0;
     }
-    let enabled = rows.iter().filter(|r| r.7).count();
-    let gs6_commands: usize = rows
+
+    let enabled = rows.iter().filter(|r| r.3).count();
+    let disabled = rows.len().saturating_sub(enabled);
+    let formal = registry.plugins.len();
+    let legacy = rows.len().saturating_sub(formal);
+    let command_count: usize = registry
+        .plugins
         .iter()
-        .filter(|r| r.2 != "legacy")
-        .filter_map(|r| r.6.parse::<usize>().ok())
+        .map(|p| p.commands(&locale).iter().filter(|c| !c.hidden).count())
         .sum();
-    let narrow = terminal_width() < 110;
-    let mut table = Table::new();
-    table
-        .load_preset(UTF8_FULL_CONDENSED)
-        .set_content_arrangement(ContentArrangement::Dynamic)
-        .set_width(terminal_width() as u16);
-    if narrow {
-        table.set_header([
-            Cell::new("插件")
-                .add_attribute(Attribute::Bold)
-                .fg(Color::Cyan),
-            Cell::new("状态")
-                .add_attribute(Attribute::Bold)
-                .fg(Color::Cyan),
-            Cell::new("版本")
-                .add_attribute(Attribute::Bold)
-                .fg(Color::Cyan),
-            Cell::new("命令")
-                .add_attribute(Attribute::Bold)
-                .fg(Color::Cyan),
-            Cell::new("描述")
-                .add_attribute(Attribute::Bold)
-                .fg(Color::Cyan),
-        ]);
-    } else {
-        table.set_header([
-            Cell::new("插件名称")
-                .add_attribute(Attribute::Bold)
-                .fg(Color::Cyan),
-            Cell::new("状态")
-                .add_attribute(Attribute::Bold)
-                .fg(Color::Cyan),
-            Cell::new("类型")
-                .add_attribute(Attribute::Bold)
-                .fg(Color::Cyan),
-            Cell::new("优先级")
-                .add_attribute(Attribute::Bold)
-                .fg(Color::Cyan),
-            Cell::new("版本")
-                .add_attribute(Attribute::Bold)
-                .fg(Color::Cyan),
-            Cell::new("命令数量")
-                .add_attribute(Attribute::Bold)
-                .fg(Color::Cyan),
-            Cell::new("描述")
-                .add_attribute(Attribute::Bold)
-                .fg(Color::Cyan),
-        ]);
+
+    // One line per plugin: drop the columns that never varied (version, state)
+    // and clip the description instead of letting it wrap the row.
+    let budget = ui::width().saturating_sub(24).max(16);
+    let listed: Vec<Row> = rows
+        .into_iter()
+        .map(|(_, _, mut row, _)| {
+            row.description = ui::truncate(&row.description, budget);
+            row
+        })
+        .collect();
+    let mut table = ui::table(listed);
+    ui::right(&mut table, 1);
+    ui::print(&table);
+    let mut summary = format!("{formal} 个插件 · {command_count} 条命令 · 启用 {enabled}",);
+    if disabled > 0 {
+        summary.push_str(&format!(" · 禁用 {disabled}"));
     }
-    for (name, state, tier, version, desc, priority, count, _) in &rows {
-        let status = Cell::new(state).fg(if state == "✓" {
-            Color::Green
-        } else {
-            Color::Red
-        });
-        let name_cell = Cell::new(name).add_attribute(Attribute::Bold);
-        let tier_cell = Cell::new(tier).fg(if tier == "legacy" {
-            Color::Yellow
-        } else {
-            Color::Cyan
-        });
-        if narrow {
-            table.add_row(vec![
-                name_cell,
-                status,
-                Cell::new(version),
-                Cell::new(count),
-                Cell::new(desc),
-            ]);
-        } else {
-            table.add_row(vec![
-                name_cell,
-                status,
-                tier_cell,
-                Cell::new(priority.to_string()),
-                Cell::new(version),
-                Cell::new(count),
-                Cell::new(desc),
-            ]);
-        }
+    ui::note(&summary);
+
+    #[derive(tabled::Tabled)]
+    struct Stat {
+        #[tabled(rename = "统计项")]
+        item: String,
+        #[tabled(rename = "总数")]
+        total: String,
+        #[tabled(rename = "说明")]
+        detail: String,
     }
-    let total = rows.len();
-    let formal = rows.iter().filter(|r| r.2 != "legacy").count();
-    let legacy = rows.iter().filter(|r| r.2 == "legacy").count();
-    println!("{}", paint("🚀 Global Scripts - 插件管理", "1;36"));
-    println!(
-        "{}",
-        paint(format!("✅ 已启用插件 ({}个)", enabled), "1;32")
-    );
-    println!("{table}");
-    let mut stats = Table::new();
-    stats
-        .load_preset(UTF8_FULL_CONDENSED)
-        .set_content_arrangement(ContentArrangement::Dynamic)
-        .set_width(terminal_width() as u16);
-    stats.set_header([
-        Cell::new("统计项").add_attribute(Attribute::Bold),
-        Cell::new("总数").add_attribute(Attribute::Bold),
-        Cell::new("说明").add_attribute(Attribute::Bold),
-    ]);
-    stats.add_row([
-        "插件库存",
-        &total.to_string(),
-        &format!("正式 {} · legacy {} · menubar 已移除", formal, legacy),
-    ]);
-    stats.add_row([
-        "GS6 可执行命令",
-        &gs6_commands.to_string(),
-        "来自正式 plugin.toml/describe",
-    ]);
-    stats.add_row(["GS5.2 命令基线", "260", "兼容性对照基线"]);
-    println!("{}", paint("📊 统计信息", "1;35"));
-    println!("{stats}");
+    let stats = vec![
+        Stat {
+            item: "版本".into(),
+            total: plugin_versions(&registry),
+            detail: "全部正式插件一致".into(),
+        },
+        Stat {
+            item: "插件库存".into(),
+            total: rows_total(formal, legacy),
+            detail: format!("正式 {formal} · legacy {legacy} · menubar 已移除"),
+        },
+        Stat {
+            item: "GS6 可执行命令".into(),
+            total: command_count.to_string(),
+            detail: "来自正式 plugin.toml/describe".into(),
+        },
+        Stat {
+            item: "GS5.2 命令基线".into(),
+            total: "260".into(),
+            detail: "兼容性对照基线".into(),
+        },
+    ];
+    let mut stats = ui::table(stats);
+    ui::right(&mut stats, 1);
+    ui::print(&stats);
     0
+}
+
+fn rows_total(formal: usize, legacy: usize) -> String {
+    (formal + legacy).to_string()
+}
+
+/// The version shared by the formal plugins, or a short "mixed" summary when
+/// they disagree — the inventory reports it once instead of on every row.
+fn plugin_versions(registry: &Registry) -> String {
+    let mut versions: Vec<&str> = registry
+        .plugins
+        .iter()
+        .map(|p| p.manifest.version.as_str())
+        .collect();
+    versions.sort_unstable();
+    versions.dedup();
+    match versions.as_slice() {
+        [] => "—".into(),
+        [only] => (*only).to_string(),
+        many => format!("{} 个版本", many.len()),
+    }
 }
 
 /// Show one GS 6.0 manifest and its declared/runtime command tree.
 fn cmd_plugin_info(args: &[String]) -> i32 {
-    let Some(name) = args.first() else {
-        eprintln!("用法: gs plugin info <插件名>");
-        return 2;
+    let picked;
+    let name: &str = match args.first() {
+        Some(name) => name,
+        // In front of a person, offer the inventory instead of a usage error.
+        None => match pick_plugin("查看") {
+            Some(name) => {
+                picked = name;
+                &picked
+            }
+            None => {
+                eprintln!("用法: gs plugin info <插件名>");
+                return 2;
+            }
+        },
     };
     let p = match Registry::find_checked(&engine_roots(), name) {
         Ok(Some(p)) => p,
@@ -1237,7 +1666,10 @@ fn cmd_plugin_info(args: &[String]) -> i32 {
         }
     };
     let locale = detect_locale();
+    // Same reason as `plugin list`: a T2/T3 `describe` may need a process.
+    let progress = ui::spinner("读取插件命令…");
     let commands = p.commands(&locale);
+    progress.finish_and_clear();
     if args.len() > 1 {
         let rest = &args[1..];
         if let Some((_command, _)) = (1..=rest.len()).rev().find_map(|take| {
@@ -1273,12 +1705,25 @@ fn cmd_plugin_info(args: &[String]) -> i32 {
 
 /// Toggle the persisted `enabled` field for one GS 6.0 manifest.
 fn cmd_plugin_toggle(args: &[String], enabled: bool) -> i32 {
-    let Some(name) = args.first() else {
-        eprintln!(
-            "用法: gs plugin {} <插件名>",
-            if enabled { "enable" } else { "disable" }
-        );
-        return 2;
+    let picked;
+    let name: &str = match args.first() {
+        Some(name) => name,
+        None => {
+            let action = if enabled { "启用" } else { "禁用" };
+            match pick_plugin(action) {
+                Some(name) => {
+                    picked = name;
+                    &picked
+                }
+                None => {
+                    eprintln!(
+                        "用法: gs plugin {} <插件名>",
+                        if enabled { "enable" } else { "disable" }
+                    );
+                    return 2;
+                }
+            }
+        }
     };
     let p = match Registry::find_checked(&engine_roots(), name) {
         Ok(Some(p)) => p,
@@ -1544,6 +1989,11 @@ const SYSTEM_CMDS: &[(&str, &str, &[&str])] = &[
     ("version", "显示版本号", &[]),
     ("help", "显示帮助", &[]),
     (
+        "init",
+        "初始化这台机器（按 config/init.toml 的步骤清单）",
+        &[],
+    ),
+    (
         "plugin",
         "插件管理（启用/禁用/列表/详情/migrate）",
         &["disable", "enable", "info", "list", "migrate"],
@@ -1736,30 +2186,92 @@ fn detect_locale() -> String {
 /// `gs completions <shell>` — print a completion script that wires the shell to
 /// `gs __complete`.
 fn cmd_completions(args: &[String]) -> i32 {
-    let shell = args.first().map(String::as_str);
+    // `--install` 把补全写到该 shell 的标准位置(而不是只打印),这样用户不用
+    // 自己重定向;不带它时保持"生成器"语义(可管道)。
+    let install = args.iter().any(|a| a == "--install");
+    let shell = args
+        .iter()
+        .find(|a| !a.starts_with("--"))
+        .map(String::as_str);
     let script = match shell {
         Some("bash") => COMP_BASH,
         Some("zsh") => COMP_ZSH,
         Some("fish") => COMP_FISH,
         Some("nu" | "nushell") => COMP_NUSHELL,
         Some("pwsh" | "powershell") => COMP_POWERSHELL,
+        None if install => {
+            // 一并装到三个常用 shell(devenv 那套里也只有这三个有 vendor 目录)。
+            let mut failures = 0;
+            for shell in ["bash", "zsh", "fish"] {
+                let argv: Vec<String> =
+                    vec!["completions".into(), shell.into(), "--install".into()];
+                if run(&argv) != 0 {
+                    failures += 1;
+                }
+            }
+            return if failures == 0 { 0 } else { 1 };
+        }
         _ => {
-            eprintln!("用法: gs completions <bash|zsh|fish|nushell|powershell>");
+            eprintln!("用法: gs completions <bash|zsh|fish|nushell|powershell> [--install]");
+            eprintln!("      gs completions --install          # 装到 bash/zsh/fish 的标准位置");
             eprintln!();
             eprintln!("启用（选你的 shell）:");
-            eprintln!("  fish: gs completions fish > ~/.config/fish/completions/gs.fish   # 立即生效，无需 source");
-            eprintln!("  zsh:  gs completions zsh  > \"${{fpath[1]}}/_gs\"   （或 .zshrc 里 source <(gs completions zsh)）");
-            eprintln!("  bash: gs completions bash >> ~/.bash_completion    （或 source <(gs completions bash)）");
+            eprintln!("  fish: gs completions fish --install");
+            eprintln!("  zsh:  gs completions zsh --install");
+            eprintln!("  bash: gs completions bash --install");
             eprintln!();
             eprintln!("补全候选由 'gs __complete' 原生计算，无 jq 依赖。");
             return 2;
         }
     };
-    print!(
-        "{}",
-        render_completion_script(shell.unwrap_or_default(), script, &command_name())
-    );
-    0
+    let name = command_name();
+    let rendered = render_completion_script(shell.unwrap_or_default(), script, &name);
+    if !install {
+        print!("{rendered}");
+        return 0;
+    }
+    match completion_install_path(shell.unwrap_or_default(), &name) {
+        Some(path) => {
+            if let Some(parent) = path.parent() {
+                if let Err(error) = std::fs::create_dir_all(parent) {
+                    eprintln!("错误: 建目录 {} 失败: {error}", parent.display());
+                    return 1;
+                }
+            }
+            if let Err(error) = std::fs::write(&path, rendered) {
+                eprintln!("错误: 写入 {} 失败: {error}", path.display());
+                return 1;
+            }
+            ui::note(&format!("补全已安装: {}", path.display()));
+            ui::note("重开终端(或 source 相应配置)后生效。");
+            0
+        }
+        None => {
+            eprintln!(
+                "错误: {} 没有约定的安装位置,请用 `gs completions {} > <文件>` 自行放置",
+                shell.unwrap_or("?"),
+                shell.unwrap_or("")
+            );
+            2
+        }
+    }
+}
+
+/// Where a shell expects its user-level completion file, following the same XDG
+/// locations the installer uses. `None` for shells that must be sourced.
+fn completion_install_path(shell: &str, name: &str) -> Option<PathBuf> {
+    let data = std::env::var_os("XDG_DATA_HOME")
+        .map(PathBuf::from)
+        .or_else(|| gs_core::home_dir().map(|home| home.join(".local/share")))?;
+    match shell {
+        "bash" => Some(data.join("bash-completion/completions").join(name)),
+        "zsh" => Some(data.join("zsh/site-functions").join(format!("_{name}"))),
+        "fish" => Some(
+            data.join("fish/vendor_completions.d")
+                .join(format!("{name}.fish")),
+        ),
+        _ => None,
+    }
 }
 
 fn render_completion_script(shell: &str, script: &str, requested_name: &str) -> String {
@@ -1832,6 +2344,15 @@ fn cmd_shell_init(args: &[String]) -> i32 {
     };
     let name = command_name();
     let binary = std::env::var("GS_COMMAND_PATH").unwrap_or_else(|_| name.clone());
+    if args.first().map(String::as_str) == Some("fish") {
+        print!(
+            "{}",
+            script
+                .replace("function gs\n", &format!("function {name}\n"))
+                .replace("__GS_BINARY__", &fish_quote(&binary))
+        );
+        return 0;
+    }
     if matches!(
         args.first().map(String::as_str),
         Some("pwsh" | "powershell")
@@ -1895,23 +2416,27 @@ mod tests {
         std::fs::create_dir_all(root.join("plugins")).unwrap();
         std::fs::create_dir_all(root.join("sdk")).unwrap();
         assert_eq!(
-            distribution_root_from_exe(&root.join("gs6")),
+            distribution_root_from_exe(&root.join("gs")),
             Some(root.clone())
         );
-        assert_eq!(distribution_root_from_exe(&root.join("bin/gs6")), None);
+        assert_eq!(distribution_root_from_exe(&root.join("bin/gs")), None);
     }
 }
 
+// Fish's `command` is a builtin, so it cannot sit behind `env` (an external
+// program) — that mismatch made every `gs` call fail with
+// "env: 'command': No such file or directory". Export through `env` and exec
+// the binary directly instead; `command` is still used where it is a builtin.
 const SHELLINIT_FISH: &str = r#"# gs fish 外壳集成（cd 支持）。启用：gs shell-init fish > ~/.config/fish/conf.d/gs.fish
 function gs
     # 补全对延迟敏感且无 cd 副作用——快速直通，不建临时文件。
     if test (count $argv) -gt 0; and test "$argv[1]" = __complete
-        command gs $argv
+        command __GS_BINARY__ $argv
         return $status
     end
     set -l __gs_cd (command mktemp)
     set -l __gs_env (command mktemp)
-    env GS_CD_FILE=$__gs_cd GS_ENV_FILE=$__gs_env command gs $argv
+    env GS_CD_FILE=$__gs_cd GS_ENV_FILE=$__gs_env __GS_BINARY__ $argv
     set -l __gs_status $status
     if test -s $__gs_cd
         builtin cd (command cat $__gs_cd)

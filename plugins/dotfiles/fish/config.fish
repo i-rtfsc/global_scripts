@@ -25,8 +25,8 @@
 set -gx EDITOR nvim
 set -gx VISUAL nvim
 set -gx PAGER less
-set -gx LANG en_US.UTF-8
-set -gx LC_ALL en_US.UTF-8
+# 不强制 LANG/LC_ALL:那会覆盖系统语言(也会把 gs 的界面压成英文)。
+# 想要中文界面用 `set -gx GS_LANGUAGE zh`(或系统的 zh locale)。
 
 # ============================================
 # 加载 Global Scripts 配置模块
@@ -49,5 +49,18 @@ end
 # 如需添加个人配置，请创建 ~/.config/fish/local.fish
 test -f ~/.config/fish/local.fish; and source ~/.config/fish/local.fish
 
-# Homebrew 环境变量
-eval (/opt/homebrew/bin/brew shellenv)
+# ============================================
+# Global Scripts 集成（补全、cd 集成、界面语言）
+# 该文件由 install_gs.sh 生成，重装本配置不会被冲掉。
+# ============================================
+test -f ~/.config/global-scripts/shell/gs-env.fish; and source ~/.config/global-scripts/shell/gs-env.fish
+
+# Homebrew 环境变量（macOS 在 /opt/homebrew，Linuxbrew 在 /home/linuxbrew，
+# Intel Mac / 手动安装常在 /usr/local）。存在才加载，否则这里会在每次启动时
+# 报 "Unknown command"。
+for __brew_bin in /opt/homebrew/bin/brew /home/linuxbrew/.linuxbrew/bin/brew /usr/local/bin/brew
+    if test -x $__brew_bin
+        eval ($__brew_bin shellenv)
+        break
+    end
+end

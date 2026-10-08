@@ -1,6 +1,6 @@
 name        = "identity"
 version     = "6.0.0-dev"
-tier        = "script"
+tier        = "rpc"
 runtime     = "python"
 entry       = "identity.py"
 description = { zh = "私有身份、模型账号、Git 与 SSH 配置管理", en = "Private identity, model account, Git, and SSH configuration" }

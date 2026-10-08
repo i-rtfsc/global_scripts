@@ -1,6 +1,7 @@
 # Global Scripts ZSH Configuration
 export ZSH_DISABLE_COMPFIX=true
-export ZSH=$HOME/.oh-my-zsh
+# oh-my-zsh 是可选的:没装就不加载(否则每次开终端都报错)
+export ZSH="$HOME/.oh-my-zsh"
 
 # Plugin configuration
 plugins=(
@@ -12,8 +13,8 @@ plugins=(
     kubectl
 )
 
-# Load Oh My Zsh
-source $ZSH/oh-my-zsh.sh
+# Load Oh My Zsh(存在才加载)
+[ -f "$ZSH/oh-my-zsh.sh" ] && source "$ZSH/oh-my-zsh.sh"
 
 # Custom aliases
 alias ll='ls -la'
@@ -22,8 +23,8 @@ alias l='ls -CF'
 alias ..='cd ..'
 alias ...='cd ../..'
 
-# Git aliases
-alias gs='git status'
+# Git aliases(`gst` 而不是 `gs` —— `gs` 是 Global Scripts 的命令名)
+alias gst='git status'
 alias ga='git add'
 alias gc='git commit'
 alias gp='git push'
@@ -58,3 +59,7 @@ function extract() {
         echo "'$1' is not a valid file"
     fi
 }
+
+# Global Scripts 集成 —— 补全、cd 集成、界面语言。
+# 由 install_gs.sh 生成该文件,重装本配置也不会把它冲掉。
+[ -f "$HOME/.config/global-scripts/shell/gs-env.zsh" ] && source "$HOME/.config/global-scripts/shell/gs-env.zsh"

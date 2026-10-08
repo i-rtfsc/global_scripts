@@ -25,6 +25,19 @@ TOOLS = {
     "git": ("git/.gitconfig", "~/.gitconfig"),
 }
 
+# A tool's entry file can be only part of its payload: fish's config.fish
+# sources gs-config/, and that tree has to travel with it. These are *merged*
+# into the target — copied in without touching sibling files — because a fish
+# config directory also holds conf.d/, fish_variables and completions/ that
+# belong to the user, not to us.
+TOOL_TREES = {
+    "fish": [("fish/gs-config", "~/.config/fish/gs-config")],
+}
+
+# Suffix separator for per-tree backups: stamps contain dashes and entry names
+# may too ("gs-config"), so neither can be parsed with `-`.
+TREE_SEP = "+"
+
 
 def _root(ctx):
     value = ctx.env.get("GS_ROOT")
@@ -54,6 +67,17 @@ def _action_paths(ctx, tool):
     if tool == "nvim":
         return _root(ctx) / "plugins" / "dotfiles" / "nvim", _home(ctx) / ".config" / "nvim"
     return details
+
+
+def _tool_trees(ctx, tool):
+    """`(name, source, target)` for the directories that install alongside."""
+    entries = []
+    for source_rel, target in TOOL_TREES.get(tool, []):
+        source = _root(ctx) / "plugins" / "dotfiles" / source_rel
+        name = Path(source_rel).name
+        target_path = _home(ctx) / (target[2:] if target.startswith("~/") else target)
+        entries.append((name, source, target_path))
+    return entries
 
 
 def _backup_root(ctx):
@@ -249,10 +273,24 @@ def restore(ctx):
     candidates = _backup_candidates(ctx, tool)
     requested = next((value.split("=", 1)[1] for value in options if value.startswith("--backup=")), "")
     if requested:
-        candidates = [path for path in candidates if path.name == requested]
+        # Backups exist in two layouts (`<tool>/<stamp>/…` and `<stamp>/<tool>`),
+        # and extra directories use `<stamp>+<name>/<tool>`, so match either part.
+        candidates = [
+            path
+            for path in candidates
+            if requested in (path.name, path.parent.name)
+        ]
     if not candidates:
         return {"exit_code": 1, "stderr": "没有可用的 {} 备份\n".format(tool)}
     candidate = candidates[0]
+    # A `<stamp>+<name>` backup belongs to an extra directory, not to the
+    # tool's entry file.
+    if TREE_SEP in candidate.parent.name:
+        entry = candidate.parent.name.rsplit(TREE_SEP, 1)[1]
+        for name, _source, tree_target in _tool_trees(ctx, tool):
+            if name == entry:
+                target = tree_target
+                break
     payload = _restore_payload(candidate, target)
     if payload is None or not payload.exists():
         return {"exit_code": 1, "stderr": "备份内容无效: {}\n".format(candidate)}
@@ -272,25 +310,18 @@ def restore(ctx):
     return {"stdout": "配置已恢复\nTool: {}\nBackup: {}\nTarget: {}\nSafety backup: {}\n".format(tool, candidate, target, safety_backup or "无")}
 
 
-@plugin.command(name="plan", summary={"zh": "生成配置变更计划", "en": "Plan dotfile changes"}, usage="gs dotfiles plan <tool> <install|uninstall> --dry-run", args=[{"name": "tool", "type": "enum", "required": True, "complete": {"kind": "enum", "values": sorted(TOOLS)}}, {"name": "action", "type": "enum", "required": True, "complete": {"kind": "enum", "values": ["install", "uninstall"]}}, {"name": "options", "type": "string", "variadic": True}])
-def plan(ctx):
-    options = ctx.args.get("options") or []
-    if isinstance(options, str):
-        options = [options]
-    if "--dry-run" not in options:
-        return {"exit_code": 2, "stderr": "GS 6.0 当前仅支持 dotfiles plan --dry-run\n"}
-    tool = _tool(ctx)
-    action = str(ctx.args.get("action") or "")
+def _build_plan(ctx, tool, action):
+    """Describe what `install`/`uninstall` would do, without touching anything."""
     details = _details(ctx, tool)
     if details is None or action not in {"install", "uninstall"}:
-        return {"exit_code": 2, "stderr": "工具或操作无效\n"}
+        return None, {"exit_code": 2, "stderr": "工具或操作无效\n"}
     source, target = _action_paths(ctx, tool)
     if action == "install" and not source.exists():
-        return {"exit_code": 1, "stderr": "源配置不存在: {}\n".format(source)}
+        return None, {"exit_code": 1, "stderr": "源配置不存在: {}\n".format(source)}
     try:
         target.resolve(strict=False).relative_to(_home(ctx).resolve())
     except ValueError:
-        return {"exit_code": 1, "stderr": "目标路径越出 HOME: {}\n".format(target)}
+        return None, {"exit_code": 1, "stderr": "目标路径越出 HOME: {}\n".format(target)}
     plan = {
         "schema_version": 1,
         "plan_id": hashlib.sha256("{}\n{}\n{}\n{}".format(tool, action, source, target).encode()).hexdigest()[:16],
@@ -299,50 +330,18 @@ def plan(ctx):
         "action": action,
         "source": str(source),
         "target": str(target),
+        "trees": [
+            {"name": name, "source": str(tree_source), "target": str(tree_target)}
+            for name, tree_source, tree_target in _tool_trees(ctx, tool)
+        ],
         "check": {"ok": True, "errors": []},
         "writes_required": True,
     }
-    if "--format=json" in options:
-        return {"stdout": json.dumps(plan, ensure_ascii=False, indent=2) + "\n"}
-    return {"stdout": "Dotfiles 计划（dry-run）\nTool: {}\nAction: {}\nSource: {}\nTarget: {}\n不会执行复制、覆盖或删除\n".format(tool, action, source, target)}
+    return plan, None
 
 
-@plugin.command(name="verify-plan", summary={"zh": "校验 dotfiles JSON 计划", "en": "Verify dotfiles JSON plan"}, usage="gs dotfiles verify-plan <plan.json>", args=[{"name": "file", "type": "path", "required": True}])
-def verify_plan(ctx):
-    filename = str(ctx.args.get("file") or "")
-    if not filename:
-        return {"exit_code": 2, "stderr": "缺少计划文件\n"}
-    try:
-        path = Path(filename).expanduser()
-        if not path.is_absolute():
-            path = Path(ctx.cwd or Path.cwd()) / path
-        value = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        return {"exit_code": 2, "stderr": "计划读取失败: {}\n".format(exc)}
-    errors = _validate_plan(value)
-    if errors:
-        return {"exit_code": 1, "stderr": "计划校验失败: {}\n".format("; ".join(errors))}
-    return {"stdout": "计划有效\nTool: {}\nAction: {}\n".format(value["tool"], value["action"])}
-
-
-@plugin.command(name="apply-plan", summary={"zh": "应用已验证的 dotfiles 计划", "en": "Apply a verified dotfiles plan"}, usage="gs dotfiles apply-plan <plan.json> --yes", args=[{"name": "file", "type": "path", "required": True}, {"name": "options", "type": "string", "variadic": True}])
-def apply_plan(ctx):
-    options = ctx.args.get("options") or []
-    if isinstance(options, str):
-        options = [options]
-    if options != ["--yes"]:
-        return {"exit_code": 2, "stderr": "应用计划必须显式指定 --yes\n"}
-    filename = str(ctx.args.get("file") or "")
-    path = Path(filename).expanduser()
-    if not path.is_absolute():
-        path = Path(ctx.cwd or Path.cwd()) / path
-    try:
-        value = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        return {"exit_code": 2, "stderr": "计划读取失败: {}\n".format(exc)}
-    errors = _validate_plan(value)
-    if errors:
-        return {"exit_code": 1, "stderr": "计划校验失败: {}\n".format("; ".join(errors))}
+def _apply_change(ctx, value):
+    """Carry out a plan that `_build_plan` (and `_validate_plan`) accepted."""
     home = _home(ctx).resolve()
     source = Path(value["source"]).expanduser().resolve()
     target = Path(value["target"]).expanduser().resolve(strict=False)
@@ -373,7 +372,95 @@ def apply_plan(ctx):
             shutil.copytree(source, target, ignore=shutil.ignore_patterns(".git", "__pycache__", "cache", "shada", "swap", "undo", "backup", "plugin.py"))
         else:
             shutil.copy2(source, target)
-    return {"stdout": "计划已应用\nTool: {}\nAction: {}\nTarget: {}\nBackup: {}\n".format(value["tool"], value["action"], target, backup if backup.exists() else "无")}
+    trees = _apply_trees(ctx, value["tool"], value["action"], stamp, home)
+    changed = "已安装" if value["action"] == "install" else "已卸载"
+    report = "配置{changed}\nTool: {}\nTarget: {}\nBackup: {}\n".format(
+        value["tool"], target, backup if backup.exists() else "无", changed=changed
+    )
+    for line in trees:
+        report += line + "\n"
+    return {"stdout": report}
+
+
+def _apply_trees(ctx, tool, action, stamp, home):
+    """Merge (install) or remove (uninstall) a tool's extra directories.
+
+    Merging copies into the existing tree instead of replacing it, so anything
+    the user keeps next to our files survives; each affected directory is backed
+    up under `<stamp>+<name>` so it can be restored on its own.
+    """
+    lines = []
+    for name, source, target_path in _tool_trees(ctx, tool):
+        if action == "install" and not source.is_dir():
+            lines.append("跳过(源目录不存在): {}".format(source))
+            continue
+        if target_path.exists():
+            backup = home / ".config" / "global-scripts" / "backups" / "dotfiles" / (stamp + TREE_SEP + name) / tool
+            backup.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copytree(target_path, backup)
+        else:
+            backup = None
+        if action == "install":
+            shutil.copytree(
+                source,
+                target_path,
+                dirs_exist_ok=True,
+                ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+            )
+        elif target_path.exists():
+            shutil.rmtree(target_path)
+        lines.append(
+            "{}: {} (备份: {})".format(
+                "合并" if action == "install" else "移除",
+                target_path,
+                backup if backup is not None else "无",
+            )
+        )
+    return lines
+
+
+def _change(ctx, action):
+    """Shared body of `install` and `uninstall`: plan, then act only on --yes."""
+    options = ctx.args.get("options") or []
+    if isinstance(options, str):
+        options = [options]
+    dry_run = "--dry-run" in options
+    execute = "--yes" in options
+    if dry_run == execute:
+        return {"exit_code": 2, "stderr": "必须且只能指定 --dry-run 或 --yes\n"}
+    unknown = [value for value in options if value not in {"--dry-run", "--yes", "--format=json"}]
+    if unknown:
+        return {"exit_code": 2, "stderr": "不支持的选项: {}\n".format(" ".join(unknown))}
+    tool = _tool(ctx)
+    plan, error = _build_plan(ctx, tool, action)
+    if error is not None:
+        return error
+    errors = _validate_plan(plan)
+    if errors:
+        return {"exit_code": 1, "stderr": "计划校验失败: {}\n".format("; ".join(errors))}
+    if dry_run:
+        if "--format=json" in options:
+            return {"stdout": json.dumps(plan, ensure_ascii=False, indent=2) + "\n"}
+        verb = "安装" if action == "install" else "卸载"
+        text = "Dotfiles {verb}计划（dry-run）\nTool: {tool}\nSource: {source}\nTarget: {target}\n".format(
+            verb=verb, tool=tool, source=plan["source"], target=plan["target"]
+        )
+        for tree in plan["trees"]:
+            text += "{}目录: {}\n".format(
+                "合并" if action == "install" else "移除", tree["target"]
+            )
+        return {"stdout": text + "不会执行复制、覆盖或删除\n"}
+    return _apply_change(ctx, plan)
+
+
+@plugin.command(name="install", summary={"zh": "安装配置到 HOME", "en": "Install dotfiles into HOME"}, usage="gs dotfiles install <tool> <--dry-run|--yes>", args=[{"name": "tool", "type": "enum", "required": True, "complete": {"kind": "enum", "values": sorted(TOOLS)}}, {"name": "options", "type": "string", "variadic": True}])
+def install(ctx):
+    return _change(ctx, "install")
+
+
+@plugin.command(name="uninstall", summary={"zh": "从 HOME 卸载配置", "en": "Remove dotfiles from HOME"}, usage="gs dotfiles uninstall <tool> <--dry-run|--yes>", args=[{"name": "tool", "type": "enum", "required": True, "complete": {"kind": "enum", "values": sorted(TOOLS)}}, {"name": "options", "type": "string", "variadic": True}])
+def uninstall(ctx):
+    return _change(ctx, "uninstall")
 
 
 @plugin.command(name="show", summary={"zh": "查看源配置内容", "en": "Show source configuration"}, usage="gs dotfiles show <tool>", args=[{"name": "tool", "type": "enum", "required": True, "complete": {"kind": "enum", "values": sorted(TOOLS)}}])

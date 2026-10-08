@@ -91,7 +91,7 @@ def require_success(result: subprocess.CompletedProcess, label: str) -> str:
 
 
 def verify_runtime(root: Path, binary: Path, expected_version: str) -> None:
-    with tempfile.TemporaryDirectory(prefix="gs6-package-cache-") as cache_name:
+    with tempfile.TemporaryDirectory(prefix="gs-package-cache-") as cache_name:
         cache = Path(cache_name)
         version = require_success(run(binary, root, cache, "version"), "version")
         if expected_version not in version:
@@ -120,16 +120,16 @@ def verify_runtime(root: Path, binary: Path, expected_version: str) -> None:
             fail("multi-level completion descriptions are missing")
 
         expected_bindings = {
-            "bash": "complete -F _gs6_complete gs6",
-            "zsh": "compdef _gs6_complete gs6",
-            "fish": "complete -c gs6 ",
-            "nushell": '== "gs6"',
-            "powershell": "-CommandName gs6",
+            "bash": "complete -F _gs_complete gs",
+            "zsh": "compdef _gs_complete gs",
+            "fish": "complete -c gs ",
+            "nushell": '== "gs"',
+            "powershell": "-CommandName gs",
         }
         for shell, binding in expected_bindings.items():
             script = require_success(run(binary, root, cache, "completions", shell), shell + " completions")
             if binding not in script:
-                fail("{} completion is not bound to gs6".format(shell))
+                fail("{} completion is not bound to gs".format(shell))
 
         for shell in ("bash", "zsh", "fish", "powershell"):
             init = require_success(run(binary, root, cache, "shell-init", shell), shell + " shell-init")

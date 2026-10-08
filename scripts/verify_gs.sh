@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BIN="$ROOT/rust/target/debug/gs"
-EXPECTED_VERSION="${GS6_EXPECT_VERSION:-6.0.0-dev}"
+EXPECTED_VERSION="${GS_EXPECT_VERSION:-6.0.0-dev}"
 
 if [[ ! -x "$BIN" ]]; then
   echo "GS 6.0 开发版尚未构建，先执行：" >&2
@@ -15,12 +15,16 @@ export GS_ROOT="$ROOT"
 export GS_VERIFY_BIN="$BIN"
 unset GS_ALLOW_LEGACY
 export GS_INCLUDE_EXAMPLES=1
-VERIFY_CACHE="$(mktemp -d "${TMPDIR:-/tmp}/gs6-verify.XXXXXX")"
+# Verification runs the plugins through their T3 resident daemons (the default
+# path), but must not leave a daemon per plugin idling for the full 30 s default
+# after the script exits.
+export GS_DAEMON_IDLE_MS="${GS_DAEMON_IDLE_MS:-3000}"
+VERIFY_CACHE="$(mktemp -d "${TMPDIR:-/tmp}/gs-verify.XXXXXX")"
 trap 'rm -rf "$VERIFY_CACHE"' EXIT
 export GS_CACHE_DIR="$VERIFY_CACHE"
-export GS6_ANDROID_STATE_DIR="$VERIFY_CACHE/android-state"
+export GS_ANDROID_STATE_DIR="$VERIFY_CACHE/android-state"
 
-python3 "$ROOT/scripts/prepare_gs6_release.py" --version "$EXPECTED_VERSION"
+python3 "$ROOT/scripts/prepare_release.py" --version "$EXPECTED_VERSION"
 
 test ! -e "$ROOT/plugins/menubar/plugin.toml"
 formal_count=0
@@ -84,7 +88,7 @@ test "$("$BIN" demo greet verify)" = 'Hello, verify!'
 "$BIN" plugin info system >/dev/null
 "$BIN" plugin info android >/dev/null
 for contract in \
-  'alias:sources' 'devenv:validate' 'dotfiles:verify-plan' 'identity:ssh status' \
+  'alias:sources' 'devenv:validate' 'dotfiles:install' 'identity:ssh status' \
   'flyme:info' \
   'grep:python' 'multirepo:verify-plan' 'navigator:global-scripts' \
   'sgm:build list' 'spider:classify' 'sync:status' 'system:proxy status' 'vps:status' 'vscode:start'; do
@@ -95,7 +99,7 @@ for contract in \
 done
 "$BIN" alias sources bash >/dev/null
 "$BIN" devenv validate >/dev/null
-"$BIN" dotfiles doctor >/dev/null
+"$BIN" dotfiles doctor >/dev/null 2>&1 || true
 "$BIN" flyme info | grep -q 'FlymeOS Development Plugin'
 "$BIN" grep python 'def _search' >/dev/null
 "$BIN" multirepo list >/dev/null
@@ -268,7 +272,7 @@ for path, mode in expected.items():
 PY
 sgm_git="$VERIFY_CACHE/sgm-git"
 git init -q "$sgm_git"
-git -C "$sgm_git" config user.email gs6@example.invalid
+git -C "$sgm_git" config user.email gs@example.invalid
 git -C "$sgm_git" config user.name GS6
 printf 'fixture\n' > "$sgm_git/file.txt"
 git -C "$sgm_git" add file.txt
@@ -279,8 +283,8 @@ for shell in bash zsh fish; do
   completion="$($BIN completions "$shell")"
   grep -q '__complete' <<<"$completion"
   ! grep -q 'python\|router.json' <<<"$completion"
-  named_completion="$(GS_COMMAND_NAME=gs6 "$BIN" completions "$shell")"
-  grep -q 'gs6' <<<"$named_completion"
+  named_completion="$(GS_COMMAND_NAME=gsp "$BIN" completions "$shell")"
+  grep -q 'gsp' <<<"$named_completion"
   ! grep -qE 'compdef _gs_complete gs$|complete -F _gs_complete gs$|complete -c gs ' <<<"$named_completion"
 done
 for shell in bash zsh fish powershell; do
@@ -343,9 +347,14 @@ PY
 "$BIN" alias sources bash | grep -q 'plugins/alias/common/aliases.sh'
 "$BIN" alias show l bash | grep -q 'l='
 "$BIN" dotfiles status zsh | grep -q 'plugins/dotfiles/zsh/.zshrc'
-"$BIN" dotfiles plan zsh install --dry-run | grep -q '不会执行'
-"$BIN" dotfiles doctor | grep -q '越界目标: 无'
-"$BIN" dotfiles status nvim | grep -q 'missing=0, extra=0, changed=0'
+"$BIN" dotfiles install zsh --dry-run | grep -q '不会执行'
+# `doctor` diffs the nvim tree against $HOME, so give it a home that is in sync
+# instead of asserting on the operator's own dotfiles.
+doctor_home="$VERIFY_CACHE/doctor-home"
+mkdir -p "$doctor_home/.config"
+cp -a "$ROOT/plugins/dotfiles/nvim" "$doctor_home/.config/nvim"
+HOME="$doctor_home" "$BIN" dotfiles doctor | grep -q '越界目标: 无'
+HOME="$doctor_home" "$BIN" dotfiles status nvim | grep -q 'missing=0, extra=0, changed=0'
 nav_output="$("$BIN" navigator list)"
 grep -q "$HOME/code/github/global_scripts" <<<"$nav_output"
 "$BIN" devenv validate | grep -q '验证通过'
@@ -353,7 +362,7 @@ if "$BIN" devenv install definitely-missing-tool >/dev/null 2>&1; then
   echo 'devenv install without --dry-run unexpectedly succeeded' >&2
   exit 1
 fi
-dotfiles_plan_json="$("$BIN" dotfiles plan zsh install --dry-run --format=json)"
+dotfiles_plan_json="$("$BIN" dotfiles install zsh --dry-run --format=json)"
 DOTFILES_PLAN_JSON="$dotfiles_plan_json" python3 - <<'PY'
 import json
 import os
@@ -362,18 +371,18 @@ assert plan["schema_version"] == 1
 assert plan["mode"] == "dry-run"
 assert plan["check"]["ok"] is True
 PY
-dotfiles_json="$($BIN dotfiles plan zsh install --dry-run --format=json)"
-dotfiles_file="$(mktemp "$VERIFY_CACHE/dotfiles-plan.XXXXXX")"
-printf '%s\n' "$dotfiles_json" > "$dotfiles_file"
-"$BIN" dotfiles verify-plan "$dotfiles_file" | grep -q '计划有效'
+# Without an explicit choice the command must refuse to touch HOME.
+if "$BIN" dotfiles install zsh >/dev/null 2>&1; then
+  echo 'dotfiles install without --dry-run/--yes unexpectedly succeeded' >&2
+  exit 1
+fi
 
 # Real apply paths are verified only inside an isolated temporary HOME.
 dot_home="$VERIFY_CACHE/dot-home"
 mkdir -p "$dot_home/.config/nvim"
 printf 'old\n' > "$dot_home/.config/nvim/init.vim"
-dot_apply="$VERIFY_CACHE/dot-apply.json"
-HOME="$dot_home" "$BIN" dotfiles plan nvim install --dry-run --format=json > "$dot_apply"
-HOME="$dot_home" "$BIN" dotfiles apply-plan "$dot_apply" --yes | grep -q '计划已应用'
+HOME="$dot_home" "$BIN" dotfiles install nvim --dry-run --format=json | grep -q '"action": "install"'
+HOME="$dot_home" "$BIN" dotfiles install nvim --yes | grep -q '配置已安装'
 cmp "$ROOT/plugins/dotfiles/nvim/init.vim" "$dot_home/.config/nvim/init.vim"
 printf 'custom backup marker\n' > "$dot_home/.config/nvim/init.vim"
 HOME="$dot_home" "$BIN" dotfiles backup nvim --yes | grep -q '配置已备份'
@@ -381,8 +390,7 @@ printf 'newer value\n' > "$dot_home/.config/nvim/init.vim"
 HOME="$dot_home" "$BIN" dotfiles restore nvim --dry-run | grep -q '不会覆盖当前配置'
 HOME="$dot_home" "$BIN" dotfiles restore nvim --yes | grep -q '配置已恢复'
 grep -q 'custom backup marker' "$dot_home/.config/nvim/init.vim"
-HOME="$dot_home" "$BIN" dotfiles plan nvim uninstall --dry-run --format=json > "$dot_apply"
-HOME="$dot_home" "$BIN" dotfiles apply-plan "$dot_apply" --yes >/dev/null
+HOME="$dot_home" "$BIN" dotfiles uninstall nvim --yes >/dev/null
 test ! -e "$dot_home/.config/nvim"
 
 # MultiRepo apply uses an empty local bare repository: real clone, no network.
@@ -413,7 +421,7 @@ sync_target="$sync_root/target"
 sync_repo="$sync_source/repo"
 mkdir -p "$sync_repo" "$sync_target"
 git -C "$sync_repo" init -q
-git -C "$sync_repo" config user.email gs6@example.invalid
+git -C "$sync_repo" config user.email gs@example.invalid
 git -C "$sync_repo" config user.name GS6
 printf 'base\n' > "$sync_repo/tracked.txt"
 git -C "$sync_repo" add tracked.txt
@@ -444,12 +452,28 @@ cat > "$fake_brew" <<SH
 #!/bin/sh
 printf '%s\n' "\$@" > "$brew_log"
 SH
-chmod +x "$fake_code" "$fake_brew"
+# The apt branch shells out to `sudo`, so the stand-in has to be named exactly
+# `sudo` for PATH lookup to find it.
+fake_sudo="$VERIFY_CACHE/sudo"
+cat > "$fake_sudo" <<SH
+#!/bin/sh
+printf '%s\n' "\$@" > "$brew_log"
+SH
+chmod +x "$fake_code" "$fake_brew" "$fake_sudo"
 vscode_output="$(GS_VSCODE_BIN="$fake_code" "$BIN" vscode start default --yes)"
 grep -q -- '--user-data-dir' <<<"$vscode_output"
-GS_DEVENV_SKIP_CHECK=1 GS_DEVENV_BREW_BIN="$fake_brew" \
-  "$BIN" devenv install wget --yes >/dev/null
-grep -q '^install$' "$brew_log"
+# The same tool installs through a different package manager per platform
+# (brew on macOS, apt-get through sudo on Linux), so fake whichever one this
+# host uses — the point is that the plugin really spawns an executor.
+if [[ "$(uname -s)" == "Darwin" ]]; then
+  GS_DEVENV_SKIP_CHECK=1 GS_DEVENV_BREW_BIN="$fake_brew" \
+    "$BIN" devenv install wget --yes >/dev/null
+  grep -q '^install$' "$brew_log"
+else
+  PATH="$VERIFY_CACHE:$PATH" GS_DEVENV_SKIP_CHECK=1 \
+    "$BIN" devenv install wget --yes >/dev/null
+  grep -q '^apt-get$' "$brew_log"
+fi
 grep -q '^wget$' "$brew_log"
 
 # Every formal plugin must expose an info view. Every real dotted command group
@@ -484,7 +508,7 @@ print("Plugin info matrix: PASS")
 PY
 
 # Command parity must remain complete for every retained GS5.2 command.
-parity_json="$(uv run python "$ROOT/scripts/audit_gs6_command_parity.py" --gs6-bin "$BIN" --json)"
+parity_json="$(uv run python "$ROOT/scripts/audit_command_parity.py" --gs-bin "$BIN" --json)"
 PARITY_JSON="$parity_json" python3 - <<'PY'
 import json
 import os
@@ -497,7 +521,7 @@ assert plugins == set(), plugins
 print("Command parity: complete")
 PY
 
-GS6_BIN="$BIN" bash "$ROOT/scripts/verify_gs6_shells.sh"
-bash "$ROOT/scripts/verify_gs6_install_cycle.sh"
+GS_BIN="$BIN" bash "$ROOT/scripts/verify_shells.sh"
+bash "$ROOT/scripts/verify_install_cycle.sh"
 
 echo 'GS 6.0 development verification: PASS'

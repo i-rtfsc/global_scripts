@@ -31,19 +31,19 @@ def expected_files(version: str) -> Dict[Path, List[str]]:
         ROOT / "rust" / "crates" / "gs" / "src" / "main.rs": [
             'println!("{} (core {})");'.format(version, core)
         ],
-        ROOT / "scripts" / "package_gs6.py": ['"version": "{}"'.format(version)],
-        ROOT / "scripts" / "install_gs6.sh": [
-            'VERSION="${{GS6_INSTALL_VERSION:-{}}}"'.format(install)
+        ROOT / "scripts" / "package_gs.py": ['"version": "{}"'.format(version)],
+        ROOT / "scripts" / "install_gs.sh": [
+            'VERSION="${{GS_INSTALL_VERSION:-{}}}"'.format(install)
         ],
-        ROOT / "scripts" / "uninstall_gs6.sh": [
-            'VERSION="${{GS6_INSTALL_VERSION:-{}}}"'.format(install)
+        ROOT / "scripts" / "uninstall_gs.sh": [
+            'VERSION="${{GS_INSTALL_VERSION:-{}}}"'.format(install)
         ],
-        ROOT / "scripts" / "verify_gs6_install_cycle.sh": [
-            'VERSION="${{GS6_INSTALL_VERSION:-{}}}"'.format(install),
-            'EXPECTED_VERSION="${{GS6_EXPECT_VERSION:-{}}}"'.format(version),
+        ROOT / "scripts" / "verify_install_cycle.sh": [
+            'VERSION="${{GS_INSTALL_VERSION:-{}}}"'.format(install),
+            'EXPECTED_VERSION="${{GS_EXPECT_VERSION:-{}}}"'.format(version),
         ],
-        ROOT / "scripts" / "verify_gs6.sh": [
-            'EXPECTED_VERSION="${{GS6_EXPECT_VERSION:-{}}}"'.format(version),
+        ROOT / "scripts" / "verify_gs.sh": [
+            'EXPECTED_VERSION="${{GS_EXPECT_VERSION:-{}}}"'.format(version),
         ],
     }
     for manifest in sorted((ROOT / "plugins").glob("*/plugin.toml")):
@@ -93,26 +93,26 @@ def update(old_version: str, new_version: str) -> None:
         'println!("{} (core {})");'.format(new_version, new_core),
     )
     replace_once(
-        ROOT / "scripts" / "package_gs6.py",
+        ROOT / "scripts" / "package_gs.py",
         '"version": "{}"'.format(old_version),
         '"version": "{}"'.format(new_version),
     )
-    for script in ("install_gs6.sh", "uninstall_gs6.sh"):
+    for script in ("install_gs.sh", "uninstall_gs.sh"):
         replace_once(
             ROOT / "scripts" / script,
-            'VERSION="${{GS6_INSTALL_VERSION:-{}}}"'.format(old_install),
-            'VERSION="${{GS6_INSTALL_VERSION:-{}}}"'.format(new_install),
+            'VERSION="${{GS_INSTALL_VERSION:-{}}}"'.format(old_install),
+            'VERSION="${{GS_INSTALL_VERSION:-{}}}"'.format(new_install),
         )
     replace_once(
-        ROOT / "scripts" / "verify_gs6_install_cycle.sh",
-        'VERSION="${{GS6_INSTALL_VERSION:-{}}}"'.format(old_install),
-        'VERSION="${{GS6_INSTALL_VERSION:-{}}}"'.format(new_install),
+        ROOT / "scripts" / "verify_install_cycle.sh",
+        'VERSION="${{GS_INSTALL_VERSION:-{}}}"'.format(old_install),
+        'VERSION="${{GS_INSTALL_VERSION:-{}}}"'.format(new_install),
     )
-    for script in ("verify_gs6.sh", "verify_gs6_install_cycle.sh"):
+    for script in ("verify_gs.sh", "verify_install_cycle.sh"):
         replace_once(
             ROOT / "scripts" / script,
-            'EXPECTED_VERSION="${{GS6_EXPECT_VERSION:-{}}}"'.format(old_version),
-            'EXPECTED_VERSION="${{GS6_EXPECT_VERSION:-{}}}"'.format(new_version),
+            'EXPECTED_VERSION="${{GS_EXPECT_VERSION:-{}}}"'.format(old_version),
+            'EXPECTED_VERSION="${{GS_EXPECT_VERSION:-{}}}"'.format(new_version),
         )
     for manifest in sorted((ROOT / "plugins").glob("*/plugin.toml")):
         replace_once(
@@ -120,9 +120,18 @@ def update(old_version: str, new_version: str) -> None:
             'version     = "{}"'.format(old_version),
             'version     = "{}"'.format(new_version),
         )
-    for document in sorted((ROOT / "docs").glob("gs6*.md")) + sorted(
-        (ROOT / "docs" / "en").glob("gs6*.md")
-    ):
+    documents = [
+        ROOT / "docs" / name
+        for name in (
+            "migration-status.md",
+            "release-checklist.md",
+            "command-parity.md",
+            "cross-platform-release.md",
+        )
+    ]
+    documents.append(ROOT / "docs" / "en" / "migration-status-en.md")
+    documents.extend(sorted((ROOT / "docs").glob("release-readiness-*.md")))
+    for document in documents:
         text = document.read_text(encoding="utf-8")
         if old_version in text:
             document.write_text(text.replace(old_version, new_version), encoding="utf-8")

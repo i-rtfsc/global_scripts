@@ -99,7 +99,7 @@ uv sync
 ### 4. 运行安装脚本
 
 > 此脚本配置 GS 5.2 legacy 环境。GS 6.0 尚未发布为全局入口；开发验证请使用
-> `rust/target/debug/gs` 和 `scripts/verify_gs6.sh`。
+> `rust/target/debug/gs` 和 `scripts/verify_gs.sh`。
 
 ```bash
 # 使用 UV 运行安装脚本，配置 shell 环境
@@ -110,14 +110,14 @@ uv run python scripts/setup.py
 
 ```bash
 cargo build --release --manifest-path rust/Cargo.toml
-bash scripts/stage_gs6_release.sh
-bash scripts/install_gs6.sh --yes
+bash scripts/stage_release.sh
+bash scripts/install_gs.sh --yes
 ```
 
-该流程只安装 `gs6`，不会覆盖全局 `gs`。如果源码树中存在私有
+该流程只安装 `gs`。如果源码树中存在私有
 `custom/userspace/identity` 或 `custom/userspace/sgm`，且用户配置目录没有同名目标，
 安装器会创建来源符号链接，不复制私钥或公司配置。设置
-`GS6_LINK_PRIVATE_ASSETS=0` 可禁用该行为。
+`GS_LINK_PRIVATE_ASSETS=0` 可禁用该行为。
 
 ### 5. 重新加载 Shell 配置
 
@@ -186,6 +186,30 @@ end
 ---
 
 ## 验证安装
+
+### 与 Ghostscript 同名(`gs`)
+
+安装后 `~/.local/bin/gs` 在 PATH 里排在 `/usr/bin` 前面,所以:
+
+- 你在终端敲的 `gs` 是 Global Scripts;`/usr/bin/gs` 仍是 Ghostscript,没有被删改。
+- Ghostscript 自带的工具(`ps2pdf`、`pdf2ps`、`ps2ps`、`ps2ascii`…)内部用
+  `$(dirname $0)/gs`,即**绝对路径**,不受影响。
+- 只有**通过 PATH 查找 `gs`** 的程序会拿到 Global Scripts。已知的是 ImageMagick
+  的 PS/EPS/PDF delegate(`delegates.xml` 里写的是裸 `gs`)。
+
+不需要 root 的修法:把 delegate 表复制到用户目录、把 `gs` 换成绝对路径,并让
+ImageMagick 优先读该目录,然后把 `MAGICK_CONFIGURE_PATH` 写进 shell 配置。
+
+```bash
+mkdir -p ~/.config/ImageMagick
+sed 's/&quot;gs&quot;/&quot;\/usr\/bin\/gs&quot;/g' /etc/ImageMagick-6/delegates.xml \
+  > ~/.config/ImageMagick/delegates.xml
+export MAGICK_CONFIGURE_PATH="$HOME/.config/ImageMagick"
+```
+
+也可以直接用 root 改系统表(`sudo sed -i ...`),但系统升级可能覆盖。
+若希望两边都保留 `gs` 这个名字,就得让 `gs` 自己按参数分流(`-` 开头或
+`*.ps`/`*.pdf` 参数转给 Ghostscript),这不在默认安装行为内。
 
 运行以下命令验证安装成功：
 

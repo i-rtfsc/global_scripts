@@ -79,7 +79,7 @@ def show_banner():
         print("Global Scripts - Modern Plugin Framework")
         print(f"Version: {GS_VERSION}")
     if GS_VERSION.startswith("5."):
-        print("Legacy setup: this installer configures GS 5.2. GS 6.0 uses rust/target/debug/gs and scripts/verify_gs6.sh.")
+        print("Legacy setup: this installer configures GS 5.2. GS 6.0 uses rust/target/debug/gs and scripts/verify_gs.sh.")
 
 
 def select_language(auto_mode: bool = False) -> str:

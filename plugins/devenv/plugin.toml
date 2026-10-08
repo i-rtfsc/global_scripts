@@ -1,8 +1,8 @@
 name        = "devenv"
 version     = "6.0.0-dev"
-tier        = "script"
+tier        = "rpc"
 runtime     = "python"
-entry       = "devenv6.py"
+entry       = "devenv.py"
 description  = { zh = "开发环境检查、计划与显式安装", en = "Development environment checks, plans and explicit installs" }
 author      = "Solo"
 category    = "development"

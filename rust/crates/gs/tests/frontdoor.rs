@@ -13,6 +13,11 @@ fn gs_bin() -> &'static str {
     env!("CARGO_BIN_EXE_gs")
 }
 
+/// Most tests check command semantics, not transport, and every `run` uses a
+/// fresh cache dir — so they opt out of T3 resident daemons to stay hermetic and
+/// leave no background processes behind. `resident_daemon_*` tests opt back in.
+const DAEMON_OFF: (&str, &str) = ("GS_DAEMON", "0");
+
 fn run(args: &[&str]) -> Output {
     let cache = std::env::temp_dir().join(format!(
         "gs-frontdoor-cache-{}-{}",
@@ -24,6 +29,7 @@ fn run(args: &[&str]) -> Output {
     ));
     Command::new(gs_bin())
         .args(args)
+        .env(DAEMON_OFF.0, DAEMON_OFF.1)
         .env("GS_ROOT", repo_root())
         .env("GS_INCLUDE_EXAMPLES", "1")
         .env("GS_CACHE_DIR", cache)
@@ -37,6 +43,26 @@ fn stdout(output: &Output) -> String {
     String::from_utf8_lossy(&output.stdout).into_owned()
 }
 
+/// Recursive copy for test fixtures (Rust's std has no `cp -a`).
+fn copy_tree(from: &std::path::Path, to: &std::path::Path) {
+    fs::create_dir_all(to).unwrap();
+    for entry in fs::read_dir(from).unwrap().flatten() {
+        let target = to.join(entry.file_name());
+        if entry.file_type().unwrap().is_dir() {
+            copy_tree(&entry.path(), &target);
+        } else {
+            fs::copy(entry.path(), target).unwrap();
+        }
+    }
+}
+
+/// Fact tables put a label and its value on one line; assert on the pair rather
+/// than on the exact padding between them.
+fn has_row(text: &str, key: &str, value: &str) -> bool {
+    text.lines()
+        .any(|line| line.contains(key) && line.contains(value))
+}
+
 fn stderr(output: &Output) -> String {
     String::from_utf8_lossy(&output.stderr).into_owned()
 }
@@ -44,6 +70,7 @@ fn stderr(output: &Output) -> String {
 fn run_without_examples(args: &[&str]) -> Output {
     Command::new(gs_bin())
         .args(args)
+        .env(DAEMON_OFF.0, DAEMON_OFF.1)
         .env("GS_ROOT", repo_root())
         .env(
             "GS_CACHE_DIR",
@@ -59,6 +86,7 @@ fn run_without_examples(args: &[&str]) -> Output {
 fn run_as(command_name: &str, args: &[&str]) -> Output {
     Command::new(gs_bin())
         .args(args)
+        .env(DAEMON_OFF.0, DAEMON_OFF.1)
         .env("GS_ROOT", repo_root())
         .env("GS_COMMAND_NAME", command_name)
         .env("GS_DESCRIBE_TIMEOUT_MS", "5000")
@@ -71,9 +99,80 @@ fn run_as(command_name: &str, args: &[&str]) -> Output {
         .expect("run gs with a custom command name")
 }
 
+/// `gs completions <shell>` prints by default; `--install` must actually place
+/// the file where that shell looks for it.
+#[test]
+fn completions_install_writes_the_shell_file() {
+    let data = std::env::temp_dir().join(format!("gs-completions-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&data);
+    fs::create_dir_all(&data).unwrap();
+
+    let installed = Command::new(gs_bin())
+        .args(["completions", "zsh", "--install"])
+        .env(DAEMON_OFF.0, DAEMON_OFF.1)
+        .env("GS_ROOT", repo_root())
+        .env("GS_CACHE_DIR", &data)
+        .env("XDG_DATA_HOME", &data)
+        .output()
+        .expect("run gs completions --install");
+    assert!(installed.status.success(), "stderr: {}", stderr(&installed));
+
+    let written = data.join("zsh/site-functions/_gs");
+    assert!(
+        written.is_file(),
+        "completion not written to {}",
+        written.display()
+    );
+    let text = fs::read_to_string(&written).unwrap();
+    assert!(
+        text.contains("_gs_complete"),
+        "unexpected completion content"
+    );
+
+    // Printing (no --install) must still stream to stdout for piping.
+    let printed = run(&["completions", "zsh"]);
+    assert!(printed.status.success());
+    assert!(stdout(&printed).contains("_gs_complete"));
+    assert!(!data.join("bash-completion").exists());
+    let _ = fs::remove_dir_all(&data);
+}
+
+#[test]
+fn init_lists_the_machine_setup_plan_and_requires_a_mode() {
+    let list = run(&["init", "--list"]);
+    assert!(list.status.success());
+    let text = stdout(&list);
+    // The manifest drives it, so a known step id and its status must show up.
+    assert!(text.contains("mirror-repo"), "steps listed: {text}");
+    assert!(text.contains("system repo tsinghua"));
+    assert!(text.contains("就绪") || text.contains("需要 sudo"));
+
+    // Filtering narrows the plan without touching anything: `--group` picks a
+    // group, `--only` a step id (or a plugin name).
+    let by_group = run(&["init", "--list", "--group=mirror"]);
+    assert!(by_group.status.success());
+    assert!(stdout(&by_group).contains("mirror-repo"));
+    assert!(!stdout(&by_group).contains("base-tools"));
+
+    let by_id = run(&["init", "--list", "--only=mirror-repo"]);
+    assert!(by_id.status.success());
+    assert!(stdout(&by_id).contains("mirror-repo"));
+    assert!(!stdout(&by_id).contains("mirror-brew"));
+
+    // A filter that matches nothing is a usage error, not a silent no-op.
+    let empty = run(&["init", "--list", "--only=nope"]);
+    assert_eq!(empty.status.code(), Some(2));
+
+    // No mode: refuse rather than guess (same rule as install/apply elsewhere).
+    let bare = run(&["init"]);
+    assert_eq!(bare.status.code(), Some(2));
+    assert!(stderr(&bare).contains("--list"));
+}
+
 fn run_with_env_file(args: &[&str], env_file: &PathBuf) -> Output {
     Command::new(gs_bin())
         .args(args)
+        .env(DAEMON_OFF.0, DAEMON_OFF.1)
         .env("GS_ROOT", repo_root())
         .env("GS_ENV_FILE", env_file)
         .env("GS_DESCRIBE_TIMEOUT_MS", "5000")
@@ -102,7 +201,7 @@ fn native_system_commands_are_self_contained() {
 
     let doctor = run(&["doctor"]);
     assert!(doctor.status.success());
-    assert!(stdout(&doctor).contains("结果:          通过"));
+    assert!(has_row(&stdout(&doctor), "结果", "通过"));
 
     let refresh = run(&["refresh"]);
     assert!(refresh.status.success());
@@ -112,14 +211,14 @@ fn native_system_commands_are_self_contained() {
 #[test]
 fn completion_scripts_bind_to_the_requested_command_name() {
     let cases = [
-        ("bash", "_gs6_complete", "complete -F _gs6_complete gs6"),
-        ("zsh", "_gs6_complete", "compdef _gs6_complete gs6"),
-        ("fish", "__gs6_complete", "complete -c gs6 "),
-        ("nushell", "== \"gs6\"", "(^gs6 __complete"),
-        ("powershell", "-CommandName gs6", "(gs6 __complete"),
+        ("bash", "_gsp_complete", "complete -F _gsp_complete gsp"),
+        ("zsh", "_gsp_complete", "compdef _gsp_complete gsp"),
+        ("fish", "__gsp_complete", "complete -c gsp "),
+        ("nushell", "== \"gsp\"", "(^gsp __complete"),
+        ("powershell", "-CommandName gsp", "(gsp __complete"),
     ];
     for (shell, function, binding) in cases {
-        let result = run_as("gs6", &["completions", shell]);
+        let result = run_as("gsp", &["completions", shell]);
         assert!(result.status.success(), "{shell}: {}", stderr(&result));
         let text = stdout(&result);
         assert!(text.contains(function), "{shell} function binding missing");
@@ -129,10 +228,10 @@ fn completion_scripts_bind_to_the_requested_command_name() {
 
 #[test]
 fn powershell_shell_init_supports_cd_and_environment_effects() {
-    let result = run_as("gs6", &["shell-init", "powershell"]);
+    let result = run_as("gsp", &["shell-init", "powershell"]);
     assert!(result.status.success(), "{}", stderr(&result));
     let text = stdout(&result);
-    assert!(text.contains("function global:gs6"));
+    assert!(text.contains("function global:gsp"));
     assert!(text.contains("GS_CD_FILE"));
     assert!(text.contains("GS_ENV_FILE"));
     assert!(text.contains("Set-Location -LiteralPath"));
@@ -155,9 +254,9 @@ fn unknown_plugin_management_commands_never_fall_back_to_python() {
     assert!(!stderr(&unknown).contains("ModuleNotFoundError"));
 
     for args in [
-        ["plugin", "info", "not-a-gs6-plugin"],
-        ["plugin", "enable", "not-a-gs6-plugin"],
-        ["plugin", "disable", "not-a-gs6-plugin"],
+        ["plugin", "info", "not-a-gs-plugin"],
+        ["plugin", "enable", "not-a-gs-plugin"],
+        ["plugin", "disable", "not-a-gs-plugin"],
     ] {
         let missing = run(&args);
         assert_eq!(missing.status.code(), Some(1));
@@ -171,7 +270,10 @@ fn plugin_info_can_focus_a_command_group() {
     let result = run(&["plugin", "info", "android", "winscope"]);
     assert!(result.status.success());
     let text = stdout(&result);
-    assert!(text.contains("android / winscope"));
+    // The group view is a section: the group name heads its own block, with the
+    // manifest's description next to it.
+    assert!(text.contains("winscope"));
+    assert!(text.contains("Window and layer analysis"));
     assert!(text.contains("winscope start"));
     assert!(!text.contains("device devices"));
 
@@ -233,6 +335,124 @@ summary={en="Hello"}
     let _ = fs::remove_dir_all(root);
 }
 
+/// T3: a `tier = "rpc"` plugin is served by a daemon that outlives a single
+/// `gs` call. The fixture records one line per *process start*, so the assertions
+/// prove the interpreter was started once for three calls — not merely that the
+/// calls were fast.
+#[cfg(unix)]
+#[test]
+fn resident_daemon_reuses_one_plugin_process_across_calls() {
+    let root = std::env::temp_dir().join(format!("gs-daemon-{}", std::process::id()));
+    let plugin = root.join("plugins/fdemo");
+    let cache = root.join("cache");
+    let mark = root.join("started.log");
+    fs::create_dir_all(&plugin).unwrap();
+    fs::write(
+        plugin.join("plugin.toml"),
+        r#"name        = "fdemo"
+version     = "6.0.0-dev"
+tier        = "rpc"
+runtime     = "python"
+entry       = "plugin.py"
+describe_cache = "runtime"
+"#,
+    )
+    .unwrap();
+    // The plugin imports the SDK from the repo and appends one line per start.
+    fs::write(
+        plugin.join("plugin.py"),
+        format!(
+            r#"import os, sys
+sys.path.insert(0, {sdk:?})
+with open(os.environ["FDEMO_MARK"], "a") as fh:
+    fh.write("start\n")
+from gs_plugin import Plugin
+plugin = Plugin(name="fdemo")
+
+@plugin.command(name="greet", summary={{"en": "Greet"}},
+                args=[{{"name": "who", "type": "string", "required": True}}])
+def greet(ctx):
+    ctx.emit_output("stdout", "hello {{}}\n".format(ctx.args.get("who", "")))
+    return 0
+
+@plugin.command(name="paint", summary={{"en": "Paint"}},
+                args=[{{"name": "color", "type": "string", "flag": "--color",
+                        "complete": {{"kind": "dynamic", "source": "colors"}}}}])
+def paint(ctx):
+    ctx.emit_output("stdout", "painted {{}}\n".format(ctx.args.get("color", "")))
+    return 0
+
+@plugin.completer(source="colors")
+def colors(params):
+    return [{{"value": "red", "description": "warm"}},
+            {{"value": "green", "description": "go"}}]
+
+if __name__ == "__main__":
+    raise SystemExit(plugin.run())
+"#,
+            sdk = repo_root().join("sdk/python"),
+        ),
+    )
+    .unwrap();
+
+    let calls = |args: &[&str], daemon: bool| -> Output {
+        let mut cmd = Command::new(gs_bin());
+        cmd.args(args)
+            .env("GS_ROOT", &root)
+            .env("GS_CACHE_DIR", &cache)
+            .env("FDEMO_MARK", &mark)
+            .env("GS_DESCRIBE_TIMEOUT_MS", "5000")
+            // Keep the daemon from outliving the test for long.
+            .env("GS_DAEMON_IDLE_MS", "1500")
+            .current_dir(&root);
+        if !daemon {
+            cmd.env("GS_DAEMON", "0");
+        }
+        cmd.output().expect("run gs")
+    };
+
+    // Three separate `gs` processes: one invoke, another invoke, one dynamic
+    // completion — all served by the same interpreter.
+    let first = calls(&["fdemo", "greet", "world"], true);
+    assert!(first.status.success(), "stderr: {}", stderr(&first));
+    assert!(stdout(&first).contains("hello world"));
+    assert_eq!(fs::read_to_string(&mark).unwrap().lines().count(), 1);
+
+    let second = calls(&["fdemo", "greet", "again"], true);
+    assert!(second.status.success(), "stderr: {}", stderr(&second));
+    assert!(stdout(&second).contains("hello again"));
+
+    let complete = calls(&["__complete", "fdemo", "paint", "--color"], true);
+    assert!(complete.status.success(), "stderr: {}", stderr(&complete));
+    assert!(
+        stdout(&complete).contains("red"),
+        "dynamic completion over the daemon; got: {}",
+        stdout(&complete)
+    );
+
+    assert_eq!(
+        fs::read_to_string(&mark).unwrap().lines().count(),
+        1,
+        "three gs calls must share one resident plugin process"
+    );
+    let sockets = fs::read_dir(cache.join("daemon"))
+        .map(|entries| {
+            entries
+                .flatten()
+                .filter(|e| e.path().extension().is_some_and(|x| x == "sock"))
+                .count()
+        })
+        .unwrap_or(0);
+    assert_eq!(sockets, 1, "one generation ⇒ one daemon socket");
+
+    // The same commands without T3 still work — the fallback path stays valid.
+    let oneshot = calls(&["fdemo", "greet", "plain"], false);
+    assert!(oneshot.status.success(), "stderr: {}", stderr(&oneshot));
+    assert!(stdout(&oneshot).contains("hello plain"));
+
+    let _ = fs::remove_dir_all(root);
+}
+
 #[test]
 fn examples_are_not_part_of_the_default_plugin_surface() {
     let list = run_without_examples(&["plugin", "list"]);
@@ -243,7 +463,9 @@ fn examples_are_not_part_of_the_default_plugin_surface() {
     assert!(!text.contains("json-with-subplugins"));
     assert!(text.contains("system"));
     assert!(text.contains("android"));
-    assert!(text.contains("6.0.0"));
+    // The list no longer repeats the version on every row; the inventory stats
+    // below it are what a caller checks.
+    assert!(has_row(&text, "插件库存", "正式 15 · legacy 0"));
 }
 
 #[test]
@@ -287,7 +509,11 @@ fn gs_root_isolates_user_plugins_and_legacy_router() {
         .output()
         .unwrap();
     assert!(status.status.success());
-    assert!(stdout(&status).contains("router.json:   未发现"));
+    assert!(has_row(
+        &stdout(&status),
+        "router.json",
+        "未发现（不影响 GS 6.0 插件）"
+    ));
 }
 
 #[test]
@@ -331,7 +557,7 @@ fn explicit_legacy_opt_in_keeps_router_fallback() {
         .output()
         .unwrap();
     assert!(status.status.success());
-    assert!(stdout(&status).contains("legacy 插件:   1 个"));
+    assert!(has_row(&stdout(&status), "legacy 插件", "1 个"));
 }
 
 #[test]
@@ -354,7 +580,7 @@ fn t2_invoke_and_dynamic_completion_use_rust_frontdoor() {
 }
 
 #[test]
-fn flyme_legacy_example_is_available_through_the_gs6_protocol() {
+fn flyme_legacy_example_is_available_through_the_front_door() {
     let info = run(&["flyme", "info"]);
     assert!(info.status.success());
     assert!(stdout(&info).contains("FlymeOS Development Plugin"));
@@ -629,7 +855,7 @@ fn android_uses_formal_plugin_name_after_in_place_merge() {
     let info = run(&["plugin", "info", "android"]);
     assert!(info.status.success());
     assert!(stdout(&info).contains("android"));
-    assert!(stdout(&info).contains("命令 ("));
+    assert!(stdout(&info).contains("命令 · "));
 
     let devices = run(&["android", "device", "devices"]);
     assert!(
@@ -800,7 +1026,7 @@ fn android_uses_formal_plugin_name_after_in_place_merge() {
 }
 
 #[test]
-fn gs6_excludes_legacy_menubar_plugin() {
+fn release_excludes_legacy_menubar_plugin() {
     let list = run(&["plugin", "list"]);
     assert!(list.status.success());
     let text = stdout(&list);
@@ -895,38 +1121,41 @@ fn dotfiles_inspects_and_plans_without_writing_home() {
     assert!(status.status.success());
     assert!(stdout(&status).contains("plugins/dotfiles/zsh/.zshrc"));
 
-    let plan = run(&["dotfiles", "plan", "zsh", "install", "--dry-run"]);
+    let plan = run(&["dotfiles", "install", "zsh", "--dry-run"]);
     assert!(plan.status.success());
     assert!(stdout(&plan).contains("不会执行复制、覆盖或删除"));
 
-    let unsafe_plan = run(&["dotfiles", "plan", "zsh", "install"]);
+    // No `--dry-run`/`--yes`: refuse rather than guess.
+    let unsafe_plan = run(&["dotfiles", "install", "zsh"]);
     assert_eq!(unsafe_plan.status.code(), Some(2));
 
-    let doctor = run(&["dotfiles", "doctor"]);
+    // `doctor` compares the repo's nvim tree with `$HOME/.config/nvim`, so it
+    // must run against a home that is actually in sync — otherwise the check
+    // reports whoever runs the test, not this repository.
+    let doctor_home =
+        std::env::temp_dir().join(format!("gs-dotfiles-doctor-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&doctor_home);
+    copy_tree(
+        &repo_root().join("plugins/dotfiles/nvim"),
+        &doctor_home.join(".config/nvim"),
+    );
+    let doctor = Command::new(gs_bin())
+        .args(["dotfiles", "doctor"])
+        .env(DAEMON_OFF.0, DAEMON_OFF.1)
+        .env("GS_ROOT", repo_root())
+        .env("HOME", &doctor_home)
+        .env("GS_CACHE_DIR", &doctor_home)
+        .output()
+        .expect("run gs dotfiles doctor");
     assert!(doctor.status.success());
     assert!(stdout(&doctor).contains("越界目标: 无"));
 
-    let json_plan = run(&[
-        "dotfiles",
-        "plan",
-        "zsh",
-        "install",
-        "--dry-run",
-        "--format=json",
-    ]);
+    let json_plan = run(&["dotfiles", "install", "zsh", "--dry-run", "--format=json"]);
     assert!(json_plan.status.success());
     let plan: serde_json::Value = serde_json::from_slice(&json_plan.stdout).unwrap();
     assert_eq!(plan["schema_version"], 1);
     assert_eq!(plan["mode"], "dry-run");
     assert_eq!(plan["check"]["ok"], true);
-
-    let plan_file =
-        std::env::temp_dir().join(format!("gs-dotfiles-plan-{}.json", std::process::id()));
-    fs::write(&plan_file, &json_plan.stdout).unwrap();
-    let verified = run(&["dotfiles", "verify-plan", plan_file.to_str().unwrap()]);
-    assert!(verified.status.success());
-    assert!(stdout(&verified).contains("计划有效"));
-    let _ = fs::remove_file(plan_file);
 }
 
 #[test]

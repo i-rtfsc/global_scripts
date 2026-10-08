@@ -38,9 +38,9 @@ async def load_legacy() -> Dict[str, Set[str]]:
     return result
 
 
-def load_gs6(binary: Path) -> Dict[str, Set[str]]:
+def load_current(binary: Path) -> Dict[str, Set[str]]:
     result = {}
-    with tempfile.TemporaryDirectory(prefix="gs6-parity-") as cache:
+    with tempfile.TemporaryDirectory(prefix="gs-parity-") as cache:
         env = os.environ.copy()
         env.update({"GS_ROOT": str(ROOT), "GS_CACHE_DIR": cache, "GS_COLOR": "0"})
         env.pop("GS_INCLUDE_EXAMPLES", None)
@@ -73,8 +73,8 @@ def replacement(plugin: str, command: str, available: Set[str]) -> str:
             return "list"
         if len(words) == 2 and words[0] in {"vim", "nvim", "tmux", "zsh", "fish", "git"}:
             action = words[1]
-            if action in {"install", "uninstall"} and {"plan", "apply_plan"} <= available:
-                return "plan + apply-plan"
+            if action in {"install", "uninstall"} and action in available:
+                return action
             if action in {"backup", "restore", "status"} and action in available:
                 return action
     if plugin == "spider":
@@ -98,13 +98,13 @@ def replacement(plugin: str, command: str, available: Set[str]) -> str:
 
 
 def compare(
-    legacy: Dict[str, Set[str]], gs6: Dict[str, Set[str]]
+    legacy: Dict[str, Set[str]], current: Dict[str, Set[str]]
 ) -> Tuple[List[dict], List[Tuple[str, str]]]:
     summaries = []
     missing = []
     for plugin in sorted(legacy):
         old = legacy[plugin]
-        new = gs6.get(plugin, set())
+        new = current.get(plugin, set())
         direct = old & new
         mapped = {}
         for command in sorted(old - direct):
@@ -117,7 +117,7 @@ def compare(
             {
                 "plugin": plugin,
                 "gs52": len(old),
-                "gs6": len(new),
+                "current": len(new),
                 "direct": len(direct),
                 "mapped": len(mapped),
                 "missing": len(old) - len(direct) - len(mapped),
@@ -139,7 +139,7 @@ def markdown(summaries: Iterable[dict], missing: List[Tuple[str, str]]) -> str:
     ]
     for item in summaries:
         lines.append(
-            "| {plugin} | {gs52} | {gs6} | {direct} | {mapped} | {missing} |".format(**item)
+            "| {plugin} | {gs52} | {current} | {direct} | {mapped} | {missing} |".format(**item)
         )
     lines.extend(["", "## Missing Commands", ""])
     if missing:
@@ -151,12 +151,12 @@ def markdown(summaries: Iterable[dict], missing: List[Tuple[str, str]]) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--gs6-bin", type=Path, default=ROOT / "rust" / "target" / "debug" / "gs")
+    parser.add_argument("--gs-bin", type=Path, default=ROOT / "rust" / "target" / "debug" / "gs")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
     legacy = asyncio.run(load_legacy())
-    gs6 = load_gs6(args.gs6_bin.resolve())
-    summaries, missing = compare(legacy, gs6)
+    current = load_current(args.gs_bin.resolve())
+    summaries, missing = compare(legacy, current)
     if args.json:
         print(json.dumps({"plugins": summaries, "missing": missing}, ensure_ascii=False, indent=2))
     else:

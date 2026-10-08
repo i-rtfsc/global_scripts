@@ -157,6 +157,64 @@ pub fn write_complete(plugin: &str, key: &str, values: &[Candidate], ttl: u64) {
     write_json(&path, &map);
 }
 
+// ---- program (interpreter) resolution cache ------------------------------
+
+/// Absolute paths for bare program names (`python3`, `bash`, …), keyed by the
+/// `PATH` they were resolved against. Every `gs` invocation is a fresh process,
+/// so this is what lets the core hand the OS an absolute path for a plugin's
+/// interpreter and skip probing each `PATH` directory for it on every
+/// `describe` / `complete` / `invoke`. The `PATH` key means activating a venv
+/// (or otherwise changing `PATH`) misses and re-resolves rather than pinning
+/// the previous interpreter.
+#[derive(Serialize, Deserialize, Default)]
+struct ProgramCache {
+    path_env: String,
+    programs: BTreeMap<String, String>,
+}
+
+fn program_cache_path() -> Option<PathBuf> {
+    Some(cache_dir()?.join("programs.json"))
+}
+
+fn current_path_env() -> String {
+    std::env::var("PATH").unwrap_or_default()
+}
+
+fn read_program_cache() -> Option<ProgramCache> {
+    serde_json::from_slice(&std::fs::read(program_cache_path()?).ok()?).ok()
+}
+
+/// The cached absolute path for `prog`, valid only while `PATH` is unchanged.
+pub fn read_program(prog: &str) -> Option<PathBuf> {
+    let cache = read_program_cache()?;
+    if cache.path_env != current_path_env() {
+        return None;
+    }
+    let path = PathBuf::from(cache.programs.get(prog)?);
+    (!path.as_os_str().is_empty()).then_some(path)
+}
+
+/// Remember `prog` → absolute `path` for the current `PATH`. When `PATH` has
+/// changed the entry map is rebuilt rather than merged, so a stale interpreter
+/// from a previous environment can't linger here.
+pub fn write_program(prog: &str, path: &Path) {
+    let Some(file) = program_cache_path() else {
+        return;
+    };
+    let path_env = current_path_env();
+    let mut cache = match read_program_cache() {
+        Some(c) if c.path_env == path_env => c,
+        _ => ProgramCache {
+            path_env,
+            programs: BTreeMap::new(),
+        },
+    };
+    cache
+        .programs
+        .insert(prog.to_string(), path.to_string_lossy().into_owned());
+    write_json(&file, &cache);
+}
+
 /// Test-only: serialize cache-touching tests (they mutate the process-global
 /// `GS_CACHE_DIR`) behind one lock, and point the cache at a unique, empty temp
 /// dir so a test never reads or pollutes the real cache. Hold the returned guard
@@ -221,6 +279,40 @@ mod tests {
             read_complete("g", &key).unwrap(),
             vec![cand("main"), cand("dev")],
             "fresh entry hits"
+        );
+    }
+
+    #[test]
+    fn program_resolution_roundtrips_and_is_keyed_by_path() {
+        let _g = test_isolate("program");
+        assert!(read_program("python3").is_none(), "cold → miss");
+        write_program("python3", Path::new("/opt/venv/bin/python3"));
+        write_program("bash", Path::new("/bin/bash"));
+        assert_eq!(
+            read_program("python3"),
+            Some(PathBuf::from("/opt/venv/bin/python3"))
+        );
+        assert_eq!(read_program("bash"), Some(PathBuf::from("/bin/bash")));
+
+        // A different PATH belongs to a different environment: the old mapping
+        // must not leak across it. Simulated by rewriting the key in place —
+        // other tests share this process and must not see `PATH` move.
+        let file = program_cache_path().expect("cache dir");
+        let mut stored: ProgramCache =
+            serde_json::from_slice(&std::fs::read(&file).unwrap()).unwrap();
+        stored.path_env = "/somewhere/else/bin".into();
+        write_json(&file, &stored);
+
+        assert!(read_program("python3").is_none(), "PATH change → miss");
+        assert!(read_program("bash").is_none(), "PATH change → miss");
+        write_program("python3", Path::new("/somewhere/else/bin/python3"));
+        assert_eq!(
+            read_program("python3"),
+            Some(PathBuf::from("/somewhere/else/bin/python3"))
+        );
+        assert!(
+            read_program("bash").is_none(),
+            "an entry from the previous PATH is dropped, not merged"
         );
     }
 }

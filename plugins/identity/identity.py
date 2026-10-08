@@ -99,7 +99,7 @@ def _load_json(path, required=True):
 
 def _write_json(path, value, mode=0o600):
     path.parent.mkdir(parents=True, exist_ok=True)
-    fd, temporary = tempfile.mkstemp(prefix=".gs6-identity-", dir=str(path.parent))
+    fd, temporary = tempfile.mkstemp(prefix=".gs-identity-", dir=str(path.parent))
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as stream:
             json.dump(value, stream, ensure_ascii=False, indent=2)

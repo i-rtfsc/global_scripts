@@ -1,6 +1,6 @@
 name        = "android"
 version     = "6.0.0-dev"
-tier        = "script"
+tier        = "rpc"
 runtime     = "python"
 entry       = "android.py"
 description  = { zh = "Android 开发与调试（全量 13 子插件 · GS 6.0 移植）", en = "Android dev & debugging (full 13-subplugin GS 6.0 port)" }

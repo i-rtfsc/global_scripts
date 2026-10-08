@@ -14,9 +14,11 @@ use std::path::{Path, PathBuf};
 
 pub mod cache;
 pub mod caps;
+pub mod daemon;
 pub mod engine;
 pub mod exec;
 pub mod index;
+pub mod init;
 pub mod manifest;
 pub mod migrate;
 pub mod rpc;

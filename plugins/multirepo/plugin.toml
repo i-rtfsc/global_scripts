@@ -1,6 +1,6 @@
 name        = "multirepo"
 version     = "6.0.0-dev"
-tier        = "script"
+tier        = "rpc"
 runtime     = "python"
 entry       = "multirepo.py"
 description = { zh = "多仓库状态、计划与安全应用", en = "Multi-repo status, plans and safe apply" }

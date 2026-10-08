@@ -46,7 +46,7 @@ def run_output(binary: Path, root: Path, *args: str) -> str:
     env.update(
         {
             "GS_ROOT": str(root),
-            "GS_COMMAND_NAME": "gs6",
+            "GS_COMMAND_NAME": "gs",
             "GS_COMMAND_PATH": str(binary),
             "GS_COLOR": "0",
         }
@@ -86,12 +86,14 @@ def build(binary: Path, output: Path, archive: Optional[Path], target: str) -> N
         shutil.rmtree(output)
     output.mkdir(parents=True)
 
-    binary_name = "gs6.exe" if binary.suffix.lower() == ".exe" else "gs6"
+    binary_name = "gs.exe" if binary.suffix.lower() == ".exe" else "gs"
     packaged_binary = output / binary_name
     shutil.copy2(binary, packaged_binary)
 
     copy_tree(ROOT / "sdk", output / "sdk")
     copy_tree(ROOT / "themes", output / "themes")
+    # `gs init` reads its step manifest from here.
+    copy_tree(ROOT / "config", output / "config")
     manifests = sorted((ROOT / "plugins").glob("*/plugin.toml"))
     formal_names = {path.parent.name for path in manifests}
     for manifest in manifests:
@@ -105,11 +107,11 @@ def build(binary: Path, output: Path, archive: Optional[Path], target: str) -> N
         shutil.copy2(metadata, legacy_dir / (metadata.parent.name + ".json"))
 
     completion_files = {
-        "bash": "gs6.bash",
-        "zsh": "_gs6",
-        "fish": "gs6.fish",
-        "nushell": "gs6.nu",
-        "powershell": "gs6.ps1",
+        "bash": "gs.bash",
+        "zsh": "_gs",
+        "fish": "gs.fish",
+        "nushell": "gs.nu",
+        "powershell": "gs.ps1",
     }
     for shell, filename in completion_files.items():
         (output / filename).write_text(
@@ -119,10 +121,10 @@ def build(binary: Path, output: Path, archive: Optional[Path], target: str) -> N
     shell_dir = output / "shell"
     shell_dir.mkdir()
     shell_init_files = {
-        "bash": "gs6-init.bash",
-        "zsh": "gs6-init.zsh",
-        "fish": "gs6-init.fish",
-        "powershell": "gs6-init.ps1",
+        "bash": "gs-init.bash",
+        "zsh": "gs-init.zsh",
+        "fish": "gs-init.fish",
+        "powershell": "gs-init.ps1",
     }
     for shell, filename in shell_init_files.items():
         (shell_dir / filename).write_text(

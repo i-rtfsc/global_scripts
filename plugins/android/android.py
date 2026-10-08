@@ -101,10 +101,10 @@ def build_vendor(ctx):
 def _config_path():
     # GS6 state must not mutate the legacy 5.2 android.json. Tests and
     # development shells can provide an isolated directory explicitly.
-    root = os.environ.get("GS6_ANDROID_STATE_DIR")
+    root = os.environ.get("GS_ANDROID_STATE_DIR")
     if not root:
         root = os.path.join(os.environ.get("GS_CACHE_DIR", os.path.expanduser(
-            "~/.config/global-scripts/cache")), "android-gs6")
+            "~/.config/global-scripts/cache")), "android-gs")
     return os.path.join(root, "android.json")
 
 

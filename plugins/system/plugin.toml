@@ -1,6 +1,6 @@
 name        = "system"
 version     = "6.0.0-dev"
-tier        = "script"
+tier        = "rpc"
 runtime     = "python"
 entry       = "system.py"
 description = { zh = "系统状态与提示符配置工具", en = "System status and prompt configuration utilities" }
@@ -12,6 +12,12 @@ keywords    = ["system", "proxy", "homebrew", "repo", "prompt"]
 priority    = 50
 protocol    = 1
 describe_cache = "runtime"
+
+[groups]
+brew   = { zh = "Homebrew 镜像源", en = "Homebrew mirrors" }
+proxy  = { zh = "代理环境变量", en = "Proxy environment" }
+repo   = { zh = "repo 工具镜像源", en = "git-repo mirrors" }
+prompt = { zh = "提示符主题", en = "Prompt themes" }
 
 [capabilities]
 exec = ["brew", "git"]

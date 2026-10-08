@@ -31,6 +31,7 @@ Typical usage::
 
 from __future__ import annotations
 
+import os
 import sys
 import traceback
 from typing import Any, Callable, Dict, List, Optional
@@ -41,6 +42,24 @@ from .framing import read_message, write_message
 METHOD_NOT_FOUND = -32601
 INTERNAL_ERROR = -32603
 INVALID_PARAMS = -32602
+
+
+def apply_env(env: Any) -> None:
+    """Publish the caller's authorized environment to the plugin process.
+
+    The core sends the variables a plugin asked for in
+    ``[capabilities].env`` with every ``complete``/``invoke``. A resident
+    (``tier = "rpc"``) plugin outlives the `gs` call that started it, so
+    process inheritance alone would freeze whatever environment happened to be
+    current at daemon start — and a variable set only for this call (a
+    ``GS_*_BIN`` test double, a proxy, a token) would never arrive. Handlers may
+    keep reading ``os.environ``; this keeps it honest.
+    """
+    if not isinstance(env, dict):
+        return
+    for key, value in env.items():
+        if isinstance(key, str) and isinstance(value, str):
+            os.environ[key] = value
 
 
 class InvokeContext:
@@ -199,6 +218,7 @@ class Plugin:
         return values
 
     def _complete_result(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        apply_env(params.get("env"))
         source = params.get("source")
         handler = self._completers.get(source)
         if handler is None:
@@ -214,6 +234,7 @@ class Plugin:
     # ----- invoke ----------------------------------------------------------
 
     def _invoke_result(self, params: Dict[str, Any], out_stream) -> Dict[str, Any]:
+        apply_env(params.get("env"))
         command = params.get("command")
         entry = self._commands.get(command)
         if entry is None:

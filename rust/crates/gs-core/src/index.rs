@@ -13,8 +13,9 @@
 use crate::cache;
 use crate::manifest::{Capabilities, CommandSpec, PluginManifest, Tier};
 use crate::rpc;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
+use std::sync::{Mutex, OnceLock};
 
 /// A parsed manifest plus the directory it lives in (used to resolve `entry`
 /// and as the plugin process's cwd).
@@ -34,14 +35,15 @@ impl LoadedManifest {
             Tier::Script | Tier::Rpc => {
                 let entry = self.dir.join(&self.manifest.entry);
                 Some((
-                    runtime_program(&self.manifest.runtime),
+                    resolve_program(&runtime_program(&self.manifest.runtime)),
                     vec![entry.to_string_lossy().into_owned()],
                 ))
             }
             Tier::Wasm => {
                 let entry = self.dir.join(&self.manifest.entry);
+                let runner = std::env::var("GS_WASMTIME_BIN").unwrap_or_else(|_| "wasmtime".into());
                 Some((
-                    std::env::var("GS_WASMTIME_BIN").unwrap_or_else(|_| "wasmtime".into()),
+                    resolve_program(&runner),
                     vec!["run".into(), entry.to_string_lossy().into_owned()],
                 ))
             }
@@ -59,9 +61,6 @@ impl LoadedManifest {
         if self.manifest.commands_are_inline() {
             return self.manifest.commands.clone();
         }
-        let Some((prog, args)) = self.spawn() else {
-            return Vec::new();
-        };
         let name = &self.manifest.name;
         let key = cache::DescribeKey::new(
             &self.dir,
@@ -83,9 +82,9 @@ impl LoadedManifest {
                 "plugin": name,
             }),
         );
-        let dir = self.dir.clone();
+        let manifest = self.clone();
         let exchange = rpc::with_timeout(rpc::describe_timeout(), move || {
-            rpc::call_oneshot(&prog, &args, Some(&dir), &[req], true)
+            crate::daemon::send(&manifest, &[req], true)
         });
         match exchange {
             Some(Ok(ex)) => match ex.result_for(1) {
@@ -225,6 +224,72 @@ pub fn runtime_program(runtime: &str) -> String {
         "python" => "python3".into(),
         other => other.into(),
     }
+}
+
+/// Is `path` an executable file? On Unix the executable bit must be set;
+/// elsewhere a plain file is enough (the OS applies its own rules on exec).
+pub fn is_executable(path: &Path) -> bool {
+    match std::fs::metadata(path) {
+        Ok(md) if md.is_file() => {
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                md.permissions().mode() & 0o111 != 0
+            }
+            #[cfg(not(unix))]
+            {
+                true
+            }
+        }
+        _ => false,
+    }
+}
+
+/// First executable `prog` under `dirs` — the lookup half of `PATH` semantics.
+fn search_in(prog: &str, dirs: &[PathBuf]) -> Option<PathBuf> {
+    dirs.iter().map(|d| d.join(prog)).find(|c| is_executable(c))
+}
+
+/// Resolve a bare program name (`python3`, `bash`, …) to an absolute path, so
+/// the OS does not have to probe every `PATH` directory for it on each spawn.
+///
+/// A name that already carries a path separator is returned verbatim, and an
+/// unresolvable name is returned unchanged so the spawn fails exactly as it
+/// would have. The answer is memoized per process and, because every `gs`
+/// invocation is a fresh process, also cached on disk keyed by `PATH`
+/// ([`crate::cache`]) — a venv switch changes `PATH` and re-resolves.
+pub fn resolve_program(prog: &str) -> String {
+    if prog.is_empty() || prog.contains('/') || prog.contains('\\') {
+        return prog.to_string();
+    }
+    static MEMO: OnceLock<Mutex<BTreeMap<String, String>>> = OnceLock::new();
+    let memo = MEMO.get_or_init(|| Mutex::new(BTreeMap::new()));
+    if let Some(hit) = memo.lock().ok().and_then(|m| m.get(prog).cloned()) {
+        return hit;
+    }
+
+    // A cached answer that is still executable is authoritative — only a miss
+    // (or a stale path) pays for a `PATH` search and a cache write.
+    let resolved = match cache::read_program(prog).filter(|p| is_executable(p)) {
+        Some(path) => path.to_string_lossy().into_owned(),
+        None => match search_path(prog) {
+            Some(path) => {
+                cache::write_program(prog, &path);
+                path.to_string_lossy().into_owned()
+            }
+            None => prog.to_string(),
+        },
+    };
+    if let Ok(mut m) = memo.lock() {
+        m.insert(prog.to_string(), resolved.clone());
+    }
+    resolved
+}
+
+fn search_path(prog: &str) -> Option<PathBuf> {
+    let path_env = std::env::var_os("PATH")?;
+    let dirs: Vec<PathBuf> = std::env::split_paths(&path_env).collect();
+    search_in(prog, &dirs)
 }
 
 /// Plugin-discovery roots, highest priority first (earlier roots shadow later
@@ -369,8 +434,47 @@ mod tests {
         assert_eq!(runtime_program("node"), "node");
     }
 
+    #[cfg(unix)]
+    #[test]
+    fn search_in_skips_non_executable_and_returns_first_match() {
+        use std::os::unix::fs::PermissionsExt;
+        let root = scratch("search-in");
+        let (first, second) = (root.join("first"), root.join("second"));
+        fs::create_dir_all(&first).unwrap();
+        fs::create_dir_all(&second).unwrap();
+        // A same-named non-executable decoy in the earlier dir must be skipped.
+        fs::write(first.join("tool"), b"#!/bin/sh\n").unwrap();
+        fs::write(second.join("tool"), b"#!/bin/sh\n").unwrap();
+        fs::set_permissions(second.join("tool"), fs::Permissions::from_mode(0o755)).unwrap();
+        assert_eq!(
+            search_in("tool", &[first.clone(), second.clone()]),
+            Some(second.join("tool"))
+        );
+        assert_eq!(search_in("absent", &[first, second]), None);
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn resolve_program_returns_an_absolute_path_or_the_name_unchanged() {
+        let _g = cache::test_isolate("resolve-program");
+        // `sh` is on every Unix PATH, so this resolves; the answer must be an
+        // absolute path the OS can exec directly (no PATH search needed).
+        let sh = resolve_program("sh");
+        assert!(Path::new(&sh).is_absolute(), "got {sh}");
+        assert!(is_executable(Path::new(&sh)));
+        assert_eq!(resolve_program("sh"), sh, "memoized → stable answer");
+
+        // Already-qualified names and unknown names pass through untouched.
+        assert_eq!(resolve_program("/bin/sh"), "/bin/sh");
+        let missing = "gs-nonexistent-program-xyz";
+        assert_eq!(resolve_program(missing), missing);
+    }
+
     #[test]
     fn wasm_spawn_uses_wasmtime_cli() {
+        // `spawn()` now resolves the interpreter, which touches the cache dir.
+        let _g = cache::test_isolate("wasm-spawn");
         let root = scratch("wasm-spawn");
         let dir = write_plugin(
             &root,

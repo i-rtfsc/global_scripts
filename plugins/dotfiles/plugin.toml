@@ -1,8 +1,8 @@
 name        = "dotfiles"
 version     = "6.0.0-dev"
-tier        = "script"
+tier        = "rpc"
 runtime     = "python"
-entry       = "dotfiles6.py"
+entry       = "dotfiles.py"
 description = { zh = "配置文件检查、计划与安全应用", en = "Dotfiles inspection, planning and safe apply" }
 author      = "Solo"
 license     = "Apache-2.0"
