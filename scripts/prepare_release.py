@@ -55,8 +55,8 @@ def check(version: str) -> None:
     errors = []
     files = expected_files(version)
     manifests = [path for path in files if path.name == "plugin.toml"]
-    if len(manifests) != 15:
-        errors.append("expected 15 formal plugin manifests, found {}".format(len(manifests)))
+    if len(manifests) != 13:
+        errors.append("expected 13 formal plugin manifests, found {}".format(len(manifests)))
     for path, needles in files.items():
         if not path.is_file():
             errors.append("missing file: {}".format(path.relative_to(ROOT)))

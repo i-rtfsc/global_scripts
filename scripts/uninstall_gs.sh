@@ -53,10 +53,13 @@ for backup in "$PREFIX"/bin/"$NAME".backup-*; do
   fi
 done
 
-for private_plugin in identity sgm; do
-  private_link="$HOME/.config/global-scripts/$private_plugin"
-  private_source="$ROOT/custom/userspace/$private_plugin"
-  remove_link_to "$private_link" "$private_source"
+# 私有*资产*目录(没有 plugin.toml 的那些)在 ~/.config/global-scripts 下是符号链接。
+# 私有*插件*(sgm/flyme 等)是复制进 $DEST/plugins 的实体目录,随下面的 find -delete 一起清除。
+for private_source in "$ROOT"/custom/userspace/*/; do
+  [[ -d "$private_source" ]] || continue
+  [[ -f "${private_source}plugin.toml" ]] && continue
+  private_asset="$(basename "$private_source")"
+  remove_link_to "$HOME/.config/global-scripts/$private_asset" "${private_source%/}"
 done
 
 if [[ -d "$DEST" ]]; then

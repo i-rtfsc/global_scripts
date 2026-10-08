@@ -16,8 +16,11 @@ All non-Android offline gates currently pass. Android code migration is complete
 only real-device read-only regression remains pending when an ADB device is
 available. Menubar and the agent status light are permanently excluded from GS6.
 
-The inventory now contains 15 formal GS6 plugins and no metadata-only legacy
-plugins. Flyme, Sync, VPS, Identity, SGM, and the remaining MultiRepo commands have been migrated.
+The inventory now contains 13 **public** formal GS6 plugins and no metadata-only
+legacy plugins. `sgm` and `flyme` are private plugins: their code lives only in
+`custom/userspace/` (git-ignored) and never ships in the repository or the release
+package; `scripts/install_gs.sh` copies them into the local install so the local
+`gs` still sees them. Flyme, Sync, VPS, Identity, SGM, and the remaining MultiRepo commands have been migrated.
 Command parity is complete, but staging success alone
 does not mean full GS5.2 feature parity.
 

@@ -29,7 +29,7 @@ gs <plugin> <verb> [object] [args]
 `~/new-system` 的 26 步拆到 **7 个新插件 + 现有插件的扩展**,每个插件只管一个领域
 (磁盘 / GPU / 容器 / 语言 / AI / 网络 ……),而不是塞进一个叫"装机"的大插件。
 已定:`devenv` 拆解、`multirepo` 并入 `android`、镜像源归 `system`、编辑器归 `vscode`、
-目录定义与 `navigator` 共用 —— 详见 §7.6 与 §7.7。最终 **15 → 24 个插件**。
+目录定义与 `navigator` 共用 —— 详见 §7.6 与 §7.7。最终 **13 → 22 个公开插件**(私有 sgm/flyme 照旧只在 custom/)。
 跨插件的"按顺序装完一台机器"由**核心编排命令**完成(名字见 §11,不是插件)。
 
 **规则 3 · 三层职责不混。**
@@ -48,7 +48,7 @@ gs <plugin> <verb> [object] [args]
 
 ## 1. 现状盘点(先看清问题)
 
-### 1.1 现有 15 个插件、243 条命令
+### 1.1 现有 13 个公开插件、226 条命令(另有 2 个私有插件)
 
 | 插件 | 命令数 | 主要分组 | 现在实际在干的事 |
 |---|---:|---|---|
@@ -136,7 +136,7 @@ gs <plugin> <verb> [object] [args]
 2. `gs android` 这类大插件能一眼看懂结构(分组标题、组内命令、组描述)。
 3. `~/new-system` 的能力进入 `gs`,保留原有用法与幂等性。
 4. 快捷命令**单一事实来源**,能同时导出到 bash / zsh / fish。
-5. 不破坏现有 15 个插件和 5.2 兼容路径。
+5. 不破坏现有公开插件和 5.2 兼容路径(sgm/flyme 私有插件不受影响)。
 
 **非目标(本方案不做)**
 
@@ -447,7 +447,7 @@ test -f ~/.config/global-scripts/shortcuts/shortcuts.fish; and source ~/.config/
 | `ai` | **新增** | 训练 / 推理环境 | 50-ai-stack · 51-inference · 52-serve-model |
 | `net` | **新增** | 代理客户端、门户登录 | 38-v2rayn · auto-network/portal-autologin |
 
-合计:**接管/扩展 5 个现有插件 + 拆解 3 个 + 新增 13 个插件**,最终 **15 → 24 个插件**。
+合计:**接管/扩展 5 个现有插件 + 拆解 3 个 + 新增 13 个插件**,最终 **13 → 22 个公开插件**(私有 sgm/flyme 照旧只在 custom/)。
 每个插件就是一个 `plugins/<name>/` 目录,沿用现有 plugin.toml/脚本结构,没有任何"超级插件"。
 
 ### 7.2 步骤 → 命令映射(旧脚本 → gs 命令)
@@ -548,7 +548,7 @@ plugins/gpu/
 | G. 把脚本搬进 gs 仓库 | `plugins/<领域>/steps/` 放副本 | ❌ 不采用 |
 | **P. 只移植能力** | 插件用自己的实现复刻行为,`~/new-system` 保持原样不动 | ✅ 采用 |
 
-### 7.6 与现有 15 个插件的融合(重点)
+### 7.6 与现有 13 个公开插件的融合(重点)
 
 只加新插件是不够的 —— 现在仓库里已经有 **四个真实重叠**,不处理就会出现"同一个东西两条路"。
 
@@ -605,7 +605,7 @@ new-system 的 `12-create-workspaces.sh` 也在创建 `/mnt/build-ssd/...` 之�
 | 代理 | `system proxy` + (新)v2rayN 客户端 | **`net`**:`gs net proxy on|off|status|config` + `gs net client install` | 旧 `gs system proxy …` 移除 |
 | 提示符 | `system prompt` + dotfiles 的 `gs-config/01-gs-prompt` | **`shortcuts`**(提示符属于 shell 外观层)或保留 `system` | 待定,见 §11.2 |
 | git 身份 | `identity git`(切换身份) + dotfiles `.gitconfig`(文件) | **文件归 `git` 插件**(`gs git apply`)、切换归 identity | 两边 `--help` 互相指路 |
-| ssh | `identity ssh`(6) + `sgm ssh`(6) | identity 管"我的账号/密钥",sgm 管"公司/gerrit 连接" | 现状可接受,补交叉引用 |
+| ssh | `identity ssh`(6) + 私有 `sgm ssh`(6) | identity 管"我的账号/密钥",sgm 管"公司/gerrit 连接" | 现状可接受,补交叉引用 |
 | AOSP 源码 vs 编译 | `multirepo` + `android` | **都归 `android`**:源码 = `repo` 子域,编译 = `build`/`setup` 子域 | 见 B |
 
 #### E. 逐插件对照表(改造后每个插件变成什么样)
@@ -620,7 +620,7 @@ new-system 的 `12-create-workspaces.sh` 也在创建 `/mnt/build-ssd/...` 之�
 | `navigator` | 改数据源 | 目录定义改为读 `workspaces.conf` |
 | `dotfiles` | **拆解** | 按工具拆成 `nvim`/`vim`/`tmux`/`git`/`fish`/`zsh`;机制下沉为共享库 |
 | `alias` | 升级为 `shortcuts` | 从"检查我的 alias"变成"提供并导出快捷命令" |
-| `grep` / `spider` / `flyme` / `vps` / `sync` / `sgm` / `identity` | 基本不动 | 仅动词对齐 + 交叉引用 |
+| `grep` / `spider` / `vps` / `sync` / `identity` | 基本不动 | 仅动词对齐 + 交叉引用 |
 
 #### F. 工具插件的样子(装 + 配都在它自己身上)
 
@@ -740,8 +740,9 @@ models    = /mnt/models            | 模型权重        | yes
 #### 7.7.5 插件总数变化
 
 ```
-现在 15 个:alias android devenv dotfiles flyme grep identity multirepo navigator sgm spider sync system vps vscode
-改造后 24 个:android shortcuts flyme grep identity navigator sgm spider sync system vps vscode
+现在 13 个(公开):alias android devenv dotfiles grep identity multirepo navigator spider sync system vps vscode
+             (+2 私有:sgm flyme,代码只在 custom/userspace/,不进仓库/发布包)
+改造后 22 个(公开):android shortcuts grep identity navigator spider sync system vps vscode
               nvim vim tmux git fish zsh
               disk gpu docker lang ai net
              (-devenv -multirepo -dotfiles,alias→shortcuts,+13 新插件)
@@ -972,7 +973,7 @@ gs init --without=android       # 跳过整组
 | 3 | 目录定义 | **统一到 `workspaces.conf`**,disk / navigator / android / ai 共用(§7.7.3) |
 | 4 | 代理的单一 owner | **新设 `net`**(`gs net proxy on|off|status|config`);旧 `gs system proxy …` 移除(§7.6-D) |
 | 5 | 提示符的 owner | **迁入 `shortcuts`**(提示符属于 shell 外观层),原 `system prompt …` 移除 |
-| 6 | git/ssh 身份 | **按分工**:文件归 `git` 插件、身份切换归 `identity`、公司/gerrit 连接归 `sgm` |
+| 6 | git/ssh 身份 | **按分工**:文件归 `git` 插件、身份切换归 `identity`、公司/gerrit 连接归私有插件 `sgm` |
 
 ### 11.4 其余待定
 
@@ -993,7 +994,7 @@ gs init --without=android       # 跳过整组
 
 ## 附:本方案对现有行为的影响
 
-- 现有 15 个插件的命令**不删不改名**(P1 只改渲染,P3/P4 只加新命令)。
+- 现有公开插件的命令**不删不改名**(P1 只改渲染,P3/P4 只加新命令)。
 - `install/uninstall` 成为全项目标准动词(源自 `dotfiles` 那轮统一),`android` 等逐步对齐措辞。
 - `plugin.toml` 新增字段全部可选,老 manifest 继续可用(未知字段本来就被忽略)。
 - 5.2 兼容路径(`scripts/setup.py`、legacy router)不受影响。

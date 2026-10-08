@@ -22,7 +22,9 @@ for manifest in "$ROOT"/plugins/*/plugin.toml; do
     --exclude 'plugin.json' --exclude 'plugin.py' --exclude 'test_*.py' \
     "$dir/" "$DIST/plugins/$name/"
 done
-if [[ -d "$ROOT/custom/userspace" ]]; then
+# custom/ 是私有区(.gitignore 排除):默认**不进**发布包。
+# 需要带私有插件出包时显式 GS_INCLUDE_PRIVATE=1(只用于你自己的私有构建)。
+if [[ "${GS_INCLUDE_PRIVATE:-0}" == "1" && -d "$ROOT/custom/userspace" ]]; then
   for legacy_manifest in "$ROOT"/custom/userspace/*/plugin.json; do
     [[ -f "$legacy_manifest" ]] || continue
     legacy_name="$(basename "$(dirname "$legacy_manifest")")"

@@ -61,6 +61,15 @@ def verify_private_assets(root: Path) -> None:
     if leaks:
         fail("private assets were packaged: {}".format(", ".join(leaks)))
 
+    # sgm / flyme 连代码都不随发布包分发:它们的源码只在私有区
+    # (custom/userspace/,被 .gitignore 排除),安装时才链进本机。
+    for plugin in ("sgm", "flyme"):
+        if (root / "plugins" / plugin).exists():
+            fail("private plugin '{}' must not be shipped".format(plugin))
+        for leftover in root.rglob("{}*".format(plugin)):
+            if leftover.is_file() and leftover.suffix in (".py", ".toml", ".json"):
+                fail("private plugin file shipped: {}".format(leftover.relative_to(root)))
+
 
 def run(binary: Path, root: Path, cache: Path, *args: str) -> subprocess.CompletedProcess:
     env = os.environ.copy()
@@ -98,11 +107,12 @@ def verify_runtime(root: Path, binary: Path, expected_version: str) -> None:
             fail("unexpected version output: {}".format(version.strip()))
 
         doctor = require_success(run(binary, root, cache, "doctor"), "doctor")
-        if "结果:          通过" not in doctor:
+        # doctor 现在是表格输出:`结果` 与 `通过` 在同一行,不再有固定空格填充。
+        if not any("结果" in line and "通过" in line for line in doctor.splitlines()):
             fail("doctor did not pass")
 
         inventory = require_success(run(binary, root, cache, "plugin", "list"), "plugin list")
-        for expected in ("插件库存", "正式 15", "legacy 0"):
+        for expected in ("插件库存", "正式 13", "legacy 0"):
             if expected not in inventory:
                 fail("plugin inventory is missing {!r}".format(expected))
 
@@ -149,7 +159,8 @@ def main() -> int:
     metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
     if metadata.get("target") != args.target:
         fail("release target mismatch: {} != {}".format(metadata.get("target"), args.target))
-    if metadata.get("formal_plugins") != 15 or metadata.get("legacy_inventory") != 0:
+    # 13 public plugins; sgm/flyme are private and must never be counted here.
+    if metadata.get("formal_plugins") != 13 or metadata.get("legacy_inventory") != 0:
         fail("unexpected inventory metadata: {}".format(metadata))
     if metadata.get("signed") is not False:
         fail("GS6 self-install packages must be marked as unsigned")

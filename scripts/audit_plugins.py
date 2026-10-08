@@ -8,9 +8,9 @@ problems it found. Exit code is non-zero when anything needs attention.
 
     python3 scripts/audit_plugins.py [--json]
 
-The smoke command per plugin is deliberately read-only and needs no device,
-network peer, or private asset (that is why `sgm` is checked through
-`ssh status` rather than `build list`).
+The smoke command per plugin is deliberately read-only and needs no device or
+network peer. Private plugins (sgm/flyme) live outside this repository
+altogether, so they never appear here.
 """
 
 from __future__ import annotations
@@ -34,12 +34,10 @@ SMOKE: Dict[str, List[str]] = {
     "android": ["android", "doctor"],
     "devenv": ["devenv", "validate"],
     "dotfiles": ["dotfiles", "status", "zsh"],
-    "flyme": ["flyme", "info"],
     "grep": ["grep", "python", "def _search"],
     "identity": ["identity", "ssh", "status"],
     "multirepo": ["multirepo", "list"],
     "navigator": ["navigator", "list"],
-    "sgm": ["sgm", "ssh", "status"],
     "spider": ["spider", "classify", "https://www.jianshu.com/p/verify"],
     "sync": ["sync", "status"],
     "system": ["system", "proxy", "status"],

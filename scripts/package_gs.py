@@ -101,7 +101,13 @@ def build(binary: Path, output: Path, archive: Optional[Path], target: str) -> N
 
     legacy_dir = output / "legacy"
     legacy_dir.mkdir()
-    for metadata in sorted((ROOT / "custom" / "userspace").glob("*/plugin.json")):
+    # custom/ 是私有区:默认不进发布包。私有构建用 GS_INCLUDE_PRIVATE=1 显式开启。
+    private_manifests = (
+        sorted((ROOT / "custom" / "userspace").glob("*/plugin.json"))
+        if os.environ.get("GS_INCLUDE_PRIVATE") == "1"
+        else []
+    )
+    for metadata in private_manifests:
         if metadata.parent.name in formal_names:
             continue
         shutil.copy2(metadata, legacy_dir / (metadata.parent.name + ".json"))
@@ -133,7 +139,7 @@ def build(binary: Path, output: Path, archive: Optional[Path], target: str) -> N
 
     legacy_names = {
         path.parent.name
-        for path in (ROOT / "custom" / "userspace").glob("*/plugin.json")
+        for path in private_manifests
         if path.parent.name not in formal_names
     }
     metadata = {

@@ -24,11 +24,12 @@ test "$(find "$TEST_PREFIX/bin" -maxdepth 1 -name 'gs.backup-*' | wc -l | tr -d 
 backup="$(find "$TEST_PREFIX/bin" -maxdepth 1 -name 'gs.backup-*' | head -1)"
 grep -q 'global-gs-sentinel' "$backup"
 
-# Private plugins are not part of the public tree; link checks only apply when
-# the assets are actually present.
+# Private *assets* are not part of the public tree; link checks only apply when
+# the asset directory is actually present. (Private *plugins* — sgm/flyme — live
+# in custom/userspace with a plugin.toml and are linked into the install tree
+# instead, so they are not asserted here.)
 if [[ -d "$ROOT/custom/userspace/identity" ]]; then
   test -L "$TEST_HOME/.config/global-scripts/identity"
-  test -L "$TEST_HOME/.config/global-scripts/sgm"
 fi
 "$TEST_PREFIX/bin/gs" version | grep -q "$EXPECTED_VERSION"
 
@@ -42,7 +43,6 @@ test ! -e "$TEST_PREFIX/share/fish/vendor_completions.d/gs.fish"
 test ! -e "$TEST_PREFIX/share/zsh/site-functions/_gs"
 if [[ -d "$ROOT/custom/userspace/identity" ]]; then
   test ! -e "$TEST_HOME/.config/global-scripts/identity"
-  test ! -e "$TEST_HOME/.config/global-scripts/sgm"
 fi
 grep -q 'global-gs-sentinel' "$backup"
 

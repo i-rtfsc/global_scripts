@@ -115,7 +115,7 @@ bash scripts/install_gs.sh --yes
 ```
 
 该流程只安装 `gs`。如果源码树中存在私有
-`custom/userspace/identity` 或 `custom/userspace/sgm`，且用户配置目录没有同名目标，
+`custom/userspace/<名字>`(私有资产目录,例如 `identity`),且用户配置目录没有同名目标,
 安装器会创建来源符号链接，不复制私钥或公司配置。设置
 `GS_LINK_PRIVATE_ASSETS=0` 可禁用该行为。
 
@@ -186,6 +186,13 @@ end
 ---
 
 ## 验证安装
+
+### 私有插件(sgm / flyme)
+
+这两个插件的代码不在公开仓库、也不在发布包里,只存在于私有目录
+`custom/userspace/<名字>/`(`custom/` 被 `.gitignore` 排除)。运行
+`scripts/install_gs.sh --yes` 时它们会被复制进已安装树的 `plugins/`,本机 `gs`
+照常能列出并执行;第三方拿到的发布包不含它们(少 17 条命令)。
 
 ### 与 Ghostscript 同名(`gs`)
 

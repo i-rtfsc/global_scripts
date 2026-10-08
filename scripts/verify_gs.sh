@@ -37,7 +37,7 @@ for manifest in "$ROOT"/plugins/*/plugin.toml; do
   test "$manifest_version" = "$EXPECTED_VERSION"
   formal_count=$((formal_count + 1))
 done
-test "$formal_count" -eq 15
+test "$formal_count" -eq 13
 python3 - <<'PY'
 import ast
 import os
@@ -57,13 +57,13 @@ for path in entries:
     ast.parse(path.read_text(encoding="utf-8"), filename=str(path), feature_version=(3, 8))
 print("Python 3.8 AST compatibility: {} entries".format(len(entries)))
 PY
-# The source front door is now authoritative: all 15 retained plugins are formal
+# The source front door is now authoritative: all 13 public plugins are formal
 # manifests and no legacy inventory remains.
 default_plugins="$(env -u GS_INCLUDE_EXAMPLES "$BIN" plugin list)"
 grep -q 'android' <<<"$default_plugins"
 grep -q "$EXPECTED_VERSION" <<<"$default_plugins"
 grep -q '插件库存' <<<"$default_plugins"
-grep -q '正式 15' <<<"$default_plugins"
+grep -q '正式 13' <<<"$default_plugins"
 grep -q 'legacy 0' <<<"$default_plugins"
 grep -q 'GS5.2 命令基线' <<<"$default_plugins"
 if grep -qE 'demo|json-simple|json-with-subplugins' <<<"$default_plugins"; then
@@ -89,9 +89,8 @@ test "$("$BIN" demo greet verify)" = 'Hello, verify!'
 "$BIN" plugin info android >/dev/null
 for contract in \
   'alias:sources' 'devenv:validate' 'dotfiles:install' 'identity:ssh status' \
-  'flyme:info' \
   'grep:python' 'multirepo:verify-plan' 'navigator:global-scripts' \
-  'sgm:build list' 'spider:classify' 'sync:status' 'system:proxy status' 'vps:status' 'vscode:start'; do
+  'spider:classify' 'sync:status' 'system:proxy status' 'vps:status' 'vscode:start'; do
   plugin="${contract%%:*}"
   command="${contract#*:}"
   info_output="$("$BIN" plugin info "$plugin")"
@@ -100,7 +99,6 @@ done
 "$BIN" alias sources bash >/dev/null
 "$BIN" devenv validate >/dev/null
 "$BIN" dotfiles doctor >/dev/null 2>&1 || true
-"$BIN" flyme info | grep -q 'FlymeOS Development Plugin'
 "$BIN" grep python 'def _search' >/dev/null
 "$BIN" multirepo list >/dev/null
 "$BIN" navigator status >/dev/null
@@ -194,91 +192,6 @@ for path, mode in expected.items():
     assert stat.S_IMODE(path.stat().st_mode) == mode, (path, oct(stat.S_IMODE(path.stat().st_mode)))
 PY
 
-# SGM uses generated private fixtures and fake local executors. No company
-# network, real ADB device, or real RSA key is touched.
-sgm_assets="$VERIFY_CACHE/sgm-assets"
-sgm_home="$VERIFY_CACHE/sgm-home"
-sgm_project="$sgm_assets/build/project"
-sgm_exec="$VERIFY_CACHE/sgm-exec"
-mkdir -p "$sgm_assets/build" "$sgm_assets/ssh" "$sgm_project/build/outputs" "$sgm_home" "$sgm_exec"
-cat > "$sgm_assets/build/config.json" <<JSON
-{
-  "apps": {
-    "fixture": {
-      "project_path": "$sgm_project",
-      "gradle_task": "assembleFixture",
-      "apk_path": "build/outputs/fixture.apk",
-      "target_path": "/system/app/Fixture.apk",
-      "package_name": "com.example.fixture"
-    }
-  }
-}
-JSON
-printf 'fixture-apk\n' > "$sgm_project/build/outputs/fixture.apk"
-cat > "$sgm_project/gradlew" <<SH
-#!/bin/sh
-printf '%s\n' "\$@" > "$sgm_exec/gradle.log"
-SH
-cat > "$sgm_exec/adb" <<SH
-#!/bin/sh
-printf '%s\n' "\$@" >> "$sgm_exec/adb.log"
-SH
-cat > "$sgm_exec/ssh" <<SH
-#!/bin/sh
-printf '%s\n' "\$@" > "$sgm_exec/ssh.log"
-SH
-cat > "$sgm_exec/sshfs" <<SH
-#!/bin/sh
-printf '%s\n' "\$@" > "$sgm_exec/sshfs.log"
-SH
-chmod +x "$sgm_project/gradlew" "$sgm_exec/adb" "$sgm_exec/ssh" "$sgm_exec/sshfs"
-printf 'fixture-sgm-private\n' > "$sgm_assets/ssh/id_rsa"
-printf 'fixture-sgm-public\n' > "$sgm_assets/ssh/id_rsa.pub"
-printf 'Host fixture-sgm\n  IdentityFile ~/.ssh/id_rsa_sgm\n' > "$sgm_assets/ssh/config"
-HOME="$sgm_home" GS_SGM_DIR="$sgm_assets" "$BIN" sgm build list | grep -q fixture
-for action in compile push restart run; do
-  HOME="$sgm_home" GS_SGM_DIR="$sgm_assets" GS_SGM_ADB_BIN="$sgm_exec/adb" \
-    "$BIN" sgm build "$action" fixture --dry-run | grep -q '不会编译、写入设备或重启进程'
-done
-HOME="$sgm_home" GS_SGM_DIR="$sgm_assets" "$BIN" sgm build compile fixture --yes | grep -q 'compile 完成'
-grep -q '^assembleFixture$' "$sgm_exec/gradle.log"
-HOME="$sgm_home" GS_SGM_DIR="$sgm_assets" GS_SGM_ADB_BIN="$sgm_exec/adb" \
-  "$BIN" sgm build run fixture --yes | grep -q 'run 完成'
-grep -q '^push$' "$sgm_exec/adb.log"
-grep -q '^force-stop$' "$sgm_exec/adb.log"
-HOME="$sgm_home" GS_SGM_DIR="$sgm_assets" GS_SGM_SSH_BIN="$sgm_exec/ssh" \
-  "$BIN" sgm connect server --dry-run | grep -q '不会建立公司网络连接'
-HOME="$sgm_home" GS_SGM_DIR="$sgm_assets" GS_SGM_SSH_BIN="$sgm_exec/ssh" \
-  "$BIN" sgm connect server --yes >/dev/null
-grep -q '^22222$' "$sgm_exec/ssh.log"
-HOME="$sgm_home" GS_SGM_DIR="$sgm_assets" GS_SGM_SSHFS_BIN="$sgm_exec/sshfs" \
-  "$BIN" sgm connect mount --mount="$sgm_home/vm" --dry-run | grep -q '不会创建挂载或连接公司网络'
-HOME="$sgm_home" GS_SGM_DIR="$sgm_assets" "$BIN" sgm ssh install --dry-run | grep -q '不会复制密钥'
-HOME="$sgm_home" GS_SGM_DIR="$sgm_assets" "$BIN" sgm ssh install --yes | grep -q '已安装'
-SGM_HOME="$sgm_home" python3 - <<'PY'
-import os
-import stat
-from pathlib import Path
-
-home = Path(os.environ["SGM_HOME"])
-expected = {
-    home / ".ssh": 0o700,
-    home / ".ssh/id_rsa_sgm": 0o600,
-    home / ".ssh/id_rsa_sgm.pub": 0o644,
-    home / ".ssh/config": 0o644,
-}
-for path, mode in expected.items():
-    assert stat.S_IMODE(path.stat().st_mode) == mode, (path, oct(stat.S_IMODE(path.stat().st_mode)))
-PY
-sgm_git="$VERIFY_CACHE/sgm-git"
-git init -q "$sgm_git"
-git -C "$sgm_git" config user.email gs@example.invalid
-git -C "$sgm_git" config user.name GS6
-printf 'fixture\n' > "$sgm_git/file.txt"
-git -C "$sgm_git" add file.txt
-git -C "$sgm_git" -c core.hooksPath=/dev/null commit -qm initial
-(cd "$sgm_git" && HOME="$sgm_home" GS_SGM_DIR="$sgm_assets" \
-  "$BIN" sgm git push --dry-run) | grep -q '不会联网或推送代码'
 for shell in bash zsh fish; do
   completion="$($BIN completions "$shell")"
   grep -q '__complete' <<<"$completion"

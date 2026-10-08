@@ -109,13 +109,35 @@ SH
 if [[ "${GS_LINK_PRIVATE_ASSETS:-1}" == "1" ]]; then
   private_config_root="$HOME/.config/global-scripts"
   mkdir -p "$private_config_root"
-  for private_plugin in identity sgm; do
-    private_source="$ROOT/custom/userspace/$private_plugin"
+  for private_source in "$ROOT"/custom/userspace/*/; do
+    [[ -d "$private_source" ]] || continue
+    # 带 plugin.toml 的目录是插件代码(由下面的私有插件逻辑处理),不是资产目录
+    [[ -f "${private_source}plugin.toml" ]] && continue
+    private_plugin="$(basename "$private_source")"
     private_target="$private_config_root/$private_plugin"
     if [[ -d "$private_source" && ! -e "$private_target" && ! -L "$private_target" ]]; then
-      ln -s "$private_source" "$private_target"
+      ln -s "${private_source%/}" "$private_target"
       echo "Private asset link: $private_target -> $private_source"
     fi
+  done
+fi
+
+# 私有插件:代码不进仓库、也不进发布包(custom/ 被 .gitignore 排除)。
+# 本机安装时把它们**复制**进已安装树 —— 不用符号链接:插件代码里是按
+# `__file__` 的相对位置找 SDK 的,链接会让 resolve() 落到私有源目录从而找不到。
+if [[ "${GS_LINK_PRIVATE_PLUGINS:-1}" == "1" && -d "$ROOT/custom/userspace" ]]; then
+  for private_dir in "$ROOT"/custom/userspace/*/; do
+    [[ -f "${private_dir}plugin.toml" ]] || continue
+    private_name="$(basename "$private_dir")"
+    private_target="$DEST/plugins/$private_name"
+    # 升级场景:早前这里可能是符号链接(或随包分发的实体目录),都换成副本
+    if [[ -L "$private_target" ]]; then
+      unlink "$private_target"
+    fi
+    mkdir -p "$private_target"
+    rsync -a --delete --exclude '__pycache__' --exclude '*.pyc' \
+      "${private_dir}" "$private_target/"
+    echo "Private plugin copied: ${private_dir%/} -> $private_target"
   done
 fi
 

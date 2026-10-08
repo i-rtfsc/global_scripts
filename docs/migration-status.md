@@ -6,7 +6,7 @@ GS 6.0 迁移使用源码仓库中的正式 `plugins/` 目录和正式插件名�
 Rust 开发版入口与当前工作区环境完成；不创建 `plugins-v6/`，也不保留
 `system6`、`grep6` 等版本后缀作为最终名称。
 当前所有正式 GS6 插件统一标记为 `6.0.0-dev`，表示仍处于开发验收阶段，尚未替换全局 5.2。
-`gs plugin` 的库存视图包含 15 个 GS6 正式插件，不再包含 legacy 展示项；`menubar` 按设计不进入 GS6，并在统计信息中标记为已移除。
+`gs plugin` 的库存视图包含 13 个**公开** GS6 正式插件(sgm / flyme 属私有插件，见下节)，不再包含 legacy 展示项；`menubar` 按设计不进入 GS6，并在统计信息中标记为已移除。
 注意：`scripts/setup.py` 是 5.2 legacy 安装器，会生成旧 router/env 文件；GS6 开发和验收不运行它。
 
 ## 已迁移并验证
@@ -23,11 +23,17 @@ Rust 开发版入口与当前工作区环境完成；不创建 `plugins-v6/`，�
 | navigator | T1 目录导航和只读命令 | 前门 E2E 通过，列表路径正确展开 `$HOME` |
 | android | T2 Android device/logcat/dump/fs/emulator/input 迁移入口 | 已合并到正式 `plugins/android` 目录；只读命令已用真实 ADB 设备验证，危险操作保持 dry-run |
 | devenv | T2 开发环境检查、计划与显式安装 | 假 brew 验证真实执行参数通过，安装要求 `--yes` |
-| flyme | 兼容 5.2 的 build/flash/info 示例行为 | 已迁入正式插件目录并通过 T2 E2E |
 | sync | Git 工作区状态、SCP 计划和显式文件同步 | 临时 Git 仓库到临时目标目录真实复制通过 |
 | vps | SSH、反向隧道和 SSHFS 挂载管理 | 8 条命令已迁移；写操作均要求 `--dry-run` 或 `--yes` |
 | identity | 模型账号/节点切换、Git 与 SSH 私有配置 | 28 条命令已迁移；发布包不包含任何私钥、API key 或私有配置 |
-| sgm | App 构建部署、公司连接、Gerrit push 与 SSH 配置 | 14 条命令已迁移；公司资产和密钥不进入发布包 |
+
+## 私有插件(不随仓库/发布包分发)
+
+`sgm` 与 `flyme` 的**代码**也不进入公开仓库与发布包，只存在于私有目录
+`custom/userspace/<名字>/`(`custom/` 被 `.gitignore` 排除)。安装时由
+`scripts/install_gs.sh` 复制进已安装树的 `plugins/`，因此本机 `gs` 照常可用；
+第三方拿到的发布包不含它们。两者合计 17 条命令(flyme 3 / sgm 14)，
+不参与公开的命令兼容审计与插件计数。
 
 ## 已完成的最终验收
 
@@ -97,7 +103,7 @@ Python SDK self-test；因此 Android 实机缺席不会阻塞其他 GS6 回归�
 `GS_CD_FILE` 仅接受临时目录内已存在、为空且非符号链接的普通文件，避免外部环境变量
 误指向任意文件或覆盖已有内容。
 总验收还会检查正式 `plugins/` 下每个目录名与 manifest `name` 一致、版本统一为
-`6.0.0-dev`，并确认正式 manifest 数量为 15 个；examples 和 menubar 不计入发布面。
+`6.0.0-dev`，并确认公开正式 manifest 数量为 13 个；examples 和 menubar 不计入发布面，私有插件(见下节)不计入公开验收。
 
 逐命令兼容性以 [GS6 命令兼容性审计](./command-parity.md) 为准。当前命令审计已归零；
 后续仍需依靠真实 E2E、平台测试和副作用门禁判断功能是否存在回归，不能只看命令数量或

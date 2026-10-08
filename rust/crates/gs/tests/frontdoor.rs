@@ -465,7 +465,7 @@ fn examples_are_not_part_of_the_default_plugin_surface() {
     assert!(text.contains("android"));
     // The list no longer repeats the version on every row; the inventory stats
     // below it are what a caller checks.
-    assert!(has_row(&text, "插件库存", "正式 15 · legacy 0"));
+    assert!(has_row(&text, "插件库存", "正式 13 · legacy 0"));
 }
 
 #[test]
@@ -577,21 +577,6 @@ fn t2_invoke_and_dynamic_completion_use_rust_frontdoor() {
     assert!(info.status.success());
     assert!(stdout(&info).contains("demo"));
     assert!(stdout(&info).contains("greet"));
-}
-
-#[test]
-fn flyme_legacy_example_is_available_through_the_front_door() {
-    let info = run(&["flyme", "info"]);
-    assert!(info.status.success());
-    assert!(stdout(&info).contains("FlymeOS Development Plugin"));
-
-    let build = run(&["flyme", "build", "m1892"]);
-    assert!(build.status.success());
-    assert!(stdout(&build).contains("目标设备: m1892"));
-
-    let flash = run(&["flyme", "flash", "flyme_build.zip"]);
-    assert!(flash.status.success());
-    assert!(stdout(&flash).contains("不会写入设备"));
 }
 
 #[test]

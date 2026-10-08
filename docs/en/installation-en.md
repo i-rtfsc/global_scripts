@@ -50,7 +50,7 @@ bash scripts/install_gs.sh --yes
 ```
 
 This installs only `gs`. When private
-`custom/userspace/identity` or `custom/userspace/sgm` directories exist in the
+`custom/userspace/<name>` asset directories exist in the
 source checkout, the installer links them into the user configuration directory
 if no target already exists. It never copies those private assets. Set
 `GS_LINK_PRIVATE_ASSETS=0` to disable this behavior.
