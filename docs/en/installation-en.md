@@ -104,6 +104,20 @@ bash scripts/uninstall_gs.sh --yes   # removes only gs
 If `~/.local/bin/gs` pointed somewhere else, it is first renamed to
 `gs.backup-<timestamp>`.
 
+## Optional assets (never in the repo or the archive)
+
+Large optional binaries are not committed and not shipped; fetch them when you
+need them:
+
+```bash
+bash scripts/fetch_frida_android_arm64.sh    # frida-server / frida-inject
+gs android doctor                            # see which optional assets are missing
+```
+
+They land in `plugins/android/frida/` and `gs android frida …` picks them up
+automatically. Without them those commands say what is missing; everything else
+is unaffected.
+
 ## Name clash with Ghostscript
 
 Many systems ship a `gs` (Ghostscript). After install, `~/.local/bin/gs` comes

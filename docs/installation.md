@@ -114,6 +114,18 @@ bash scripts/uninstall_gs.sh --yes   # 只删 gs，其它入口不动
 
 升级时 `~/.local/bin/gs` 若指向别的目标会先被改名为 `gs.backup-<时间戳>`。
 
+## 可选资产（不随仓库/发布包分发）
+
+体积较大的可选二进制不进仓库也不进发布包，需要时自己拉：
+
+```bash
+bash scripts/fetch_frida_android_arm64.sh    # frida-server / frida-inject
+gs android doctor                            # 看哪些可选资产缺失
+```
+
+放到 `plugins/android/frida/` 下即可，`gs android frida …` 会自动使用；
+没有它们时相关命令会明确提示缺失，其余命令不受影响。
+
 ## 与 Ghostscript 同名
 
 很多系统自带 `gs`（Ghostscript）。安装后 `~/.local/bin/gs` 在 `PATH` 中更靠前，
