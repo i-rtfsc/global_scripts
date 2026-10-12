@@ -1,356 +1,99 @@
-# CLI 命令参考
+# 命令参考
 
-Global Scripts 完整命令行接口参考文档。
+## 前门命令
 
-## 命令格式
+这些命令由 Rust 前门原生处理，不经过插件。
 
-```bash
-gs [系统命令]
-gs plugin [插件管理命令] [参数]
-gs <插件名> <子插件名> <函数名> [参数...]
-```
+| 命令 | 说明 |
+|---|---|
+| `gs` / `gs help` | 帮助：前门命令 + 插件列表 |
+| `gs version` | 版本 |
+| `gs status` | 插件库存与命令总数 |
+| `gs doctor` | 体检：manifest / entry / 插件运行时 / shell 集成 |
+| `gs refresh` | 重新扫描 manifest（并报告无效项） |
+| `gs plugin list` | 插件与命令数 |
+| `gs plugin info <插件> [组]` | 某插件的命令面（可按组聚焦） |
+| `gs plugin enable\|disable <插件>` | 改该插件 `plugin.toml` 的 `enabled` |
+| `gs plugin migrate <目录>` | 把旧 `plugin.json` 转成 `plugin.toml` |
+| `gs init [步骤]` | 按 `config/init.toml` 初始化这台机器 |
+| `gs completions [shell]` | 生成补全脚本（`--install` 直接落盘） |
+| `gs shell-init <shell>` | 生成带 `cd`/`export` 集成的外壳函数 |
+| `gs __complete <词…>` | 补全后端（供上面两个生成的脚本调用） |
 
-## 系统命令
-
-### gs help
-
-显示帮助信息。
-
-```bash
-gs help
-gs --help
-gs -h
-```
-
-输出示例：
-```
-🚀 Global Scripts 显示帮助信息
-================================================================================
-
-┌─────────────────────────┬──────────────┐
-│ 命令                    │ 描述         │
-├─────────────────────────┼──────────────┤
-│ gs <名称> <命令> [用法] │ 基本信息     │
-│ gs help                 │ 显示帮助信息 │
-│ gs version              │ 显示版本信息 │
-│ gs status               │ 显示系统状态 │
-│ gs doctor               │ 系统诊断     │
-│ gs refresh              │ 刷新系统     │
-│ gs plugin list          │ 列出所有插件 │
-└─────────────────────────┴──────────────┘
-```
-
-### gs version
-
-显示版本信息。
+### `gs init`
 
 ```bash
-gs version
-gs --version
+gs init --list                    # 列步骤与状态
+gs init --dry-run                 # 全部只检查
+gs init <步骤>                    # 只跑一步
+gs init --group=<组>              # 只跑一组
+gs init --only=<步骤,…> --skip=<步骤,…>
+gs init --without=<组,…>
+gs init --yes <步骤>              # 真正执行（否则只打印 sudo 命令）
 ```
 
-### gs status
+## 插件命令
 
-显示系统状态信息。
+插件命令统一是
+
+```
+gs <插件> <动词> [对象] [参数]
+```
+
+组名用 `.`（`device.logcat`）或空格（`device logcat`）都可以。列举几个：
 
 ```bash
-gs status
+gs android device devices
+gs android logcat clear --dry-run
+gs android build build --dry-run
+gs dotfiles install nvim --dry-run
+gs dotfiles doctor
+gs system proxy on --dry-run
+gs system repo tsinghua --dry-run
+gs system prompt themes
+gs multirepo plan mini-aosp --backend=git
+gs multirepo apply-plan plan.json --yes
+gs sync status
+gs identity claude show
+gs vps status
+gs vscode paths
+gs spider classify https://www.jianshu.com/p/…
+gs grep python 'def _search'
+gs navigator list
+gs alias sources bash
 ```
 
-输出示例：
-```
-🔧 显示系统状态
-================================================================================
+完整列表用 `gs plugin list`，单个插件用 `gs plugin info <插件>`。
 
-┌──────────┬───────────────────────────────────────────────────┐
-│ 属性     │ 值                                                │
-├──────────┼───────────────────────────────────────────────────┤
-│ 状态     │ ✅ 已启用                                         │
-│ 总插件数 │ 10                                                │
-│ 已启用   │ 10                                                │
-│ 已禁用   │ 0                                                 │
-│ 总命令数 │ 191                                               │
-└──────────┴───────────────────────────────────────────────────┘
-```
+## 通用约定
 
-### gs refresh
-
-刷新插件系统和补全脚本。
-
-```bash
-gs refresh
-```
-
-作用：
-- 重新扫描插件目录
-- 重新生成补全脚本
-- 重建 router 索引
-- 重新加载配置
-
-### gs doctor
-
-系统健康检查。
-
-```bash
-gs doctor
-```
-
-检查项：
-- Python 版本
-- 必需文件存在性
-- 配置文件有效性
-- 插件加载状态
-- 环境变量设置
-
-## 插件管理命令
-
-### gs plugin list
-
-列出所有插件。
-
-```bash
-gs plugin list
-```
-
-输出为圆角表格，每行一个插件：名称、命令数、说明。版本、状态等全文一致的列不再重复显示，
-说明会按终端宽度裁成一行；表格下方是库存统计。读取插件命令树较慢（首次构建 describe 缓存）
-时才显示一个转圈提示，输出到管道时不会出现。
-
-### gs plugin info
-
-查看插件详细信息。
-
-```bash
-gs plugin info <插件名>
-```
-
-在终端里省略插件名会弹出选择列表；在脚本或管道中则回落到用法提示。
-
-示例：
-```bash
-gs plugin info android
-```
-
-输出为两张表：上方是插件事实（名称/版本/作者/描述/状态/类型/优先级/命令数），
-下方是命令表，每行给出命令名、完整用法和说明，按命令组排列。
-`gs android` 显示插件基本信息及按子插件分组的命令；`gs android device` 只显示 device 命令组。具体命令保持原始输出。
-
-当 `plugin info` 后面的词组成完整命令路径时，会直接执行该命令。例如 `gs plugin info android app list-3rd` 等价于 `gs android app list-3rd`；后续参数会继续传给该命令。
-
-### gs plugin enable
-
-启用插件。
-
-```bash
-gs plugin enable <插件名>
-```
-
-示例：
-```bash
-gs plugin enable android
-```
-
-### gs plugin disable
-
-禁用插件。
-
-```bash
-gs plugin disable <插件名>
-```
-
-示例：
-```bash
-gs plugin disable android
-```
-
-## 插件命令执行
-
-### 基本格式
-
-```bash
-gs <插件名> <子插件名> <函数名> [参数...]
-```
-
-### 示例
-
-#### Android 插件
-
-```bash
-# Logcat 管理
-gs android logcat clear
-gs android logcat tail
-gs android logcat filter TAG
-
-# 设备管理
-gs android device devices       # 列出连接设备
-gs android device connect 192.168.1.100
-gs android device screencap
-
-# 应用管理
-gs android app list-3rd
-gs android app version com.example.app
-gs android app clear com.example.app
-
-# 系统管理
-gs android system selinux-disable
-gs android system hidden-api-enable
-```
-
-#### System 插件
-
-```bash
-# 日志管理（如果插件支持）
-gs system logging level DEBUG
-gs system logging show
-gs system logging clear
-```
-
-注意：实际可用命令请使用 `gs plugin info <插件名>` 查看。
-
-## 快捷命令
-
-系统自动生成 shell 函数快捷命令：
-
-```bash
-# 格式: gs-<插件>-<子插件>-<函数>
-
-# 原命令:
-gs android logcat clear
-
-# 快捷命令:
-gs-android-logcat-clear
-```
-
-## 补全功能
-
-### Bash 补全
-
-按 Tab 键自动补全：
-
-```bash
-gs <Tab>          # 补全插件名和系统命令
-gs plugin <Tab>   # 补全插件管理子命令
-gs android <Tab>  # 补全 android 的子插件
-```
-
-### Zsh 补全
-
-Zsh 用户自动获得补全支持，功能同 Bash。
-
-### Fish 补全
-
-Fish 用户自动获得补全支持，功能同 Bash。
+- **计划 vs 执行**：写操作必须二选一：`--dry-run`（只打印计划）或 `--yes`（真执行）；
+  两者都给或都不给都会报错。
+- **JSON 计划**：支持 `--format=json` 的命令会输出稳定 schema 的计划，
+  字段含 `schema_version`、`mode`、`check` 等，便于 CI 消费。
+- **`--dry-run` 文案**：中文环境统一包含“不会…”字样，便于断言。
+| 退出码 | 含义 |
+|---|---|
+| 0 | 成功 |
+| 1 | 运行失败 / 检查未通过 |
+| 2 | 用法错误（参数、选项、缺少必需 flag） |
+| 127 | 找不到要执行的程序 |
 
 ## 环境变量
 
-以下环境变量由系统自动管理，通常不需要用户手动设置：
+| 变量 | 作用 |
+|---|---|
+| `GS_ROOT` | 插件树与 config 的根（staging/安装时由 `gs-launch` 设置） |
+| `GS_COMMAND_NAME` | 生成补全/外壳函数时使用的命令名 |
+| `GS_LANGUAGE` / `GS_LANG` / `LANG` | 输出语言（`zh` / `en`） |
+| `GS_COLOR=0`、`NO_COLOR` | 关闭颜色 |
+| `GS_CACHE_DIR` | describe / complete 缓存目录 |
+| `GS_PLUGIN_PATH` | 额外插件根（`:` 分隔） |
+| `GS_INCLUDE_EXAMPLES=1` | 额外加载 `examples/` |
+| `GS_ALLOW_EXTERNAL_PLUGINS=1` | 设置了 `GS_ROOT` 时仍加载用户插件目录 |
+| `GS_DAEMON_IDLE_MS` | T3 常驻进程空闲退出时间（默认 30000） |
+| `GS_CD_FILE` / `GS_ENV_FILE` | 外壳函数交给 `gs` 的副作用文件 |
 
-### 输出与交互
+## 相关文档
 
-`gs` 的表格、颜色和交互都遵循终端能力，脚本里无需特殊处理：
-
-- `NO_COLOR`：禁用颜色（遵循该约定）。
-- `CLICOLOR_FORCE=1`：即使重定向也保留颜色。
-- `GS_FORCE_COLOR=1` / `GS_COLOR=0`：等效的显式开关。
-- `GS_PLAIN=1`：关闭颜色、转圈和交互选择，适合日志与脚本。
-- `GS_NO_INPUT=1`：只关闭交互选择（`plugin info` / `enable` / `disable` 省略插件名时）。
-
-输出重定向到文件或管道时，颜色会自动去掉，转圈提示不会出现。
-
-### GS_ROOT
-
-项目根目录，由安装脚本自动设置。
-
-```bash
-# 自动设置，无需手动配置
-echo $GS_ROOT
-```
-
-### GS_LANGUAGE
-
-界面语言（可选）。
-
-```bash
-# 如需切换语言，可在 shell 配置文件中设置
-export GS_LANGUAGE="zh"  # 或 "en"
-```
-
-### GS_DEBUG
-
-启用调试模式（可选）。
-
-```bash
-# 用于调试时临时启用
-export GS_DEBUG=1
-```
-
-### GS_LOG_LEVEL
-
-日志级别（可选）。
-
-```bash
-# 可选值: ERROR/WARNING/INFO/DEBUG/VERBOSE/NANO
-export GS_LOG_LEVEL="DEBUG"
-```
-
-## 退出码
-
-| 退出码 | 含义 |
-|-------|------|
-| 0 | 成功 |
-| 1 | 一般错误 |
-| 2 | 命令使用错误 |
-| 124 | 超时 |
-| 126 | 执行错误 |
-| 127 | 命令未找到 |
-| 130 | 用户中断 (Ctrl+C) |
-
-## 常见用法
-
-### 日常开发
-
-```bash
-# 查看日志
-gs android logcat tail
-
-# 列出设备
-gs android device devices
-
-# 查看应用版本
-gs android app version com.example.app
-```
-
-### 插件管理
-
-```bash
-# 查看所有插件
-gs plugin list
-
-# 查看插件详情
-gs plugin info android
-
-# 启用新插件
-gs plugin enable myplugin
-
-# 刷新系统
-gs refresh
-```
-
-### 故障排查
-
-```bash
-# 系统检查
-gs doctor
-
-# 查看状态
-gs status
-
-# 查看插件信息
-gs plugin info <插件名>
-```
-
-## 更多信息
-
-- [快速入门](./quickstart.md) - 快速上手指南
-- [插件开发](./plugin-development.md) - 插件开发指南
-- [FAQ](./faq.md) - 常见问题解答
+- [插件协议](./protocol.md) · [架构设计](./architecture.md) · [安装指南](./installation.md)

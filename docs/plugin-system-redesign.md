@@ -1,6 +1,10 @@
 # 插件系统重构方案
 
-> 状态:提案(未实施)  ·  作者:Solo + Codex  ·  日期:2026-10-01
+> 状态:提案(部分实施)  ·  作者:Solo + Codex  ·  日期:2026-10-01
+>
+> 说明:本文是改造方案的记录。文中提到的「5.2 兼容路径」已在
+> [ADR 005](./adr/005-retire-gs52-python-runtime.md) 中整体退役,相应条目
+> 只保留为历史背景;`gs init` 编排与 P1 渲染已落地。
 >
 > 目标读者:项目作者本人。本文只描述**打算怎么改、改完怎么用**,不含实施代码。
 
@@ -136,7 +140,7 @@ gs <plugin> <verb> [object] [args]
 2. `gs android` 这类大插件能一眼看懂结构(分组标题、组内命令、组描述)。
 3. `~/new-system` 的能力进入 `gs`,保留原有用法与幂等性。
 4. 快捷命令**单一事实来源**,能同时导出到 bash / zsh / fish。
-5. 不破坏现有公开插件和 5.2 兼容路径(sgm/flyme 私有插件不受影响)。
+5. 不破坏现有公开插件(sgm/flyme 私有插件不受影响;5.2 兼容路径已在 ADR 005 退役)。
 
 **非目标(本方案不做)**
 
@@ -835,7 +839,7 @@ $ gs gpu install driver
 | 位置 | 要做什么 |
 |---|---|
 | `scripts/verify_gs.sh` | 全部旧命令改写(§7.7.4);删掉任何"遗留入口可用"的检查 |
-| `scripts/audit_command_parity.py` | 5.2 → 6.0 的映射表重写:`dotfiles *` → 各工具插件、`multirepo *` → `android repo *`、`devenv *` → `lang`/`system`/…、`alias *` → `shortcuts` |
+| 改名对照表 | 当初由 `scripts/audit_command_parity.py` 维护;该脚本已随 5.2 退役删除,对照关系改为记录在本文与各自插件的 README 里 |
 | `README.md` / `docs/cli-reference.md` / `docs/installation.md` / 各插件 README | 所有示例改成新命令;删除已不存在的插件章节 |
 | `plugin.toml` 的 `[groups]` 与命令名 | 这次一并改到位(别留"旧名 + 新名"两份) |
 | 升级说明 | 放一张**改名对照表**(旧 → 新),让用户一次性改自己的脚本 |
@@ -852,7 +856,7 @@ $ gs gpu install driver
 | **P2** | `shortcuts` 插件(v2):声明、导出、status/doctor | 103 条缩写 + 常用函数迁进去,三 shell 共用 | 中(涉及写 shell 配置) |
 | **P3** | 动词对齐(`install`/`apply`/`set`)+ 工具插件拆分(nvim/vim/tmux/git/fish/zsh) | `gs nvim install` · `gs tmux apply` | 中 |
 | **P4** | 6 个领域插件 + 核心编排命令 `gs init` + new-system 移植(先 C 后 G) | `gs lang install rust` · `gs init --group=langs` | 中(依赖 sudo 策略) |
-| **P5** | 收尾:5.2 兼容、补全、文档、验收脚本 | 全量验收绿 | 低 |
+| **P5** | 收尾:补全、文档、验收脚本(5.2 兼容层已直接删除,见 ADR 005) | 全量验收绿 | 低 |
 
 每阶段独立可发布,任意阶段可停。
 
@@ -940,7 +944,7 @@ gs shortcuts status          # 我的 shell 是否被改过
 
 | 候选 | 用法 | 优点 | 问题 |
 |---|---|---|---|
-| `setup` | `gs init --group=langs` | 最直白,一眼能猜 | 与仓库里的 `scripts/setup.py`(5.2 遗留安装器)同名不同物,容易混 |
+| `setup` | `gs init --group=langs` | 最直白,一眼能猜 | 与安装脚本同名不同物,容易混 |
 | `bootstrap` | `gs bootstrap run --group=langs` | 语义最准:把新机器引导到可用 | 略长、容易拼错 |
 | `init` | `gs init --group=langs` | 最短,动词感强,像 `git init` / `terraform init` | 可能被理解成"初始化 gs 自己" |
 | `machine` | `gs machine setup` / `gs machine status` | 明确指"这台机器" | 要两层才读得顺 |
@@ -997,4 +1001,4 @@ gs init --without=android       # 跳过整组
 - 现有公开插件的命令**不删不改名**(P1 只改渲染,P3/P4 只加新命令)。
 - `install/uninstall` 成为全项目标准动词(源自 `dotfiles` 那轮统一),`android` 等逐步对齐措辞。
 - `plugin.toml` 新增字段全部可选,老 manifest 继续可用(未知字段本来就被忽略)。
-- 5.2 兼容路径(`scripts/setup.py`、legacy router)不受影响。
+- 5.2 兼容路径(`scripts/setup.py`、legacy router)已被 ADR 005 整体删除,不再是约束。

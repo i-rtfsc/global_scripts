@@ -46,11 +46,11 @@ pub(crate) const SYSTEM_CMDS: &[(&str, &str, &[&str])] = &[
     ),
 ];
 
-/// `gs __complete <completed words…>` — the F8 engine. Prints candidates one per
-/// line as `value` or `value\tdescription` (locale-picked), then a final
-/// Cobra-style directive line `:<bits>` controlling file/dir fallback. Merges
-/// three sources: front-door commands, plugin.toml plugins (with dynamic arg
-/// rules), and legacy router.json plugins. Quiet and best-effort.
+/// `gs __complete <completed words…>` — the completion engine. Prints one
+/// candidate per line as `value` or `value\tdescription` (locale-picked), then a
+/// final Cobra-style directive line `:<bits>` controlling file/dir fallback.
+/// Candidates come from the front door's own commands and the plugin manifests
+/// (including dynamic arg rules). Quiet and best-effort.
 pub(crate) fn cmd_complete(completed: &[String]) -> i32 {
     use gs_core::engine;
     let locale = detect_locale();

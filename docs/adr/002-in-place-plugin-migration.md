@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted
+**Superseded by [ADR 005](./005-retire-gs52-python-runtime.md)** - dual
+`plugin.json` + `plugin.toml` manifests were temporary and have been removed.
 
 ## Decision
 

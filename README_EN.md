@@ -2,311 +2,122 @@
 
 [中文](README.md) | [English](README_EN.md)
 
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![Version](https://img.shields.io/badge/version-5.2.0-brightgreen.svg)](https://github.com/i-rtfsc/global_scripts)
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Rust](https://img.shields.io/badge/rust-1.75%2B-orange.svg)](https://www.rust-lang.org/)
+[![Version](https://img.shields.io/badge/version-6.0.0--dev-brightgreen.svg)](https://github.com/i-rtfsc/global_scripts)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](./LICENSE)
 
-> A modern, high-performance shell command management system with multi-type plugin architecture, async execution, and complete type safety.
+> One `gs` for your dev box: command wrappers, Android tooling, dotfiles and
+> machine provisioning — described by `plugin.toml`, dispatched by a Rust front door.
 
-## Introduction
+## What it is
 
-Global Scripts is a powerful command-line tool management framework designed to simplify daily development workflows. Through its flexible plugin system, you can easily extend and customize commands to boost your development efficiency.
+Global Scripts (GS) 6.0 is a command and plugin system. You type
+`gs <plugin> <command> [args]`; the Rust front door reads that plugin's
+`plugin.toml` and executes it according to its declared tier:
 
-### Why Global Scripts?
+- **T1 declarative** — the command *is* a `run` template; the core renders the
+  argv itself and **spawns nothing**;
+- **T2 script / T3 resident** — the plugin answers JSON-RPC over stdio; T3 keeps
+  a resident process to skip interpreter cold start;
+- **T4 wasm** — run a sandboxed module through wasmtime.
 
-- **Unified Management**: Centrally manage all your common commands and scripts
-- **Plugin Architecture**: Support for Python, Shell, Config, and Hybrid plugin types
-- **High Performance**: Async execution based on asyncio with intelligent caching
-- **Type Safety**: Complete type annotations and data validation
-- **Easy to Extend**: Simple plugin development API for quick custom command creation
-- **Ready to Use**: Rich built-in plugin ecosystem covering Android development, system management, and more
+The command tree, arguments, completion rules and capability declarations all
+live in a single `plugin.toml`. There is no second manifest and no hidden loader.
 
-## Core Features
+## Features
 
-### Architecture Advantages
+- **Single source of truth** — one `plugin.toml` per plugin; completion, help and
+  validation share one model.
+- **Fast completion** — discovery only parses manifests; T1 completion is fully
+  static, T2+ resolves in one process and caches to disk.
+- **Deny-by-default capabilities** — `exec` / `env` / `fs` / `net` must be
+  declared; `exec` and `env` are enforced by the core.
+- **Safe defaults** — writes require `--dry-run` or `--yes`; `gs` never escalates
+  privileges, it only prints the `sudo …` line for you.
+- **Scriptable** — `--format=json` plans for CI.
+- **No emoji, honors `NO_COLOR`** — tables degrade cleanly when piped.
 
-- **Unified Data Model**: Type-safe data structures based on `dataclass`
-- **Multi-Type Plugins**: Support for Python, Shell, Config, and Hybrid plugin types
-- **Async First**: High-performance async execution engine based on `asyncio`
-- **Direct Shell Execution**: Shell plugins execute commands directly without Python overhead
-- **Smart Caching**: Automatic plugin config caching, reducing I/O overhead by 30%
-- **Secure Execution**: Command whitelist, timeout control, process group management
+## Install
 
-### Developer Experience
-
-- **Complete Type Annotations**: 80%+ type annotation coverage
-- **Comprehensive Documentation**: Complete documentation system from quickstart to architecture
-- **Easy to Test**: Unified ProcessExecutor for convenient unit testing
-- **Simple Configuration**: JSON-based config with user/project level support
-- **Multi-language Support**: Seamless Chinese/English interface switching
-- **Dynamic Completion**: Real-time command completion powered by jq
-
-### Performance Features
-
-- **Code Optimization**: Eliminated 300+ lines of duplicate code
-- **Smart Caching**: 72% cache hit rate
-- **Fast Loading**: 100 plugins in < 3 seconds
-- **Shell Integration**: Auto-generated completion and shortcuts
-
-## Quick Start
-
-### Prerequisites
-
-- Python 3.8 or higher
-- Bash, Zsh, or Fish Shell
-- jq (required for command completion)
-
-### Installation
-
-Since Global Scripts uses UV for dependency management and the CLI is configured to run with UV, this is the strongly recommended approach:
+### From source
 
 ```bash
-# 1. Install UV (modern Python project manager)
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# 2. Clone the repository
 git clone https://github.com/i-rtfsc/global_scripts.git
 cd global_scripts
 
-# 3. UV will automatically sync dependencies and create virtual environment
-uv sync
+# 1. Build the Rust front door
+cargo build --release --manifest-path rust/Cargo.toml -p gs
 
-# 4. Run the installation script
-uv run python scripts/setup.py
+# 2. Produce the staging tree (dist/gs)
+bash scripts/stage_release.sh
 
-# 5. Reload shell configuration
-source ~/.bashrc                    # for bash users
-source ~/.zshrc                     # for zsh users
-source ~/.config/fish/config.fish   # for fish users
+# 3. Install into ~/.local (no copy, no sudo)
+bash scripts/install_gs.sh --yes
 ```
 
-For detailed installation instructions, see [Installation Guide](./docs/en/installation-en.md)
+### From a release archive
 
-### Verify Installation
+Download `gs-<target>.zip` for your platform, unpack it, then run
 
 ```bash
-# Check version
-gs version
-
-# Check system health
-gs doctor
-
-# List plugins
-gs plugin list
-
-# Test completion (press Tab)
-gs <Tab>
+bash scripts/install_gs.sh --yes
 ```
 
-### Basic Usage
+The installer touches exactly two things: a symlink at `~/.local/bin/gs` and the
+real tree under `~/.local/share/global-scripts/<version>/`. Use `GS_PREFIX=…` for
+another prefix, `--name` for another command name, and
+`scripts/uninstall_gs.sh --yes` to remove it.
+
+## Requirements
+
+- **Rust** 1.75+ (only to build from source)
+- **Python 3.8+** for T2/T3 plugins (`gs doctor` checks it)
+- **Shell**: bash / zsh / fish (PowerShell experimental)
+- No `jq`, no `uv`, no third-party Python packages.
+
+## Quick start
 
 ```bash
-# Show help
-gs help
-
-# List all plugins
-gs plugin list
-
-# View plugin details
-gs plugin info android
-
-# Use plugin commands
-gs android logcat clear
-gs system status
+gs help                       # front-door commands
+gs plugin list                # plugins and command counts
+gs doctor                     # manifests / entries / plugin runtime / shell integration
+gs android device devices     # run a plugin command
+gs init --list                # the machine setup plan (config/init.toml)
 ```
 
-## Plugin Ecosystem
-
-Global Scripts comes with a rich set of built-in plugins covering multiple development scenarios:
-
-### Android Plugin
-
-Android development toolkit with device management, log viewing, app management, and more.
+Enable completion and `cd` integration (pick one, add to your rc file):
 
 ```bash
-# List devices
-gs android device devices
-
-# Clear logcat
-gs android logcat clear
-
-# Check app version
-gs android app version com.android.settings
+source <(gs shell-init bash)
+source <(gs shell-init zsh)
+gs shell-init fish > ~/.config/fish/conf.d/gs.fish
 ```
 
-### System Plugin
+## Bundled plugins
 
-System management tools providing configuration management, logging, and more.
+| Plugin | What it does |
+|---|---|
+| `android` | device, logcat, dump, emulator, fs, frida, perfetto, winscope, builds |
+| `dotfiles` | install / backup / restore / audit for nvim, vim, tmux, git, fish, zsh |
+| `system` | mirrors, proxy, prompt themes |
+| `identity` | model accounts + node switching, Git/SSH private config |
+| `multirepo` | plan / apply / sync for AOSP-style manifests |
+| `sync` | controlled Git worktree sync to a target tree |
+| `devenv` | dev environment checks and explicit installs |
+| `vscode` / `vps` / `spider` / `grep` / `navigator` / `alias` | editor, VPS, article extraction, search, navigation, alias audit |
 
-```bash
-# Check system status
-gs status
-
-# Configuration management
-gs system config list
-gs system config install git
-
-# Proxy management
-gs system proxy on
-gs system proxy status
-```
-
-### Grep Plugin
-
-Advanced search tools with multiple search modes.
-
-```bash
-# Search in code
-gs grep code "pattern" /path/to/search
-```
-
-### Spider Plugin
-
-Web scraping tools supporting static and dynamic pages.
-
-```bash
-# Crawl a webpage
-gs spider crawl https://example.com
-```
-
-For more plugins, see [CLI Reference](./docs/en/cli-reference-en.md)
+`gs plugin info <plugin>` shows a plugin's full command surface.
 
 ## Documentation
 
-Complete documentation system to help you get started and dive deep:
-
-- [Quick Start](./docs/en/quickstart-en.md) - Master the basics in 5 minutes
-- [Installation Guide](./docs/en/installation-en.md) - Detailed installation steps and troubleshooting
-- [CLI Reference](./docs/en/cli-reference-en.md) - Complete command-line reference
-- [Plugin Development](./docs/en/plugin-development-en.md) - Build plugins from scratch
-- [Architecture Design](./docs/en/architecture-en.md) - Deep dive into system architecture
-- [FAQ](./docs/en/faq-en.md) - Troubleshooting guide
-- [Contributing Guide](./docs/en/contributing-en.md) - How to contribute to the project
-
-## Examples
-
-### Config Plugin - Simplest
-
-Create `plugins/hello/plugin.json`:
-
-```json
-{
-  "name": "hello",
-  "version": "1.0.0",
-  "description": {"zh": "问候插件", "en": "Hello plugin"},
-  "commands": {
-    "world": {
-      "command": "echo 'Hello, World!'",
-      "description": "Say hello to the world"
-    }
-  }
-}
-```
-
-Usage: `gs hello world`
-
-### Python Plugin - Recommended
-
-Create `plugins/calc/plugin.py`:
-
-```python
-from gscripts.plugins.decorators import plugin_function
-from gscripts.models import CommandResult
-
-@plugin_function(
-    name="add",
-    description={"zh": "加法运算", "en": "Addition"}
-)
-def add_numbers(args):
-    a, b = float(args[0]), float(args[1])
-    return CommandResult(
-        success=True,
-        output=f"{a} + {b} = {a + b}"
-    )
-```
-
-Usage: `gs calc add 10 20`
-
-For more examples, see [Plugin Development Guide](./docs/en/plugin-development-en.md)
-
-## Development
-
-### Develop Custom Plugins
-
-Global Scripts provides a powerful and flexible plugin API:
-
-1. **Config Plugin**: Perfect for simple command wrappers
-2. **Shell Plugin**: Integrate existing shell scripts
-3. **Python Plugin**: Implement complex business logic
-4. **Hybrid Plugin**: Mix multiple types
-
-For detailed development guide, see [Plugin Development Documentation](./docs/en/plugin-development-en.md)
-
-### Contributing
-
-Contributions are welcome! Report issues or make suggestions:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-See [Contributing Guide](./docs/en/contributing-en.md) for details
-
-## Architecture Overview
-
-```
-global_scripts/
-├── src/gscripts/          # Core code
-│   ├── models/            # Data models
-│   ├── core/              # Core modules
-│   ├── cli/               # Command-line interface
-│   ├── plugins/           # Plugin system
-│   ├── router/            # Command routing index
-│   ├── shell_completion/  # Shell completion generation
-│   ├── resources/         # Resource files
-│   │   ├── config/        # System configuration
-│   │   └── templates/     # Jinja2 templates
-│   └── utils/             # Utility modules
-├── plugins/               # Built-in plugins
-│   ├── android/           # Android development tools
-│   ├── system/            # System management tools
-│   ├── grep/              # Search tools
-│   └── spider/            # Web scraping tools
-├── custom/                # Custom plugin directory
-├── docs/                  # Documentation
-└── scripts/               # Installation and maintenance scripts
-```
-
-## Performance
-
-| Metric | Performance |
-|--------|-------------|
-| Plugin loading (100 plugins) | < 3s |
-| Command response time | < 100ms |
-| Cache hit rate | 72% |
-| Memory usage | < 50MB |
-| Type annotation coverage | 80%+ |
+| Doc | Contents |
+|---|---|
+| [Plugin protocol](./docs/protocol.md) | manifest / RPC / cache / daemon spec |
+| [Architecture](./docs/en/architecture-en.md) | layers, dispatch path, trade-offs |
+| [Plugin development](./docs/en/plugin-development-en.md) | write a plugin from scratch |
+| [Installation](./docs/en/installation-en.md) · [Quick start](./docs/en/quickstart-en.md) | setup and first steps |
+| [Docs index](./docs/en/readme-en.md) | every document |
 
 ## License
 
-This project is licensed under the Apache-2.0 License. See [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-Thanks to all contributors for their support and contributions to this project!
-
-## Links
-
-- [GitHub Repository](https://github.com/i-rtfsc/global_scripts)
-- [Issue Tracker](https://github.com/i-rtfsc/global_scripts/issues)
-- [Changelog](./docs/changelog.md)
-- [Documentation](./docs/)
-
----
-
-**Get Started**: [Quick Start Guide](./docs/en/quickstart-en.md)
-
-**Need Help**: [FAQ](./docs/en/faq-en.md) | [Submit Issue](https://github.com/i-rtfsc/global_scripts/issues)
+Apache-2.0, see [LICENSE](./LICENSE).

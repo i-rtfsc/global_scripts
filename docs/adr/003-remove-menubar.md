@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted
+**Superseded by [ADR 005](./005-retire-gs52-python-runtime.md)** - the legacy
+menubar component has been deleted from the repository.
 
 ## Decision
 

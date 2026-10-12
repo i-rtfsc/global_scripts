@@ -1,354 +1,100 @@
-# CLI Command Reference
+# CLI reference
 
-Complete command-line interface reference documentation for Global Scripts.
+## Front-door commands
 
-## Command Format
+Handled natively by the Rust front door; no plugin involved.
 
-```bash
-gs [system-command]
-gs plugin [plugin-management-command] [arguments]
-gs <plugin-name> <sub-plugin-name> <function-name> [arguments...]
-```
+| Command | Purpose |
+|---|---|
+| `gs` / `gs help` | help: front-door commands + plugins |
+| `gs version` | version |
+| `gs status` | plugin inventory and command totals |
+| `gs doctor` | manifests / entries / plugin runtime / shell integration |
+| `gs refresh` | rescan manifests (reports invalid ones) |
+| `gs plugin list` | plugins and command counts |
+| `gs plugin info <plugin> [group]` | one plugin's command surface (optionally one group) |
+| `gs plugin enable\|disable <plugin>` | flip `enabled` in that plugin's `plugin.toml` |
+| `gs plugin migrate <dir>` | convert a legacy `plugin.json` into `plugin.toml` |
+| `gs init [step]` | provision this machine from `config/init.toml` |
+| `gs completions [shell]` | emit completion scripts (`--install` writes them) |
+| `gs shell-init <shell>` | emit the wrapper that provides `cd`/`export` effects |
+| `gs __complete <words…>` | completion backend used by the scripts above |
 
-## System Commands
-
-### gs help
-
-Display help information.
-
-```bash
-gs help
-gs --help
-gs -h
-```
-
-Output example:
-```
-🚀 Global Scripts 显示帮助信息
-================================================================================
-
-┌─────────────────────────┬──────────────┐
-│ 命令                    │ 描述         │
-├─────────────────────────┼──────────────┤
-│ gs <名称> <命令> [用法] │ 基本信息     │
-│ gs help                 │ 显示帮助信息 │
-│ gs version              │ 显示版本信息 │
-│ gs status               │ 显示系统状态 │
-│ gs doctor               │ 系统诊断     │
-│ gs refresh              │ 刷新系统     │
-│ gs plugin list          │ 列出所有插件 │
-└─────────────────────────┴──────────────┘
-```
-
-### gs version
-
-Display version information.
+### `gs init`
 
 ```bash
-gs version
-gs --version
+gs init --list                    # steps and their state
+gs init --dry-run                 # check everything
+gs init <step>                    # one step
+gs init --group=<group>           # one group
+gs init --only=<steps> --skip=<steps>
+gs init --without=<groups>
+gs init --yes <step>              # actually run it (otherwise it prints sudo lines)
 ```
 
-### gs status
+## Plugin commands
 
-Display system status information.
+Always
+
+```
+gs <plugin> <verb> [object] [args]
+```
+
+Groups work dotted (`device.logcat`) or space-separated (`device logcat`). A few
+examples:
 
 ```bash
-gs status
-```
-
-Output example:
-```
-🔧 显示系统状态
-================================================================================
-
-┌──────────┬───────────────────────────────────────────────────┐
-│ 属性     │ 值                                                │
-├──────────┼───────────────────────────────────────────────────┤
-│ 状态     │ ✅ 已启用                                         │
-│ 总插件数 │ 10                                                │
-│ 已启用   │ 10                                                │
-│ 已禁用   │ 0                                                 │
-│ 总命令数 │ 191                                               │
-└──────────┴───────────────────────────────────────────────────┘
-```
-
-### gs refresh
-
-Refresh the plugin system and completion scripts.
-
-```bash
-gs refresh
-```
-
-Functions:
-- Re-scan plugin directories
-- Regenerate completion scripts
-- Rebuild router index
-- Reload configuration
-
-### gs doctor
-
-System health check.
-
-```bash
-gs doctor
-```
-
-Check items:
-- Python version
-- Required file existence
-- Configuration file validity
-- Plugin loading status
-- Environment variable settings
-
-## Plugin Management Commands
-
-### gs plugin list
-
-List all plugins.
-
-```bash
-gs plugin list
-```
-
-Output is in table format, containing plugin name, status, type, priority, version, command count, and description.
-
-### gs plugin info
-
-View detailed plugin information.
-
-```bash
-gs plugin info <plugin-name>
-```
-
-Example:
-```bash
-gs plugin info android
-```
-
-Output example:
-```
-🔌 插件详情: android
-================================================================================
-
-📋 基本信息:
-┌──────────┬─────────────┐
-│ 属性     │ 值          │
-├──────────┼─────────────┤
-│ 名称     │ android     │
-│ 状态     │ ✅ 已启用   │
-└──────────┴─────────────┘
-
-GS 6.0 uses an adaptive information panel and grouped command list; plugin lists use an adaptive table.
-
-`gs android` shows plugin metadata and commands grouped by sub-plugin; `gs android device` shows only the device group. Leaf commands preserve their native output.
-
-When the words after `plugin info` form a complete command path, GS6 executes it directly. For example, `gs plugin info android app list-3rd` is equivalent to `gs android app list-3rd`, with any remaining arguments passed through to the command.
-```
-
-### gs plugin enable
-
-Enable a plugin.
-
-```bash
-gs plugin enable <plugin-name>
-```
-
-Example:
-```bash
-gs plugin enable android
-```
-
-### gs plugin disable
-
-Disable a plugin.
-
-```bash
-gs plugin disable <plugin-name>
-```
-
-Example:
-```bash
-gs plugin disable android
-```
-
-## Plugin Command Execution
-
-### Basic Format
-
-```bash
-gs <plugin-name> <sub-plugin-name> <function-name> [arguments...]
-```
-
-### Examples
-
-#### Android Plugin
-
-```bash
-# Logcat management
-gs android logcat clear
-gs android logcat tail
-gs android logcat filter TAG
-
-# Device management
-gs android device devices       # List connected devices
-gs android device connect 192.168.1.100
-gs android device screencap
-
-# Application management
-gs android app list-3rd
-gs android app version com.example.app
-gs android app clear com.example.app
-
-# System management
-gs android system selinux-disable
-gs android system hidden-api-enable
-```
-
-#### System Plugin
-
-```bash
-# Log management (if plugin supports it)
-gs system logging level DEBUG
-gs system logging show
-gs system logging clear
-```
-
-Note: For actual available commands, please use `gs plugin info <plugin-name>` to view.
-
-## Shortcut Commands
-
-The system automatically generates shell function shortcut commands:
-
-```bash
-# Format: gs-<plugin>-<sub-plugin>-<function>
-
-# Original command:
-gs android logcat clear
-
-# Shortcut command:
-gs-android-logcat-clear
-```
-
-## Completion Features
-
-### Bash Completion
-
-Press Tab key for auto-completion:
-
-```bash
-gs <Tab>          # Complete plugin names and system commands
-gs plugin <Tab>   # Complete plugin management subcommands
-gs android <Tab>  # Complete android sub-plugins
-```
-
-### Zsh Completion
-
-Zsh users automatically get completion support with the same functionality as Bash.
-
-### Fish Completion
-
-Fish users automatically get completion support with the same functionality as Bash.
-
-## Environment Variables
-
-The following environment variables are automatically managed by the system and typically do not require manual user configuration:
-
-### GS_ROOT
-
-Project root directory, automatically set by the installation script.
-
-```bash
-# Automatically set, no manual configuration needed
-echo $GS_ROOT
-```
-
-### GS_LANGUAGE
-
-Interface language (optional).
-
-```bash
-# To switch language, set in shell configuration file
-export GS_LANGUAGE="zh"  # or "en"
-```
-
-### GS_DEBUG
-
-Enable debug mode (optional).
-
-```bash
-# Temporarily enable for debugging
-export GS_DEBUG=1
-```
-
-### GS_LOG_LEVEL
-
-Log level (optional).
-
-```bash
-# Possible values: ERROR/WARNING/INFO/DEBUG/VERBOSE/NANO
-export GS_LOG_LEVEL="DEBUG"
-```
-
-## Exit Codes
-
-| Exit Code | Meaning |
-|-----------|---------|
-| 0 | Success |
-| 1 | General error |
-| 2 | Command usage error |
-| 124 | Timeout |
-| 126 | Execution error |
-| 127 | Command not found |
-| 130 | User interrupt (Ctrl+C) |
-
-## Common Usage
-
-### Daily Development
-
-```bash
-# View logs
-gs android logcat tail
-
-# List devices
 gs android device devices
-
-# Check app version
-gs android app version com.example.app
+gs android logcat clear --dry-run
+gs android build build --dry-run
+gs dotfiles install nvim --dry-run
+gs dotfiles doctor
+gs system proxy on --dry-run
+gs system repo tsinghua --dry-run
+gs system prompt themes
+gs multirepo plan mini-aosp --backend=git
+gs multirepo apply-plan plan.json --yes
+gs sync status
+gs identity claude show
+gs vps status
+gs vscode paths
+gs spider classify https://www.jianshu.com/p/…
+gs grep python 'def _search'
+gs navigator list
+gs alias sources bash
 ```
 
-### Plugin Management
+Use `gs plugin list` for the inventory and `gs plugin info <plugin>` per plugin.
 
-```bash
-# View all plugins
-gs plugin list
+## Conventions
 
-# View plugin details
-gs plugin info android
+- **Plan vs run** — writes require exactly one of `--dry-run` (print the plan) or
+  `--yes` (do it); giving both or neither is an error.
+- **JSON plans** — commands supporting `--format=json` emit a stable schema with
+  `schema_version`, `mode`, `check`, … for CI.
 
-# Enable new plugin
-gs plugin enable myplugin
+| Exit code | Meaning |
+|---|---|
+| 0 | success |
+| 1 | failure / check did not pass |
+| 2 | usage error (arguments, flags, missing required option) |
+| 127 | program to execute not found |
 
-# Refresh system
-gs refresh
-```
+## Environment variables
 
-### Troubleshooting
+| Variable | Effect |
+|---|---|
+| `GS_ROOT` | root of the plugin tree and config (set by `gs-launch`) |
+| `GS_COMMAND_NAME` | command name baked into completions / shell init |
+| `GS_LANGUAGE` / `GS_LANG` / `LANG` | output language (`zh` / `en`) |
+| `GS_COLOR=0`, `NO_COLOR` | disable colour |
+| `GS_CACHE_DIR` | describe / complete cache directory |
+| `GS_PLUGIN_PATH` | extra plugin roots (`:`-separated) |
+| `GS_INCLUDE_EXAMPLES=1` | also load `examples/` |
+| `GS_ALLOW_EXTERNAL_PLUGINS=1` | with `GS_ROOT` set, also load user plugins |
+| `GS_DAEMON_IDLE_MS` | T3 resident idle timeout (default 30000) |
+| `GS_CD_FILE` / `GS_ENV_FILE` | effect files exchanged with the shell wrapper |
 
-```bash
-# System check
-gs doctor
+## Related
 
-# View status
-gs status
-
-# View plugin information
-gs plugin info <plugin-name>
-```
-
-## More Information
-
-- [Quickstart](./quickstart.md) - Quick start guide
-- [Plugin Development](./plugin-development.md) - Plugin development guide
-- [FAQ](./faq.md) - Frequently asked questions
+- [Plugin protocol](../protocol.md) · [Architecture](./architecture-en.md) · [Installation](./installation-en.md)

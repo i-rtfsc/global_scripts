@@ -1,239 +1,83 @@
-# Quick Start Guide
+# Quick start
 
-This guide will help you quickly get started with Global Scripts.
-
-## Prerequisites
-
-Make sure you have completed the [Installation](installation.md).
-
-## Basic Usage
-
-### View Available Scripts
+## 1. Check the install
 
 ```bash
-# List all available scripts
-gs list
-
-# Filter scripts by tag
-gs list --tag git
-
-# View script details
-gs show script-name
+gs version
+gs doctor
 ```
 
-### Execute Scripts
+`doctor` reports whether manifests are valid, entries exist, the plugin runtime is
+available and shell integration is referenced.
+
+## 2. Learn the three entry points
 
 ```bash
-# Execute script
-gs run script-name
-
-# Pass parameters
-gs run script-name --param value
-
-# Execute with debug mode
-gs run --debug script-name
+gs help                  # front-door commands
+gs plugin list           # plugins and command counts
+gs plugin info system    # one plugin's full command surface
 ```
 
-### Search Scripts
+The shape is always:
+
+```
+gs <plugin> <verb> [object] [args]
+```
+
+Dotted sub-commands and space-separated words are equivalent:
 
 ```bash
-# Search by name
-gs search keyword
-
-# Search by tag
-gs search --tag tag-name
-
-# Search by description
-gs search --description keyword
+gs android device logcat        # same as gs android device.logcat
+gs system proxy status
 ```
 
-## Common Use Cases
-
-### 1. Git Operations
+## 3. Try a few read-only commands
 
 ```bash
-# Quick commit
-gs run git-quick-commit
-
-# View branch status
-gs run git-status
-
-# Clean branches
-gs run git-clean-branches
+gs navigator list               # directory navigation table
+gs system proxy status          # proxy state
+gs android device devices       # connected devices (needs adb)
+gs dotfiles status nvim         # diff between dotfiles and $HOME
+gs identity ssh status          # SSH asset state
 ```
 
-### 2. Environment Management
+Destructive work shows you the plan first:
 
 ```bash
-# Activate Python environment
-gs run activate-env
-
-# View environment information
-gs run env-info
+gs android build build --dry-run
+gs system repo tsinghua --dry-run
+gs multirepo plan mini-aosp --backend=git
 ```
 
-### 3. System Tools
+Running for real needs an explicit `--yes`. `gs` never escalates privileges; when
+root is required it prints the `sudo …` line for you.
+
+## 4. Enable completion and cd integration
 
 ```bash
-# Clean cache
-gs run clean-cache
+source <(gs shell-init bash)     # bash
+source <(gs shell-init zsh)      # zsh
+gs shell-init fish > ~/.config/fish/conf.d/gs.fish   # fish
 
-# View system information
-gs run system-info
+gs completions bash --install    # completion
 ```
 
-## Create Your First Script
+## 5. Machine provisioning
 
-### 1. Create Script File
-
-Create a new YAML file in the `scripts/` directory:
+`gs init` walks the step list in `config/init.toml`:
 
 ```bash
-touch scripts/my-first-script.yaml
+gs init --list                   # steps and their current state
+gs init --dry-run                # check everything, run nothing
+gs init base-tools               # one step
+gs init --group=mirror           # one group
 ```
 
-### 2. Write Script Configuration
+Steps are reported as ready / needs sudo / plugin not written yet. Sudo steps only
+print the command for you to run.
 
-Edit `scripts/my-first-script.yaml`:
+## 6. Next
 
-```yaml
-name: my-first-script
-description: My first Global Script
-version: 1.0.0
-tags:
-  - example
-  - demo
-
-parameters:
-  - name: message
-    description: Message to display
-    type: string
-    default: "Hello, World!"
-
-steps:
-  - name: Display message
-    action: shell
-    command: echo "{{ message }}"
-```
-
-### 3. Test Script
-
-```bash
-# Test with default parameters
-gs run my-first-script
-
-# Pass custom parameters
-gs run my-first-script --message "Hello, Global Scripts!"
-```
-
-## Advanced Features
-
-### Parameter Handling
-
-Scripts support multiple parameter types:
-
-```yaml
-parameters:
-  # String type
-  - name: text
-    type: string
-    default: "default value"
-
-  # Numeric type
-  - name: count
-    type: integer
-    default: 1
-
-  # Boolean type
-  - name: verbose
-    type: boolean
-    default: false
-
-  # List type
-  - name: items
-    type: array
-    default: ["item1", "item2"]
-```
-
-### Environment Variables
-
-Use environment variables in scripts:
-
-```yaml
-steps:
-  - name: Use environment variable
-    action: shell
-    command: echo "User: $USER, Home: $HOME"
-
-  - name: Set environment variable
-    action: shell
-    command: export MY_VAR="value"
-```
-
-### Conditional Execution
-
-Use conditions to control script execution flow:
-
-```yaml
-steps:
-  - name: Conditional step
-    action: shell
-    command: echo "This is Linux"
-    when: "{{ platform == 'linux' }}"
-
-  - name: Another conditional step
-    action: shell
-    command: echo "This is macOS"
-    when: "{{ platform == 'darwin' }}"
-```
-
-### Error Handling
-
-Configure error handling behavior:
-
-```yaml
-steps:
-  - name: Might fail
-    action: shell
-    command: some-command
-    ignore_errors: true  # Continue even if failed
-
-  - name: Must succeed
-    action: shell
-    command: important-command
-    ignore_errors: false  # Stop if failed (default)
-```
-
-## Best Practices
-
-1. **Naming Standards**
-   - Use lowercase with hyphens: `my-script-name`
-   - Name should be descriptive and clear
-
-2. **Add Description**
-   - Write clear descriptions
-   - Describe script purpose and usage
-
-3. **Use Tags**
-   - Add relevant tags for classification
-   - Facilitate script searching and filtering
-
-4. **Parameter Validation**
-   - Set appropriate parameter types
-   - Provide default values
-   - Add parameter descriptions
-
-5. **Error Handling**
-   - Handle possible errors appropriately
-   - Provide meaningful error messages
-
-6. **Documentation**
-   - Add comments to complex scripts
-   - Provide usage examples
-
-## Next Steps
-
-- [Plugin Development Guide](plugin-development.md) - Learn how to develop complex plugins
-- [Architecture Documentation](architecture.md) - Understand system architecture
-- [FAQ](faq.md) - Find answers to common questions
-- [API Reference](api-reference.md) - View detailed API documentation
+- Writing plugins: [plugin development](./plugin-development-en.md) + [protocol](../protocol.md)
+- Internals: [architecture](./architecture-en.md)
+- Common questions: [FAQ](./faq-en.md)

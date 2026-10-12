@@ -1,169 +1,84 @@
-# 快速入门
+# 快速开始
 
-5分钟快速掌握 Global Scripts 的基本使用。
-
-## 前置要求
-
-- Python 3.7+
-- Bash, Zsh 或 Fish Shell
-
-## 安装
-
-### 1. 克隆项目
-
-```bash
-git clone https://github.com/i-rtfsc/global_scripts.git
-cd global_scripts
-```
-
-### 2. 运行安装脚本
-
-```bash
-uv run python scripts/setup.py
-```
-
-安装程序会:
-- 自动检测并配置环境
-- 生成shell配置文件 `env.sh`
-- 创建补全脚本
-- 配置插件系统
-
-### 3. 加载环境
-
-```bash
-# 对于 Bash 用户
-source ~/.bashrc
-
-# 对于 Zsh 用户
-source ~/.zshrc
-
-# 对于 Fish 用户
-source ~/.config/fish/config.fish
-```
-
-## 基本使用
-
-### 查看帮助
-
-```bash
-gs help
-```
-
-### 查看版本
+## 1. 确认装好了
 
 ```bash
 gs version
-```
-
-### 列出所有插件
-
-```bash
-gs plugin list
-```
-
-输出示例（表格格式）:
-```
-┌───────────┬────────┬────────────┬──────────┬──────────┬──────────┬───────────────┐
-│ 插件名称  │ 状态   │ 类型       │ 优先级   │ 版本     │ 命令数量 │ 描述          │
-├───────────┼────────┼────────────┼──────────┼──────────┼──────────┼───────────────┤
-│ android   │ 正常   │ 混合插件   │ 20       │ 1.0.0    │ 97       │ Android开发   │
-│ system    │ 正常   │ 混合插件   │ 50       │ 1.0.0    │ 23       │ 系统管理工具  │
-│ multirepo │ 正常   │ Python插件 │ 50       │ 1.0.0    │ 6        │ 多仓库管理    │
-└───────────┴────────┴────────────┴──────────┴──────────┴──────────┴───────────────┘
-```
-
-### 查看插件详情
-
-```bash
-gs plugin info android
-```
-
-### 使用插件命令
-
-```bash
-# 格式: gs <插件名> <子插件> <命令> [参数]
-gs android logcat clear
-gs android device devices
-gs system config install vim
-```
-
-## 配置
-
-### 配置文件位置
-
-- 用户配置: `~/.config/global-scripts/config/gs.json`
-- 项目配置: `./config/gs.json`
-
-### 启用/禁用插件
-
-```bash
-# 启用插件
-gs plugin enable android
-
-# 禁用插件
-gs plugin disable android
-```
-
-### 修改语言设置
-
-编辑 `~/.config/global-scripts/config/gs.json`:
-
-```json
-{
-  "language": "en"  // "zh" 或 "en"
-}
-```
-
-## 常用命令
-
-### 系统管理
-
-```bash
-# 查看系统状态
-gs status
-
-# 刷新插件和补全
-gs refresh
-
-# 系统健康检查
 gs doctor
 ```
 
-### 插件管理
+`doctor` 会告诉你 manifest 是否有效、entry 是否存在、插件运行时是否可用、
+shell 集成是否已引用。
+
+## 2. 认识三个入口
 
 ```bash
-# 列出所有插件
-gs plugin list
-
-# 查看插件信息
-gs plugin info <插件名>
-
-# 启用插件
-gs plugin enable <插件名>
-
-# 禁用插件
-gs plugin disable <插件名>
+gs help              # 前门命令
+gs plugin list       # 插件与命令数
+gs plugin info system   # 某个插件的完整命令面
 ```
 
-## 下一步
+命令形式统一为：
 
-- 阅读 [CLI命令参考](./cli-reference.md) 了解所有命令
-- 查看 [插件使用指南](./plugin-guide.md) 学习如何使用插件
-- 参考 [配置说明](./configuration.md) 定制你的环境
-- 访问 [插件开发指南](./plugin-development.md) 开发自己的插件
+```
+gs <插件> <动词> [对象] [参数]
+```
 
-## 常见问题
+子命令用 `.` 分组，空格写法等价：
 
-**Q: 命令不存在？**
+```bash
+gs android device logcat        # 等价于 gs android device.logcat
+gs system proxy status
+```
 
-A: 确保已经 `source` 了shell配置文件,或运行 `source $GS_ROOT/env.sh`
+## 3. 跑几条只读命令
 
-**Q: 插件命令执行失败？**
+```bash
+gs navigator list               # 目录导航表
+gs system proxy status          # 代理状态
+gs android device devices       # 已连接设备（需要 adb）
+gs dotfiles status nvim         # dotfiles 与 $HOME 的差异
+gs identity ssh status          # SSH 资产状态
+```
 
-A: 检查插件是否已启用: `gs plugin list`
+危险操作会先给你看计划：
 
-**Q: 如何更新？**
+```bash
+gs android build build --dry-run
+gs system repo tsinghua --dry-run
+gs multirepo plan mini-aosp --backend=git
+```
 
-A: 拉取最新代码后运行 `gs refresh`
+真正执行要显式 `--yes`。`gs` 自己从不提权，需要 root 时它只打印 `sudo …` 让你自己跑。
 
-更多问题请查看 [FAQ](./faq.md)
+## 4. 打开补全与 cd 集成
+
+```bash
+source <(gs shell-init bash)     # bash
+source <(gs shell-init zsh)      # zsh
+gs shell-init fish > ~/.config/fish/conf.d/gs.fish   # fish
+
+gs completions bash --install    # 补全
+```
+
+装好后 `gs and<Tab>` 会列出插件与命令，带说明。
+
+## 5. 装机编排
+
+`gs init` 按 `config/init.toml` 的清单逐项检查/执行：
+
+```bash
+gs init --list                   # 看步骤与当前状态
+gs init --dry-run                # 全部只做检查
+gs init base-tools               # 只跑某一步
+gs init --group=mirror           # 只跑某组
+```
+
+状态会区分“就绪 / 需要 sudo / 插件尚未创建”；需要 sudo 的步骤只会打印命令，
+由你自己执行。
+
+## 6. 下一步
+
+- 想写插件：[插件开发](./plugin-development.md) + [插件协议](./protocol.md)
+- 想懂内部：[架构设计](./architecture.md)
+- 常见问题：[FAQ](./faq.md)

@@ -1,35 +1,64 @@
-# GS 6.0 Migration Status
+# GS 6.0 migration status
 
-[中文](../migration-status.md)
+## Where we are
 
-GS 6.0 uses the formal plugin names and the in-place `plugins/` tree. All formal
-plugins currently report `6.0.0-dev`; the global 5.2 entry remains unchanged.
-`scripts/setup.py` is the legacy 5.2 installer and is not part of the GS6
-development or verification path.
+GS 6.0 is the only runtime. Every plugin in the repository has exactly one
+`plugin.toml` and one implementation.
 
-The default GS6 source mode is isolated: it loads only `$GS_ROOT/plugins` and
-ignores examples, user plugins, `GS_PLUGIN_PATH`, and legacy `router.json`.
-Set `GS_INCLUDE_EXAMPLES=1` for development examples, or
-`GS_ALLOW_LEGACY=1` for explicit compatibility fallback.
+| Item | Value |
+|---|---|
+| Public plugins | 13 (see `gs plugin list`) |
+| Private plugins | `sgm` / `flyme`, only in `custom/userspace/` (not committed, not shipped) |
+| Front door | Rust (`rust/crates/gs`) + core (`rust/crates/gs-core`) |
+| 5.2 Python implementation | retired, see [ADR 005](../adr/005-retire-gs52-python-runtime.md) |
 
-All non-Android offline gates currently pass. Android code migration is complete;
-only real-device read-only regression remains pending when an ADB device is
-available. Menubar and the agent status light are permanently excluded from GS6.
+## Migrated and verified
 
-The inventory now contains 13 **public** formal GS6 plugins and no metadata-only
-legacy plugins. `sgm` and `flyme` are private plugins: their code lives only in
-`custom/userspace/` (git-ignored) and never ships in the repository or the release
-package; `scripts/install_gs.sh` copies them into the local install so the local
-`gs` still sees them. Flyme, Sync, VPS, Identity, SGM, and the remaining MultiRepo commands have been migrated.
-Command parity is complete, but staging success alone
-does not mean full GS5.2 feature parity.
+| Plugin | Tier | How it is verified |
+|---|---|---|
+| `navigator` | T1 declarative | front-door E2E; `$HOME` expansion |
+| `alias` | T2 | read-only inspection and source detection |
+| `dotfiles` | T2 | real install/backup/restore in an isolated `$HOME` |
+| `devenv` | T2 | fake brew/apt executors assert real arguments |
+| `grep` | T2 | search without shell option injection |
+| `spider` | T2 | URL allowlist and output boundaries |
+| `multirepo` | T2 | real clone from a local bare repo + plan/apply |
+| `sync` | T2 | real copy from a temp Git repo to a target tree |
+| `system` | T2 | mirror/proxy dry-runs and theme enumeration |
+| `vps` | T2 | 8 commands; writes require `--dry-run`/`--yes` |
+| `identity` | T2 | generated fixtures; nothing private in the package |
+| `android` | T2 | read-only commands on a real device; risky ones stay dry-run |
+| `vscode` | T2 | fake `code` executor asserts launch arguments |
 
-Formal plugins now run as **T3 resident daemons** (`tier = "rpc"`): the plugin
-process is kept alive behind a Unix socket in `$GS_CACHE_DIR/daemon/`, so a warm
-call costs single-digit milliseconds instead of paying a ~60 ms Python cold
-start. `GS_DAEMON=0` disables it, `GS_DAEMON_IDLE_MS` bounds how long an unused
-daemon lives, and any resident failure falls back to the one-shot transport.
-See [ADR 004](../adr/004-resident-plugin-daemons.md).
+## Private plugins
 
-See [the release checklist](../release-checklist.md) before changing the
-global `gs` entry.
+The `sgm` and `flyme` **code** also stays out of the public repository and the
+release package; it lives only in `custom/userspace/<name>/` (`custom/` is
+git-ignored). `scripts/install_gs.sh` copies it into the local install tree, so
+your own `gs` still sees it while third parties do not.
+
+## What happened to 5.2
+
+`src/gscripts/` (~22k lines), `tests/` (~23k lines), `scripts/setup.py`,
+`scripts/audit_command_parity.py`, `pyproject.toml`, `pytest.ini`, every plugin's
+`plugin.json`/`plugin.py`/`plugin.sh`/`commands.json`, and `plugins/menubar/` were
+deleted from `develop`/`main`.
+
+The code remains in git history:
+
+```bash
+git log --oneline -1 --diff-filter=D -- src/gscripts
+git show <sha>:src/gscripts/cli/main.py | head
+```
+
+`gs plugin migrate <dir>` still converts a third-party `plugin.json` into
+`plugin.toml`.
+
+## Verification
+
+```bash
+cd rust && cargo test --workspace        # Rust unit + integration
+bash scripts/verify_gs.sh                # end-to-end (build + stage first)
+python3 scripts/audit_plugins.py         # per-plugin manifest/metadata/smoke
+python3 scripts/verify_package.py --root <dir> --target <target>
+```

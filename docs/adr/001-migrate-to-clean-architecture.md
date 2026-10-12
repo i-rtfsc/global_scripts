@@ -2,7 +2,8 @@
 
 ## Status
 
-**Accepted** - Implementation completed (Phase 3, November 2024)
+**Historical** - the Python architecture this ADR describes was retired in
+[ADR 005](./005-retire-gs52-python-runtime.md) (GS 6.0 is Rust + `plugin.toml`).
 
 ## Context
 

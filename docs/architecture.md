@@ -1,450 +1,162 @@
 # 架构设计
 
-Global Scripts 的系统架构详解。
+Global Scripts（GS）6.0 的架构说明。协议细节见 [插件协议](./protocol.md)。
 
-## GS 6.0 范围边界
+## 1. 范围与原则
 
-GS 6.0 不包含 macOS `menubar` 应用。`plugins/menubar` 仅保留给 5.2
-兼容路径，GS 6.0 不为其创建 `plugin.toml`，也不将其纳入 Rust 前门、构建
-或验收。agent 状态灯功能已永久删除。
+GS 6.0 是**唯一运行时**。GS 5.2 的 Python 实现（`src/gscripts`、`router.json`
+派发、`plugin.json`/`commands.json`）已整体退役，见
+[ADR 005](./adr/005-retire-gs52-python-runtime.md)。
 
-GS 6.0 默认只发现 `$GS_ROOT/plugins` 中的正式插件。`examples/` 不属于发布面；
-仅在开发测试显式设置 `GS_INCLUDE_EXAMPLES=1` 时加载 demo 和 JSON 示例插件。
+四条原则：
 
-## 系统概览
+1. **单一事实来源**：每个插件目录只有一个 `plugin.toml`，它同时定义命令树、
+   能力与元数据。没有 `plugin.json`、没有装饰器扫描、没有 `router.json` 索引。
+2. **核心无副作用**：`gs-core` 只做纯逻辑（解析、发现、补全、绑定、能力检查、
+   帧编解码），从不 spawn 进程，因此可以完整单测。
+3. **默认拒绝**：插件要在 manifest 里显式声明它需要执行什么、读写哪里、
+   读哪些环境变量。
+4. **分层惰性**：发现只读 `plugin.toml`；命令树按需内联解析或走一次
+   `describe`，因此 Tab 补全和 `gs help` 不会启动任何插件。
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        CLI Layer                            │
-│  ┌──────────────┐  ┌───────────────┐  ┌──────────────────┐  │
-│  │  main.py     │  │ commands.py   │  │ formatters.py    │  │
-│  └──────────────┘  └───────────────┘  └──────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
-                            │
-┌─────────────────────────────────────────────────────────────┐
-│                        Core Layer                           │
-│  ┌──────────────┐  ┌───────────────┐  ┌──────────────────┐  │
-│  │ Plugin       │  │ Config        │  │ Command          │  │
-│  │ Manager      │  │ Manager       │  │ Executor         │  │
-│  └──────────────┘  └───────────────┘  └──────────────────┘  │
-│  ┌──────────────┐  ┌───────────────┐  ┌──────────────────┐  │
-│  │ Plugin       │  │ Router        │  │ Logger           │  │
-│  │ Loader       │  │ Indexer       │  │                  │  │
-│  └──────────────┘  └───────────────┘  └──────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
-                            │
-┌─────────────────────────────────────────────────────────────┐
-│                       Models Layer                          │
-│  ┌──────────────┐  ┌───────────────┐  ┌──────────────────┐  │
-│  │ CommandResult│  │ PluginMetadata│  │ FunctionInfo     │  │
-│  └──────────────┘  └───────────────┘  └──────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
-                            │
-┌─────────────────────────────────────────────────────────────┐
-│                      Plugin Layer                           │
-│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌──────────────┐    │
-│  │ Python  │  │  Shell  │  │ Config  │  │   Hybrid     │    │
-│  │ Plugins │  │ Plugins │  │ Plugins │  │   Plugins    │    │
-│  └─────────┘  └─────────┘  └─────────┘  └──────────────┘    │
-└─────────────────────────────────────────────────────────────┘
-```
-
-## 核心组件
-
-### 1. CLI 层 (`src/gscripts/cli/`)
-
-#### main.py
-- **职责**: CLI入口点,参数解析
-- **关键类**: `GlobalScriptsCLI`
-- **工作流程**:
-  1. 初始化配置和插件管理器
-  2. 解析命令行参数
-  3. 路由到对应的处理器
-  4. 格式化并输出结果
-
-#### commands.py
-- **职责**: 命令处理逻辑
-- **关键类**: `CommandHandler`
-- **支持的命令类型**:
-  - 系统命令 (`help`, `version`, `status`)
-  - 插件管理命令 (`plugin list/info/enable/disable`)
-  - 插件函数命令 (`<plugin> <subplugin> <function>`)
-
-#### formatters.py
-- **职责**: 输出格式化
-- **关键类**: `OutputFormatter`
-- **功能**:
-  - 表格格式化(支持中文字符宽度计算)
-  - 多语言输出
-  - 颜色高亮
-
-### 2. Core 层 (`src/gscripts/core/`)
-
-#### plugin_manager.py
-- **职责**: 插件生命周期管理
-- **关键功能**:
-  - 插件加载与卸载
-  - 插件启用/禁用
-  - 函数执行调度
-  - 健康检查
-
-**主要方法**:
-```python
-async def initialize()  # 初始化插件系统
-async def load_all_plugins()  # 加载所有插件
-async def execute_plugin_function()  # 执行插件函数
-def enable_plugin()  # 启用插件
-def disable_plugin()  # 禁用插件
-```
-
-#### plugin_loader.py
-- **职责**: 插件发现与解析
-- **关键功能**:
-  - 扫描插件目录
-  - 解析plugin.json
-  - 解析Python装饰器
-  - 解析Shell注解
-  - 构建函数索引
-
-**插件类型识别**:
-1. Python插件: 包含`plugin.py`,使用`@plugin_function`装饰器
-2. Shell插件: 包含`.sh`文件,使用Shell注解
-3. Config插件: 仅`plugin.json`,包含`commands`字段
-4. Hybrid插件: 混合使用以上类型
-
-#### config_manager.py
-- **职责**: 配置管理
-- **配置优先级**:
-  1. 用户配置 (`~/.config/global-scripts/config/gs.json`)
-  2. 项目配置 (`./config/gs.json`)
-  3. 默认配置
-
-**配置结构**:
-```json
-{
-  "system_plugins": {
-    "android": true,
-    "multirepo": true
-  },
-  "custom_plugins": {
-    "myplugin": true
-  },
-  "logging_level": "INFO",
-  "language": "zh",
-  "show_examples": false
-}
-```
-
-#### command_executor.py
-- **职责**: 安全的命令执行
-- **安全机制**:
-  - 命令白名单检查
-  - 危险命令黑名单
-  - 超时控制
-  - 进程组管理
-- **并发控制**: 信号量限制并发数
-
-#### router/indexer.py
-- **职责**: 构建命令路由索引
-- **索引结构**:
-```json
-{
-  "version": "2.0",
-  "plugins": {
-    "plugin_name": {
-      "commands": {
-        "command_key": {
-          "kind": "shell|json|python",
-          "entry": "/path/to/file",
-          "command": "template"
-        }
-      }
-    }
-  }
-}
-```
-
-#### system_config_loader.py
-- **职责**: 系统配置加载与验证
-- **关键功能**:
-  - 从 `resources/config/system_config.yaml` 加载系统配置
-  - 使用dataclass进行配置验证
-  - 动态加载版本号(从 `VERSION` 文件)
-  - 提供全局单例访问接口
-
-**配置段**:
-```python
-@dataclass
-class SystemConfig:
-    project: ProjectConfig       # 项目信息
-    paths: PathsConfig           # 目录路径
-    files: FilesConfig           # 文件名
-    plugins: PluginsConfig       # 插件配置
-    execution: ExecutionConfig   # 命令执行
-    language: LanguageConfig     # 语言设置
-    commands: CommandsConfig     # 系统命令列表
-    cache: CacheConfig          # 缓存配置
-    logging: LoggingConfig      # 日志配置
-    exit_codes: ExitCodesConfig # 退出码
-    status: StatusConfig        # 状态常量
-    ui: UIConfig               # UI配置
-    network: NetworkConfig     # 网络配置
-    shell: ShellConfig         # Shell配置
-```
-
-#### constants.py
-- **职责**: 全局常量定义(PEP 8兼容)
-- **关键功能**:
-  - 提供统一的常量访问接口
-  - 从 `system_config.yaml` 动态加载配置
-  - 支持类级别和实例级别访问
-  - 使用 `@property` 装饰器提供 PEP 8 命名风格
-
-**使用示例**:
-```python
-# 实例访问
-constants = GlobalConstants()
-exit_code = constants.exit_command_not_found  # 127
-timeout = constants.default_timeout  # 30
-
-# 类级别访问
-config_dir = GlobalConstants.get_config_dir()
-plugins_dir = GlobalConstants.get_plugins_dir()
-```
-
-#### utils/template_engine.py
-- **职责**: Jinja2模板渲染引擎
-- **关键功能**:
-  - 渲染Shell环境脚本 (env.sh, env.fish)
-  - 渲染补全脚本 (completion.bash, completion.zsh, completion.fish)
-  - 模板变量注入(版本号、路径、语言等)
-  - 模板文件管理
-
-**渲染流程**:
-```python
-template_engine = TemplateEngine()
-content = template_engine.render(
-    template_name='env.sh.j2',
-    context={
-        'version': '5.0.0',
-        'gs_home': '/path/to/home',
-        'router_index_path': '/path/to/router.json'
-    }
-)
-```
-
-### 3. Models 层 (`src/gscripts/models/`)
-
-统一的数据结构定义,提升类型安全性。
-
-#### result.py
-```python
-@dataclass
-class CommandResult:
-    success: bool
-    output: str
-    error: str
-    exit_code: int
-    execution_time: float
-    metadata: Dict[str, Any]
-```
-
-#### plugin.py
-```python
-@dataclass
-class PluginMetadata:
-    name: str
-    version: str
-    author: str
-    description: Union[str, Dict[str, str]]
-    enabled: bool
-    ...
-
-class PluginType(Enum):
-    PYTHON = "python"
-    SHELL = "shell"
-    CONFIG = "config"
-    HYBRID = "hybrid"
-```
-
-#### function.py
-```python
-@dataclass
-class FunctionInfo:
-    name: str
-    description: Union[str, Dict[str, str]]
-    type: FunctionType
-    command: Optional[str]
-    python_file: Optional[Path]
-    ...
-```
-
-### 4. Plugin 层 (`src/gscripts/plugins/`)
-
-#### base.py
-- 插件基类 `BasePlugin`
-- 子插件基类 `BaseSubPlugin`
-
-#### decorators.py
-- `@plugin_function`: 标记Python函数为插件命令
-- `@subplugin`: 标记类为子插件
-
-## 数据流程
-
-### 命令执行流程
+## 2. 分层
 
 ```
-用户输入: gs android logcat clear
-    │
-    ├─> CLI解析参数: ['android', 'logcat', 'clear']
-    │
-    ├─> CommandHandler分发
-    │   ├─ 识别为插件命令
-    │   └─ 调用 plugin_manager.execute_plugin_function()
-    │
-    ├─> PluginManager执行
-    │   ├─ 查找插件: 'android'
-    │   ├─ 查找函数: 'logcat-clear'
-    │   ├─ 确定类型: shell|python|config
-    │   └─ 调用对应执行器
-    │
-    ├─> 执行器运行
-    │   ├─ 安全检查 (CommandExecutor)
-    │   ├─ 执行命令/函数
-    │   └─ 返回 CommandResult
-    │
-    └─> 输出格式化
-        ├─ OutputFormatter格式化
-        ├─ 应用多语言
-        └─ 终端显示
+┌──────────────────────────────────────────────────────────────┐
+│ 前门  rust/crates/gs                                         │
+│   main.rs      入口 / 引导 / 分发                            │
+│   dispatch.rs  T1 exec、T2/T3 invoke、cd/env 副作用           │
+│   plugin.rs    gs plugin list|info|enable|disable|migrate     │
+│   shell.rs     gs __complete / completions / shell-init       │
+│   system.rs    gs status / doctor / refresh                   │
+│   init.rs      gs init（读 config/init.toml 的步骤清单）       │
+│   ui.rs        唯一的展示层（tabled + 颜色）                   │
+└───────────────────────────┬──────────────────────────────────┘
+                            │ 纯函数调用
+┌───────────────────────────▼──────────────────────────────────┐
+│ 核心  rust/crates/gs-core                                    │
+│   manifest.rs  plugin.toml schema + 归一化命令模型            │
+│   index.rs     惰性发现 / 命令索引 / 程序解析                  │
+│   engine.rs    位置补全（Tab）                                │
+│   exec.rs      T1 argv 绑定 + run 模板渲染                    │
+│   rpc.rs       JSON-RPC 2.0 + LSP 帧 + 一次性通道              │
+│   daemon.rs    T3 常驻插件守护进程                             │
+│   cache.rs     describe / complete 磁盘缓存                    │
+│   caps.rs      能力仲裁（默认拒绝）                            │
+│   migrate.rs   plugin.json → plugin.toml（迁移工具）           │
+│   init.rs      config/init.toml 的步骤模型                     │
+└───────────────────────────┬──────────────────────────────────┘
+                            │ stdio / socket
+┌───────────────────────────▼──────────────────────────────────┐
+│ 插件  plugins/<name>/  +  SDK  sdk/python/gs_plugin            │
+│   T1 declarative：无进程，核心渲染 argv 直接执行               │
+│   T2 script / T3 rpc：JSON-RPC over stdio                      │
+│   T4 wasm：wasmtime 运行 .wasm                                 │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-### 插件加载流程
+## 3. 目录结构
 
 ```
-系统启动
-    │
-    ├─> PluginManager.initialize()
-    │
-    ├─> PluginLoader.load_all_plugins()
-    │   ├─ 扫描 plugins/ 目录
-    │   ├─ 扫描 custom/ 目录
-    │   ├─ (可选，仅 `GS_INCLUDE_EXAMPLES=1`) 扫描 examples/ 目录
-    │   │
-    │   └─ 对每个插件目录:
-    │       ├─ 读取 plugin.json
-    │       ├─ 创建 PluginMetadata
-    │       ├─ 扫描函数:
-    │       │   ├─ Python函数 (装饰器)
-    │       │   ├─ Shell函数 (注解)
-    │       │   └─ Config函数 (JSON)
-    │       └─ 创建 SimplePlugin 对象
-    │
-    ├─> 加载插件启用状态 (从config)
-    │
-    └─> 生成 Router Index (用于shell分发)
+global_scripts/
+├── rust/                      # Rust 前门与核心
+│   └── crates/{gs,gs-core}/
+├── plugins/<name>/            # 正式插件（每个一个 plugin.toml）
+├── examples/                  # 插件示例（仅 GS_INCLUDE_EXAMPLES=1 时加载）
+├── sdk/python/gs_plugin/      # T2/T3 插件 SDK（stdlib-only）
+├── config/init.toml           # gs init 的装机步骤清单
+├── config/gs.json             # 用户偏好（language / prompt_theme）
+├── themes/prompt/             # 提示符主题
+├── custom/                    # 私有区（.gitignore 排除）
+├── scripts/                   # 安装 / 打包 / 验收工具
+└── docs/                      # 文档（协议见 protocol.md）
 ```
 
-## 配置系统
-
-### 配置加载优先级
+## 4. 一次调用的路径
 
 ```
-1. 用户配置 (~/.config/global-scripts/config/gs.json)
-   │
-   ├─ 存在 → 作为覆盖层
-   │
-2. 项目配置 (./config/gs.json)
-   │
-   ├─ 存在 → 作为基础层
-   │
-3. 默认配置 (代码生成)
-   │
-   └─ 作为回退
+gs <args>
+  │
+  ├─ 前门命令？(version/help/status/doctor/init/plugin/completions/shell-init…)
+  │     → 原生处理
+  │
+  ├─ <args[0]> 是插件名？
+  │     → 读 plugins/<name>/plugin.toml
+  │       ├─ T1  → exec.rs 绑定 argv、渲染 run（或 cd）→ 受 exec 能力约束地执行
+  │       ├─ T2  → rpc.rs 起一次进程，describe/invoke
+  │       ├─ T3  → daemon.rs 复用常驻进程
+  │       └─ T4  → wasmtime 运行模块
+  │
+  └─ 都不是 → 明确报错（提示 gs help / gs plugin list）
 ```
 
-### 配置合并规则
+**没有 Python 兜底，也没有 `router.json` 回退**：未知输入直接失败并给出下一步。
 
-- `system_plugins` / `custom_plugins`: 键级合并
-- 其他字段: 用户配置覆盖项目配置
-- 自动清理不存在的插件条目
+### 4.1 插件分层（tier）
 
-## 安全模型
+| tier | 别名 | 核心行为 | 何时选它 |
+|---|---|---|---|
+| `declarative` | T1 | 起进程数为 0 | 纯 `git`/`echo` 之类的命令封装 |
+| `script` | T2 | 每次调用启一个解释器 | 需要真正逻辑、调用不频繁 |
+| `rpc` | T3 | 常驻进程复用 | 需要逻辑且频繁调用（省冷启动） |
+| `wasm` | T4 | wasmtime 执行 | 想用沙箱或非 Python 实现 |
 
-### 命令执行安全
+## 5. 关键设计
 
-1. **白名单机制**
-   - `GlobalConstants.SAFE_COMMANDS` 定义允许的命令
-   - 只有白名单中的命令才能执行
+### 5.1 单一数据模型，跨 tier 同构
 
-2. **黑名单机制**
-   - `GlobalConstants.DANGEROUS_COMMANDS` 危险命令列表
-   - `GlobalConstants.FORBIDDEN_PATTERNS` 危险模式
-   - 正则匹配拦截危险操作
+`plugin.toml` 里内联的命令树与 T2+ 运行时 `describe` 返回的结构**完全同构**
+（都用 `CommandSpec`）。补全、帮助、参数校验因此对 tier 无感：同一个
+`engine::complete` 服务所有插件。
 
-3. **超时控制**
-   - 默认30秒超时
-   - 可通过配置调整
-   - 超时自动终止进程组
+### 5.2 补全（Tab）的热路径
 
-4. **参数转义**
-   - 使用`shlex.quote`转义所有参数
-   - 防止命令注入攻击
+每次按键都是一个新进程，所以：
 
-### 进程管理
+- 发现只解析 `plugin.toml`（不启动插件）；
+- T1 的 `enum`/`file`/`dir` 完全静态，零回调；
+- T1 动态补全由核心执行 manifest 里的命令（受能力约束）；
+- T2+ 的 `describe`/`complete` 批量到**一次**进程启动，并落盘缓存
+  （键含 manifest 与 entry 的 mtime、协议版本、语言）。
 
-- 使用`os.setsid`创建新进程组
-- 超时时终止整个进程组
-- SIGTERM + SIGKILL两级终止
+### 5.3 能力与安全
 
-## 扩展点
+`[capabilities]` 默认全拒绝。`exec`/`env` 由核心**强制**（核心控制 spawn 与子进程
+环境）；`fs`/`net` 目前是建议性声明并回传给插件，真正的沙箱留给后续 OS 设施。
 
-### 如何添加新的插件类型
+危险操作约定：写操作必须显式 `--dry-run` 或 `--yes`，`gs` 自身**从不**提权，
+只打印 `sudo …` 让用户自己执行。
 
-1. 在`models/plugin.py`中添加新的`PluginType`
-2. 在`plugin_loader.py`中添加扫描逻辑
-3. 在`plugin_manager.py`中添加执行逻辑
-4. 更新`router/indexer.py`以支持路由
+### 5.4 常驻插件（T3）
 
-### 如何添加新的系统命令
+socket 路径带插件内容的 generation 哈希（改插件即换路径）、空闲超时退出、
+“客户端中途消失即毒化该 daemon” 避免回包错投、不可用时自动退化为一次性通道。
+细节见 [protocol.md §8](./protocol.md)。
 
-1. 在`cli/commands.py`的`CommandHandler`中添加处理方法
-2. 在`config/i18n.json`中添加多语言描述
-3. 更新补全脚本生成逻辑
+### 5.5 展示层
 
-## 性能优化
+所有输出集中在 `gs/src/ui.rs` 一个模块：`tabled` 出表格、`anstyle` 上色、
+`indicatif` 出进度。规则：无 emoji、可 `NO_COLOR`、宽度自适应、非 TTY 时降级。
 
-### 当前优化
-- 异步I/O(asyncio)
-- 并发执行(Semaphore)
-- 延迟加载(插件按需加载)
+## 6. 扩展点
 
-### 计划优化
-- ✅ 统一数据结构(减少Dict[str, Any])
-- ⏳ 插件配置缓存(`@lru_cache`)
-- ⏳ 并发插件加载
-- ⏳ ProcessExecutor复用
+- **加一条命令**：改对应插件的 `plugin.toml`（T1）或插件脚本里的
+  `@plugin.command`（T2/T3）。
+- **加一个插件**：新建 `plugins/<name>/plugin.toml` + 入口脚本，参照
+  [插件开发](./plugin-development.md) 与 [protocol.md 附录](./protocol.md)。
+- **加一个前门命令**：在 `gs/src/main.rs` 的 `run()` 注册，实现放到对应模块。
+- **装机步骤**：改 `config/init.toml`，`gs init` 自动反映。
 
-## 设计原则
+## 7. 与 5.2 的关系
 
-1. **单一职责**: 每个模块职责明确
-2. **依赖注入**: 通过构造函数注入依赖
-3. **接口隔离**: 使用抽象基类定义接口
-4. **开闭原则**: 对扩展开放,对修改关闭
-5. **类型安全**: 使用dataclass和类型注解
+GS 5.2 的 Python 实现已从仓库退役（`src/gscripts`、`tests/`、`scripts/setup.py`、
+`plugin.json`/`plugin.py`、`router.json` 派发路径）。仍在迁移自己老插件的用户
+可以用 `gs plugin migrate <dir>` 把 `plugin.json` 转成 `plugin.toml`。
+决策记录见 [docs/adr](./adr/)。
 
-## 技术栈
+## 相关文档
 
-- **语言**: Python 3.8+
-- **异步**: asyncio
-- **类型**: typing, dataclasses
-- **配置**: JSON, YAML
-- **模板引擎**: Jinja2
-- **日志**: logging (自定义格式)
-- **Shell**: Bash/Zsh/Fish 补全
-
-## 下一步阅读
-
-- [插件开发指南](./plugin-development.md) - 如何开发插件
-- [API文档](./api-reference.md) - 详细的API说明
-- [数据结构](./data-structures.md) - 数据结构详解
+- [插件协议](./protocol.md) — manifest / RPC / 缓存 / daemon 规范
+- [插件开发](./plugin-development.md) — 从零写一个插件
+- [安装](./installation.md) · [快速开始](./quickstart.md)
+- [迁移状态](./migration-status.md)

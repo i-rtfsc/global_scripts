@@ -1,420 +1,135 @@
-# Global Scripts - 安装指南
-
-## 📋 目录
-
-- [系统要求](#系统要求)
-- [依赖说明](#依赖说明)
-- [安装步骤](#安装步骤)
-- [Shell环境配置](#shell环境配置)
-- [验证安装](#验证安装)
-- [可选功能安装](#可选功能安装)
-- [故障排除](#故障排除)
-
----
+# 安装指南
 
 ## 系统要求
 
-### 必需要求
+| 项 | 要求 | 说明 |
+|---|---|---|
+| Rust | 1.75+ | 仅**从源码构建**时需要 |
+| Python | 3.8+ | T2/T3 插件需要（`gs doctor` 会检查） |
+| Shell | bash / zsh / fish | PowerShell 实验支持 |
+| 平台 | macOS / Linux | Windows 通过 WSL2 |
 
-- **Python**: 3.8 或更高版本
-- **UV**: Python项目管理工具（必须）
-- **操作系统**: macOS, Linux (Windows WSL2)
-- **Shell**: bash, zsh, 或 fish
-- **jq**: JSON处理工具（补全系统核心依赖）
-
-#### 安装jq
-
-```bash
-# macOS (Homebrew)
-brew install jq
-
-# Ubuntu/Debian
-sudo apt-get install jq
-
-# Arch Linux
-sudo pacman -S jq
-
-# CentOS/RHEL
-sudo yum install jq
-```
-
-**说明**:
-- **jq**: 动态补全系统的核心依赖，用于实时读取plugin配置
-- Global Scripts的补全是最实用的功能，jq为必装工具
-
----
-
-## 依赖说明
-
-### ✅ 核心依赖
-
-Global Scripts 有3个必需的Python依赖（不是零依赖）：
-
-- **PyYAML**: 用于解析 `system_config.yaml` 配置文件
-- **Jinja2**: 用于模板引擎，生成 `env.sh` / `env.fish` 环境文件
-- **aiofiles**: 用于异步文件I/O性能优化（有同步fallback）
-
-这些依赖会在运行 `uv sync` 时自动安装。
-
-### 可选依赖
-
-| 依赖包 | 用途 | 是否必需 | 安装方式 |
-|--------|------|----------|----------|
-| `requests` | Spider插件HTTP请求 | ❌ 仅Spider插件需要 | `gs spider install_deps` |
-| `beautifulsoup4` | Spider插件HTML解析 | ❌ 仅Spider插件需要 | `gs spider install_deps` |
-| `markdownify` | Spider插件格式转换 | ❌ 仅Spider插件需要 | `gs spider install_deps` |
-| `selenium` | Spider插件动态页面 | ❌ 仅Spider插件需要 | `gs spider install_deps` |
-| `parsel` | Spider插件选择器 | ❌ 仅Spider插件需要 | `gs spider install_deps` |
-
----
+不需要 `jq`、不需要 `uv`、不需要安装任何第三方 Python 包——插件 SDK 是
+stdlib-only，随发布包一起分发。
 
 ## 安装步骤
 
-**重要提示**：Global Scripts 的 CLI 写死使用 UV 运行（`uv run`），因此 UV 是必需的依赖项。
-
-### 1. 安装 UV
-
-```bash
-# macOS/Linux
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# 或使用 pip 安装
-pip install uv
-```
-
-### 2. 克隆仓库
+### 方式一：从源码
 
 ```bash
 git clone https://github.com/i-rtfsc/global_scripts.git
 cd global_scripts
-```
 
-### 3. 同步依赖
+# 1. 构建 Release 前门
+cargo build --release --manifest-path rust/Cargo.toml -p gs
 
-```bash
-# UV 会自动读取 pyproject.toml 并创建虚拟环境
-uv sync
-```
-
-### 4. 运行安装脚本
-
-> 此脚本配置 GS 5.2 legacy 环境。GS 6.0 尚未发布为全局入口；开发验证请使用
-> `rust/target/debug/gs` 和 `scripts/verify_gs.sh`。
-
-```bash
-# 使用 UV 运行安装脚本，配置 shell 环境
-uv run python scripts/setup.py
-```
-
-### GS6 独立灰度安装
-
-```bash
-cargo build --release --manifest-path rust/Cargo.toml
+# 2. 生成 staging 树（产出 dist/gs）
 bash scripts/stage_release.sh
+
+# 3. 安装（默认 ~/.local，不需要 sudo）
 bash scripts/install_gs.sh --yes
 ```
 
-该流程只安装 `gs`。如果源码树中存在私有
-`custom/userspace/<名字>`(私有资产目录,例如 `identity`),且用户配置目录没有同名目标,
-安装器会创建来源符号链接，不复制私钥或公司配置。设置
-`GS_LINK_PRIVATE_ASSETS=0` 可禁用该行为。
-
-### 5. 重新加载 Shell 配置
+### 方式二：从发布包
 
 ```bash
-# Bash 用户
-source ~/.bashrc
-
-# Zsh 用户
-source ~/.zshrc
-
-# Fish 用户
-source ~/.config/fish/config.fish
+# 解压对应平台的包后
+bash scripts/install_gs.sh --yes
 ```
 
----
+发布包布局：
 
-## Shell环境配置
+```
+gs-<target>/
+├── gs                  # 原生二进制
+├── gs-launch           # 入口脚本（设置 GS_ROOT 后 exec gs）
+├── plugins/            # 正式插件
+├── sdk/python/         # 插件 SDK
+├── config/             # init.toml / gs.json
+├── themes/prompt/      # 提示符主题
+└── SHA256SUMS
+```
 
-安装完成后，安装脚本会自动配置你的Shell环境。如需手动配置：
+### 安装器做了什么
 
-### Bash
+- 把整棵树放进 `$PREFIX/share/global-scripts/<version>/`；
+- 建立 `$PREFIX/bin/gs` → `<version>/gs-launch` 的符号链接；
+- 生成补全文件与 `~/.config/global-scripts/shell/gs-env.{bash,zsh,fish}`，
+  并在 `~/.bashrc` / `~/.zshrc` / `~/.config/fish/config.fish` 里引用它。
 
-编辑 `~/.bashrc`:
+可选开关：
+
+| 环境变量 / 参数 | 作用 |
+|---|---|
+| `GS_PREFIX=/opt/gs` | 换安装前缀（默认 `~/.local`） |
+| `--name gsp` | 换命令名（默认 `gs`） |
+| `GS_LINK_PRIVATE_ASSETS=0` | 不链接 `custom/userspace` 下的私有资产 |
+| `GS_INCLUDE_PRIVATE=1` | 打包私有插件（只用于你自己的私有构建） |
+
+安装器**从不**复制私钥、token 或公司配置；私有资产只做符号链接。
+
+## Shell 集成
+
+想用 `cd` 与 `export` 副作用，需要装一层很薄的外壳函数（它把 `$GS_CD_FILE` /
+`$GS_ENV_FILE` 交给 `gs`，读回结果再 `eval`）：
 
 ```bash
-# Global Scripts
-export GS_ROOT="$HOME/.config/global-scripts"
-source "$GS_ROOT/env.sh"
-
-# 启用补全（如果已安装jq）
-if command -v jq &>/dev/null; then
-    source "$GS_ROOT/completions/gs.bash"
-fi
+# bash
+echo 'source <(gs shell-init bash)' >> ~/.bashrc
+# zsh
+echo 'source <(gs shell-init zsh)'  >> ~/.zshrc
+# fish
+gs shell-init fish > ~/.config/fish/conf.d/gs.fish
 ```
 
-### Zsh
-
-编辑 `~/.zshrc`:
+补全单独安装：
 
 ```bash
-# Global Scripts
-export GS_ROOT="$HOME/.config/global-scripts"
-source "$GS_ROOT/env.sh"
-
-# 启用补全（如果已安装jq）
-if command -v jq &>/dev/null; then
-    source "$GS_ROOT/completions/gs.zsh"
-fi
+gs completions bash --install     # 或 zsh / fish；不带参数则装全部
 ```
-
-### Fish
-
-编辑 `~/.config/fish/config.fish`:
-
-```fish
-# Global Scripts
-set -gx GS_ROOT "$HOME/.config/global-scripts"
-source "$GS_ROOT/env.fish"
-
-# 启用补全（如果已安装jq）
-if command -q jq
-    source "$GS_ROOT/completions/gs.fish"
-end
-```
-
----
 
 ## 验证安装
 
-### 私有插件(sgm / flyme)
-
-这两个插件的代码不在公开仓库、也不在发布包里,只存在于私有目录
-`custom/userspace/<名字>/`(`custom/` 被 `.gitignore` 排除)。运行
-`scripts/install_gs.sh --yes` 时它们会被复制进已安装树的 `plugins/`,本机 `gs`
-照常能列出并执行;第三方拿到的发布包不含它们(少 17 条命令)。
-
-### 与 Ghostscript 同名(`gs`)
-
-安装后 `~/.local/bin/gs` 在 PATH 里排在 `/usr/bin` 前面,所以:
-
-- 你在终端敲的 `gs` 是 Global Scripts;`/usr/bin/gs` 仍是 Ghostscript,没有被删改。
-- Ghostscript 自带的工具(`ps2pdf`、`pdf2ps`、`ps2ps`、`ps2ascii`…)内部用
-  `$(dirname $0)/gs`,即**绝对路径**,不受影响。
-- 只有**通过 PATH 查找 `gs`** 的程序会拿到 Global Scripts。已知的是 ImageMagick
-  的 PS/EPS/PDF delegate(`delegates.xml` 里写的是裸 `gs`)。
-
-不需要 root 的修法:把 delegate 表复制到用户目录、把 `gs` 换成绝对路径,并让
-ImageMagick 优先读该目录,然后把 `MAGICK_CONFIGURE_PATH` 写进 shell 配置。
-
 ```bash
-mkdir -p ~/.config/ImageMagick
-sed 's/&quot;gs&quot;/&quot;\/usr\/bin\/gs&quot;/g' /etc/ImageMagick-6/delegates.xml \
-  > ~/.config/ImageMagick/delegates.xml
-export MAGICK_CONFIGURE_PATH="$HOME/.config/ImageMagick"
-```
-
-也可以直接用 root 改系统表(`sudo sed -i ...`),但系统升级可能覆盖。
-若希望两边都保留 `gs` 这个名字,就得让 `gs` 自己按参数分流(`-` 开头或
-`*.ps`/`*.pdf` 参数转给 Ghostscript),这不在默认安装行为内。
-
-运行以下命令验证安装成功：
-
-```bash
-# 检查版本
 gs version
-
-# 检查系统健康状态
-gs doctor
-
-# 列出已安装的插件
+gs doctor        # manifest / entry / 插件运行时 / shell 集成
 gs plugin list
-
-# 测试补全（按Tab键）
-gs <Tab>
-gs android <Tab>
-gs system <Tab>
 ```
 
-预期输出：
+`doctor` 的“插件运行时”一行会告诉你 T2/T3 插件需要的解释器是否在 `PATH` 上。
 
-```
-Global Scripts 1.0.0
-Python: 3.x.x
-Shell: bash/zsh/fish
-Status: ✅ All systems operational
-```
+### 私有插件
 
----
+`sgm`、`flyme` 这类私有插件不在公开仓库也不在发布包里，只存在于私有目录
+`custom/userspace/<名字>/`（`custom/` 被 `.gitignore` 排除）。运行
+`scripts/install_gs.sh --yes` 时它们会被复制进已安装树的 `plugins/`，本机 `gs`
+照常列出并执行；第三方拿到的发布包不含它们。
 
-## 可选功能安装
-
-### 性能优化（可选）
-
-如需进一步的性能优化，可以安装额外的优化包：
+## 升级与卸载
 
 ```bash
-# 安装 performance 组（如有定义）
-uv pip install -e ".[performance]"
+bash scripts/install_gs.sh --yes     # 重复执行即升级
+bash scripts/uninstall_gs.sh --yes   # 只删 gs，其它入口不动
 ```
 
-### Spider插件依赖
+升级时 `~/.local/bin/gs` 若指向别的目标会先被改名为 `gs.backup-<时间戳>`。
 
-如果需要使用Spider插件爬取网页：
+## 与 Ghostscript 同名
 
-```bash
-# 方式1: 使用gs命令自动安装
-gs spider install_deps
-
-# 方式2: 使用uv手动安装
-uv pip install requests beautifulsoup4 markdownify selenium parsel
-
-# 方式3: 安装完整功能
-uv pip install -e ".[full]"
-```
-
-### 开发工具
-
-如果需要参与开发：
-
-```bash
-# 安装开发依赖
-uv sync --group dev
-
-# 安装pre-commit hooks
-pre-commit install
-```
-
-### UV 常用命令
-
-```bash
-# 同步依赖（根据pyproject.toml）
-uv sync
-
-# 安装开发依赖
-uv sync --group dev
-
-# 添加新依赖
-uv add package_name
-
-# 运行脚本
-uv run python script.py
-
-# 更新所有依赖
-uv sync --upgrade
-
-# 安装可选依赖组
-uv pip install -e ".[performance]"  # 性能优化
-uv pip install -e ".[full]"         # 完整功能
-uv pip install -e ".[dev]"          # 开发工具
-```
-
----
+很多系统自带 `gs`（Ghostscript）。安装后 `~/.local/bin/gs` 在 `PATH` 中更靠前，
+因此会遮蔽它。仍要调用 Ghostscript 时用绝对路径 `/usr/bin/gs`，或用
+`--name gsp` 换一个命令名。
 
 ## 故障排除
 
-### 问题1: 命令找不到 `gs: command not found`
+| 现象 | 原因 / 处理 |
+|---|---|
+| `gs: command not found` | `~/.local/bin` 不在 `PATH`，或需要重开终端 |
+| `env: 'command': No such file or directory` | 旧的 fish 集成残留，重装 `gs shell-init fish` |
+| 插件命令报找不到解释器 | 装 `python3`，然后 `gs doctor` 复核 |
+| 补全不生效 | `gs completions <shell> --install` 后重开终端 |
+| `gs <插件>` 报 plugin.toml 无效 | 按提示的行号修 manifest，`gs doctor` 汇总所有问题 |
 
-**原因**: Shell环境未正确配置
+## 相关文档
 
-**解决**:
-```bash
-# 检查环境变量
-echo $GS_ROOT
-
-# 如果为空，重新加载配置
-source ~/.bashrc  # 或 ~/.zshrc
-
-# 确认env.sh存在
-ls -la ~/.config/global-scripts/env.sh
-```
-
-### 问题2: Python版本过低
-
-**原因**: Python < 3.8
-
-**解决**:
-```bash
-# 检查Python版本
-python3 --version
-
-# 升级Python（macOS）
-brew install python@3.11
-
-# 升级Python（Ubuntu）
-sudo apt-get install python3.11
-```
-
-### 问题3: 补全不工作
-
-**原因**: jq未安装或补全文件未加载
-
-**解决**:
-```bash
-# 1. 安装jq
-brew install jq  # macOS
-sudo apt-get install jq  # Ubuntu
-
-# 2. 重新生成补全文件
-uv run python scripts/setup.py
-
-# 3. 重新加载shell配置
-source ~/.bashrc  # 或 ~/.zshrc
-```
-
-### 问题4: UV sync失败
-
-**原因**: 网络问题或UV版本过旧
-
-**解决**:
-```bash
-# 更新UV
-pip install --upgrade uv
-
-# 使用国内镜像（如果在中国）
-uv sync --index-url https://pypi.tuna.tsinghua.edu.cn/simple
-
-# 清除缓存重试
-uv cache clean
-uv sync
-```
-
-### 问题5: 插件加载失败
-
-**原因**: plugin.json格式错误或缺失
-
-**解决**:
-```bash
-# 检查插件状态
-gs plugin list
-
-# 查看详细错误
-gs doctor
-
-# 刷新插件索引
-gs refresh
-
-# 验证plugin.json格式
-python3 -m json.tool plugins/android/plugin.json
-```
-
----
-
-## 下一步
-
-安装完成后，查看以下文档继续使用：
-
-- 📖 [快速开始](./quickstart.md) - 5分钟入门教程
-- 🔌 [插件开发](./plugin-development.md) - 创建自己的插件
-- 🎯 [命令参考](./cli-reference.md) - 完整命令列表
-- ❓ [常见问题](./faq.md) - 问题排查指南
-
----
-
-## 获取帮助
-
-遇到问题？以下资源可以帮助你：
-
-- 💬 [GitHub Issues](https://github.com/i-rtfsc/global_scripts/issues)
-- 📚 [在线文档](https://github.com/i-rtfsc/global_scripts/tree/main/docs)
-- ❓ 运行 `gs help` 获取内置帮助
+- [快速开始](./quickstart.md) · [架构设计](./architecture.md) · [插件协议](./protocol.md)

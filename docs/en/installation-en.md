@@ -1,169 +1,125 @@
-# Installation Guide
+# Installation
 
-## System Requirements
+## Requirements
 
-- Python 3.11+
-- Git
-- uv (Python package manager)
+| Item | Requirement | Notes |
+|---|---|---|
+| Rust | 1.75+ | only to build **from source** |
+| Python | 3.8+ | needed by T2/T3 plugins (`gs doctor` checks it) |
+| Shell | bash / zsh / fish | PowerShell experimental |
+| Platform | macOS / Linux | Windows via WSL2 |
 
-## Installation Steps
+No `jq`, no `uv`, no third-party Python packages — the plugin SDK is stdlib-only
+and ships with the release archive.
 
-### 1. Install uv
+## Install
 
-If you haven't installed uv yet, please install it first:
-
-#### macOS/Linux
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-#### Windows
-```powershell
-powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
-```
-
-For other installation methods, please refer to the [uv official documentation](https://docs.astral.sh/uv/getting-started/installation/).
-
-### 2. Clone the Repository
+### From source
 
 ```bash
-git clone https://github.com/yourusername/global_scripts-v6.git
-cd global_scripts-v6
-```
+git clone https://github.com/i-rtfsc/global_scripts.git
+cd global_scripts
 
-### 3. Run Setup Script
+# 1. Build the release front door
+cargo build --release --manifest-path rust/Cargo.toml -p gs
 
-> This script configures the legacy GS 5.2 environment. GS 6.0 is not yet the
-> global entry; use `rust/target/debug/gs` and `scripts/verify_gs.sh` for development verification.
-
-```bash
-# Initialize project
-python scripts/setup.py
-```
-
-### Install the separate GS6 preview
-
-```bash
-cargo build --release --manifest-path rust/Cargo.toml
+# 2. Produce the staging tree (dist/gs)
 bash scripts/stage_release.sh
+
+# 3. Install (defaults to ~/.local, no sudo)
 bash scripts/install_gs.sh --yes
 ```
 
-This installs only `gs`. When private
-`custom/userspace/<name>` asset directories exist in the
-source checkout, the installer links them into the user configuration directory
-if no target already exists. It never copies those private assets. Set
-`GS_LINK_PRIVATE_ASSETS=0` to disable this behavior.
-
-The setup script will automatically:
-- Create virtual environment
-- Install dependencies
-- Configure shell integration
-- Initialize system configurations
-
-### 4. Configure Shell Environment
-
-The setup script will automatically create shell configuration files for you. Choose according to your shell type:
-
-#### Bash Users
-Add the following to `~/.bashrc` or `~/.bash_profile`:
-```bash
-source /path/to/global_scripts-v6/env.sh
-```
-
-#### Fish Users
-Add the following to `~/.config/fish/config.fish`:
-```fish
-source /path/to/global_scripts-v6/env.fish
-```
-
-#### Zsh Users
-Add the following to `~/.zshrc`:
-```bash
-source /path/to/global_scripts-v6/env.sh
-```
-
-### 5. Reload Shell Configuration
+### From a release archive
 
 ```bash
-# Bash/Zsh users
-source ~/.bashrc  # or source ~/.zshrc
-
-# Fish users
-source ~/.config/fish/config.fish
+# after unpacking the archive for your platform
+bash scripts/install_gs.sh --yes
 ```
 
-## Verify Installation
+What the installer touches:
 
-After installation, you can verify with the following commands:
+- the whole tree under `$PREFIX/share/global-scripts/<version>/`;
+- a symlink `$PREFIX/bin/gs` → `<version>/gs-launch`;
+- completion files plus `~/.config/global-scripts/shell/gs-env.{bash,zsh,fish}`,
+  referenced from `~/.bashrc` / `~/.zshrc` / `~/.config/fish/config.fish`.
+
+Options:
+
+| Env var / flag | Effect |
+|---|---|
+| `GS_PREFIX=/opt/gs` | install prefix (default `~/.local`) |
+| `--name gsp` | command name (default `gs`) |
+| `GS_LINK_PRIVATE_ASSETS=0` | don't link private assets under `custom/userspace` |
+| `GS_INCLUDE_PRIVATE=1` | package private plugins (private builds only) |
+
+The installer never copies private keys, tokens or company config; private assets
+are symlinked only.
+
+## Shell integration
+
+To get `cd` and `export` side effects, install the thin wrapper (it hands
+`$GS_CD_FILE` / `$GS_ENV_FILE` to `gs` and `eval`s the result):
 
 ```bash
-# Check version
-gs --version
-
-# View help information
-gs --help
-
-# List available scripts
-gs list
+# bash
+echo 'source <(gs shell-init bash)' >> ~/.bashrc
+# zsh
+echo 'source <(gs shell-init zsh)'  >> ~/.zshrc
+# fish
+gs shell-init fish > ~/.config/fish/conf.d/gs.fish
 ```
 
-## Common Issues
-
-### uv Command Not Found
-
-If you encounter "uv: command not found", it may be because uv is not in your PATH. Solution:
-
-1. Check if uv is installed:
-   ```bash
-   which uv
-   ```
-
-2. If uv is installed but not found, add uv's installation path to your PATH environment variable.
-
-### Permission Issues
-
-If you encounter permission errors during installation, try:
+Completion is installed separately:
 
 ```bash
-# Grant execution permissions
-chmod +x scripts/setup.py
+gs completions bash --install     # or zsh / fish; no argument installs all
 ```
 
-### Python Version Issues
-
-Make sure your Python version is 3.11 or higher:
+## Verify
 
 ```bash
-python --version
+gs version
+gs doctor        # manifest / entry / plugin runtime / shell integration
+gs plugin list
 ```
 
-If the version is too low, please install a newer version of Python.
+The `插件运行时` row tells you whether the interpreter your T2/T3 plugins need is
+on `PATH`.
 
-## Manual Installation
+### Private plugins
 
-If the automated installation fails, you can install manually:
+Private plugins such as `sgm` and `flyme` live only in `custom/userspace/<name>/`
+(`custom/` is git-ignored) and never ship in the repository or the release
+package. `scripts/install_gs.sh --yes` copies them into the local install tree so
+your own `gs` still sees them.
+
+## Upgrade and uninstall
 
 ```bash
-# Create virtual environment
-uv venv
-
-# Activate virtual environment
-source .venv/bin/activate  # Linux/macOS
-# or
-.venv\Scripts\activate  # Windows
-
-# Install dependencies
-uv pip install -e .
-
-# Create configuration directories
-mkdir -p ~/.config/gscripts
+bash scripts/install_gs.sh --yes     # re-running upgrades in place
+bash scripts/uninstall_gs.sh --yes   # removes only gs
 ```
 
-## Next Steps
+If `~/.local/bin/gs` pointed somewhere else, it is first renamed to
+`gs.backup-<timestamp>`.
 
-After successful installation, you can:
+## Name clash with Ghostscript
 
-1. [Quick Start](quickstart.md) - Learn basic usage
-2. [Plugin Development](plugin-development.md) - Learn how to write custom scripts
-3. [FAQ](faq.md) - Find answers to common questions
+Many systems ship a `gs` (Ghostscript). After install, `~/.local/bin/gs` comes
+first on `PATH` and shadows it. Call `/usr/bin/gs` by absolute path, or install
+with `--name gsp`.
+
+## Troubleshooting
+
+| Symptom | Cause / fix |
+|---|---|
+| `gs: command not found` | `~/.local/bin` is not on `PATH`, or reopen the terminal |
+| `env: 'command': No such file or directory` | stale fish integration — reinstall `gs shell-init fish` |
+| plugin commands cannot find an interpreter | install `python3`, then re-run `gs doctor` |
+| completion does nothing | `gs completions <shell> --install`, then reopen the terminal |
+| `gs <plugin>` reports an invalid plugin.toml | fix the manifest at the reported line; `gs doctor` lists every problem |
+
+## Related
+
+- [Quick start](./quickstart-en.md) · [Architecture](./architecture-en.md) · [Plugin protocol](../protocol.md)

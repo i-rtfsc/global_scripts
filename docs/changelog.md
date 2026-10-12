@@ -5,6 +5,47 @@ All notable changes to Global Scripts will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.0.0] - 开发中
+
+GS 6.0 是 Rust 前门 + `plugin.toml` 协议的一次重写。5.x 的条目保留在下方作为历史。
+
+### Added
+
+- **Rust 前门**（`rust/crates/gs`）与前门命令：`version` / `help` / `status` /
+  `doctor` / `refresh` / `init` / `plugin …` / `completions` / `shell-init`。
+- **`plugin.toml` 协议**：单一事实来源的命令树、参数、补全规则与能力声明，
+  规范见 [docs/protocol.md](./protocol.md)。
+- **分层（tier）**：T1 声明式（零进程）、T2 脚本、T3 常驻 daemon、T4 wasm。
+- **能力模型**：`[capabilities]` 默认拒绝，`exec`/`env` 由核心强制。
+- **原生补全**：无 jq、无 Python 的全链路 Tab 补全（含描述与 directive）。
+- **`gs init`**：读 `config/init.toml` 的装机步骤清单，区分就绪 / 需要 sudo /
+  尚未创建；需要 root 的步骤只打印命令。
+- **插件迁移工具**：`gs plugin migrate` 把旧 `plugin.json` 转成 `plugin.toml`。
+- 表格化 UI（`tabled`）、颜色（`anstyle`）、进度（`indicatif`），无 emoji。
+
+### Changed
+
+- 正式插件统一为 `plugin.toml`；每个插件只有一份实现。
+- `gs doctor` 新增插件运行时检查：解释器不在 `PATH` 时不再报“通过”。
+- `GS_ALLOW_LEGACY` 更名为 `GS_ALLOW_EXTERNAL_PLUGINS`。
+
+### Removed
+
+- **5.2 Python 实现整体退役**：`src/gscripts/`、`tests/`、`scripts/setup.py`、
+  `scripts/audit_command_parity.py`、`pyproject.toml`、`pytest.ini`。
+- 各插件的 `plugin.json` / 旧 `plugin.py` / `plugin.sh` / `commands.json`，
+  以及 `plugins/menubar/`。
+- 前门里的 `router.json` 派发路径与 Python 兜底（`delegate_python`）。
+  未知命令现在明确报错，不再静默调用另一个解释器。
+- 对 `jq` 与 `uv` 的运行时依赖。决策见
+  [ADR 005](./adr/005-retire-gs52-python-runtime.md)。
+
+### Fixed
+
+- fish 集成不再把 `cd` 静默改写成 `zoxide z`，也不再有硬编码的 Homebrew 路径。
+- zsh 集成不再用 `alias gs='git status'` 抢占产品名。
+- 源码检出不再无条件读取用户已安装的插件（`$GS_ROOT` 默认隔离）。
+
 ## [5.0.0]
 
 ### Added
@@ -146,7 +187,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 4. Run `gs refresh` to rebuild completion
 5. Test all custom plugins
 
-See [Migration Guide](./docs/migration-v5.md) for detailed steps.
+See [Migration Guide](./migration-status.md) for detailed steps.
 
 ## Future Plans
 
@@ -184,13 +225,13 @@ See [Migration Guide](./docs/migration-v5.md) for detailed steps.
 
 ## Contributing
 
-See [Contributing Guide](./docs/contributing.md) for how to contribute to this project.
+See [Contributing Guide](./contributing.md) for how to contribute to this project.
 
 ## Links
 
 - [GitHub Repository](https://github.com/i-rtfsc/global_scripts)
 - [Issue Tracker](https://github.com/i-rtfsc/global_scripts/issues)
-- [Documentation](./docs/)
+- [Documentation](./readme.md)
 - [Release Notes](https://github.com/i-rtfsc/global_scripts/releases)
 
 ---
