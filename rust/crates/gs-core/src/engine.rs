@@ -19,11 +19,19 @@
 
 use crate::cache;
 use crate::caps;
-use crate::completion::Candidate;
 use crate::index::{LoadedManifest, Registry};
 use crate::manifest::{pick, ArgSpec, CommandSpec, CompleteKind, Tier};
 use crate::rpc;
 use std::process::{Command, Stdio};
+
+/// One completion candidate: the token plus an optional description (shown by
+/// zsh/fish; ignored by bash). Shared with [`crate::cache`], which persists
+/// dynamic candidates to disk.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct Candidate {
+    pub value: String,
+    pub description: Option<String>,
+}
 
 /// Cobra-compatible completion directives (subset), emitted as `:<bits>` on the
 /// final output line so the shell scripts can act on them.

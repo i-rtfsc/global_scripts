@@ -8,7 +8,7 @@
 //! Everything here is best-effort: any IO/parse error degrades to a cache miss
 //! or a no-op write — the cache must never break or block completion.
 
-use crate::completion::Candidate;
+use crate::engine::Candidate;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::BTreeMap;
@@ -237,7 +237,7 @@ pub fn test_isolate(tag: &str) -> std::sync::MutexGuard<'static, ()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::completion::Candidate;
+    use crate::engine::Candidate;
 
     fn cand(v: &str) -> Candidate {
         Candidate {

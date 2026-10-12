@@ -13,7 +13,7 @@ fi
 
 export GS_ROOT="$ROOT"
 export GS_VERIFY_BIN="$BIN"
-unset GS_ALLOW_LEGACY
+unset GS_ALLOW_EXTERNAL_PLUGINS
 export GS_INCLUDE_EXAMPLES=1
 # Verification runs the plugins through their T3 resident daemons (the default
 # path), but must not leave a daemon per plugin idling for the full 30 s default
@@ -26,7 +26,7 @@ export GS_ANDROID_STATE_DIR="$VERIFY_CACHE/android-state"
 
 python3 "$ROOT/scripts/prepare_release.py" --version "$EXPECTED_VERSION"
 
-test ! -e "$ROOT/plugins/menubar/plugin.toml"
+test ! -e "$ROOT/plugins/menubar"
 formal_count=0
 for manifest in "$ROOT"/plugins/*/plugin.toml; do
   [[ -f "$manifest" ]] || continue
@@ -57,15 +57,13 @@ for path in entries:
     ast.parse(path.read_text(encoding="utf-8"), filename=str(path), feature_version=(3, 8))
 print("Python 3.8 AST compatibility: {} entries".format(len(entries)))
 PY
-# The source front door is now authoritative: all 13 public plugins are formal
-# manifests and no legacy inventory remains.
+# The source front door is authoritative: every plugin is a formal manifest.
 default_plugins="$(env -u GS_INCLUDE_EXAMPLES "$BIN" plugin list)"
 grep -q 'android' <<<"$default_plugins"
 grep -q "$EXPECTED_VERSION" <<<"$default_plugins"
 grep -q '插件库存' <<<"$default_plugins"
-grep -q '正式 13' <<<"$default_plugins"
-grep -q 'legacy 0' <<<"$default_plugins"
-grep -q 'GS5.2 命令基线' <<<"$default_plugins"
+grep -q '正式插件 13' <<<"$default_plugins"
+grep -q '全部为 plugin.toml' <<<"$default_plugins"
 if grep -qE 'demo|json-simple|json-with-subplugins' <<<"$default_plugins"; then
   echo 'example plugins leaked into default GS6 plugin surface' >&2
   exit 1
@@ -418,20 +416,6 @@ for manifest_path in sorted((root / "plugins").glob("*/plugin.toml")):
         subprocess.run([str(bin_path), "plugin", "info", name, group], check=True,
                        stdout=subprocess.DEVNULL)
 print("Plugin info matrix: PASS")
-PY
-
-# Command parity must remain complete for every retained GS5.2 command.
-parity_json="$(uv run python "$ROOT/scripts/audit_command_parity.py" --gs-bin "$BIN" --json)"
-PARITY_JSON="$parity_json" python3 - <<'PY'
-import json
-import os
-
-value = json.loads(os.environ["PARITY_JSON"])
-missing = value["missing"]
-plugins = {item[0] for item in missing}
-assert missing == [], missing
-assert plugins == set(), plugins
-print("Command parity: complete")
 PY
 
 GS_BIN="$BIN" bash "$ROOT/scripts/verify_shells.sh"

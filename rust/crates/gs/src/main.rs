@@ -1,20 +1,19 @@
-//! `gs` — the fast front door (PoC).
+//! `gs` — the command front door.
 //!
-//! Replaces the `gs()` shell function from `env.sh`. It resolves a command
-//! against `router.json` *without* jq and dispatches:
-//!   - native fast paths (`version`),
-//!   - `kind == "json"`  → run the command template via `sh -c`,
-//!   - `kind == "shell"` → `source` the entry and call `gs_<plugin>_[<sub>_]<fn>`,
-//!   - everything else   → delegate to the existing Python CLI via `uv run`.
+//! Everything the user types is resolved here against `plugin.toml` manifests
+//! (`gs-core::index`) and dispatched by tier:
+//!   - front-door commands (`version`, `help`, `status`, `doctor`, `plugin`,
+//!     `init`, `completions`, `shell-init`, …) are native,
+//!   - T1 `declarative` commands render their `run` template to an argv and
+//!     exec it (capability-gated, no shell) — see `gs-core::exec`,
+//!   - T2/T3 commands are invoked over JSON-RPC (`gs-core::rpc` / `daemon`),
+//!   - a `cd` command emits a shell effect the wrapper `eval`s.
 //!
-//! Caveat vs. the shell wrapper: json/shell commands run in a child shell, so
-//! `cd`/`export` side effects do not persist into the caller's shell. The
-//! eventual design routes those through a thin `gs` wrapper that `eval`s
-//! emitted shell; out of scope for this startup-latency PoC.
+//! Legacy dispatch through `router.json` and the Python `gscripts` CLI was
+//! removed when GS 6.0 became the only runtime (see `docs/adr/005-*`).
 
 use gs_core::index::{LoadedManifest, Registry};
 use gs_core::manifest::CommandSpec;
-use gs_core::{load_router, resolve, router_index_path, CommandEntry, Resolution};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -104,8 +103,7 @@ fn configure_color_env() {
 }
 
 fn run(args: &[String]) -> i32 {
-    // System commands. The legacy wrapper sends all of these to Python; we keep
-    // `version` native (the hot path we benchmark) and delegate the rest for now.
+    // Front-door commands, resolved before any plugin is consulted.
     match args.first().map(String::as_str) {
         None | Some("") => return cmd_help(),
         Some("version") => return cmd_version(),
@@ -130,9 +128,9 @@ fn run(args: &[String]) -> i32 {
         _ => {}
     }
 
-    // GS 6.0 plugin.toml plugins win over the legacy router.json path. A broken
-    // manifest for the named plugin is reported here (not silently delegated),
-    // so `gs <plugin>` tells you *why* it didn't run.
+    // A plugin named on the command line dispatches through its manifest. A
+    // broken manifest is reported here rather than silently ignored, so
+    // `gs <plugin>` always tells you *why* it didn't run.
     if let Some(name) = args.first() {
         match Registry::find_checked(&engine_roots(), name) {
             Ok(Some(p)) => return dispatch_manifest(&p, &args[1..]),
@@ -145,35 +143,17 @@ fn run(args: &[String]) -> i32 {
         }
     }
 
-    let Some(path) = router_index_path() else {
-        return delegate_python(args);
-    };
-    let router = match load_router(&path) {
-        Ok(r) => r,
-        Err(_) => return delegate_python(args), // unreadable/corrupt index → safe fallback
-    };
+    // Nothing matched: it is not a front-door command and not a plugin.
+    cmd_unknown(args)
+}
 
-    match resolve(&router, args) {
-        Resolution::Delegate => delegate_python(args),
-        Resolution::Command {
-            plugin,
-            consumed,
-            entry,
-            enabled,
-        } => {
-            if !enabled {
-                eprintln!("错误: 插件 '{plugin}' 已被禁用");
-                eprintln!("提示: 使用 'gs plugin enable {plugin}' 启用插件");
-                return 1;
-            }
-            let rest = &args[consumed..];
-            match entry.kind.as_str() {
-                "json" => dispatch_json(&entry, rest),
-                "shell" => dispatch_shell(&plugin, &entry, rest),
-                _ => delegate_python(args),
-            }
-        }
-    }
+/// `gs <something we don't know>` — fail loudly with a way forward instead of
+/// guessing. Never spawns another interpreter.
+fn cmd_unknown(args: &[String]) -> i32 {
+    let name = args.first().map(String::as_str).unwrap_or("");
+    eprintln!("错误: 未知命令或插件 '{name}'");
+    eprintln!("提示: 'gs help' 查看用法 · 'gs plugin list' 查看插件");
+    1
 }
 
 fn cmd_plugin_unknown(command: &str) -> i32 {
@@ -548,16 +528,16 @@ fn cmd_status() -> i32 {
         .filter(|p| p.manifest.enabled)
         .count();
     let disabled = registry.plugins.len().saturating_sub(enabled);
-    let router = router_index_path().and_then(|p| load_router(&p).ok());
-    let legacy = router
-        .as_ref()
-        .map(|r| {
-            r.plugins
-                .keys()
-                .filter(|name| registry.get(name).is_none())
+    let commands: usize = registry
+        .plugins
+        .iter()
+        .map(|p| {
+            p.commands(&detect_locale())
+                .iter()
+                .filter(|c| !c.hidden)
                 .count()
         })
-        .unwrap_or(0);
+        .sum();
 
     #[derive(tabled::Tabled)]
     struct Fact {
@@ -577,20 +557,12 @@ fn cmd_status() -> i32 {
             ),
         },
         Fact {
-            key: "legacy 插件".into(),
-            value: format!("{legacy} 个"),
-        },
-        Fact {
             key: "插件根目录".into(),
             value: format!("{} 个", engine_roots().len()),
         },
         Fact {
-            key: "router.json".into(),
-            value: if router.is_some() {
-                "可用".into()
-            } else {
-                "未发现（不影响 GS 6.0 插件）".into()
-            },
+            key: "可执行命令".into(),
+            value: format!("{commands} 条"),
         },
     ];
     let table = ui::facts("GS 6.0 状态", rows);
@@ -781,9 +753,7 @@ fn cmd_doctor() -> i32 {
 }
 
 fn cmd_refresh(args: &[String]) -> i32 {
-    if args.iter().any(|a| a == "--legacy") {
-        return delegate_python(&["refresh".into()]);
-    }
+    let _ = args;
     let registry = Registry::discover(&engine_roots());
     let invalid = count_invalid_manifests(&engine_roots());
     println!("GS 6.0 refresh");
@@ -820,47 +790,11 @@ fn count_invalid_manifests(roots: &[PathBuf]) -> usize {
     invalid
 }
 
-/// `kind == "json"`: substitute `{args}` (or append) and run via `sh -c`.
-fn dispatch_json(entry: &CommandEntry, rest: &[String]) -> i32 {
-    if entry.command.is_empty() {
-        eprintln!("Error: No command template defined for json type");
-        return 1;
-    }
-    let joined = rest.join(" ");
-    let cmd = if entry.command.contains("{args}") {
-        entry.command.replace("{args}", &joined)
-    } else if rest.is_empty() {
-        entry.command.clone()
-    } else {
-        format!("{} {joined}", entry.command)
-    };
-    let mut c = Command::new("sh");
-    c.arg("-c").arg(cmd);
-    exec_or_status(c)
-}
-
-/// `kind == "shell"`: `source` the entry script and call its gs_* function.
-fn dispatch_shell(plugin: &str, entry: &CommandEntry, rest: &[String]) -> i32 {
-    let entry_path = resolve_entry_path(&entry.entry);
-    let func_norm = entry.name.replace('-', "_");
-    let full_func = if entry.subplugin.is_empty() {
-        format!("gs_{plugin}_{func_norm}")
-    } else {
-        format!("gs_{plugin}_{}_{func_norm}", entry.subplugin)
-    };
-    // `bash -c 'source <entry> && <fn> "$@"' bash <rest…>` — "$@" starts after $0.
-    let program = format!("source {} && {full_func} \"$@\"", shell_quote(&entry_path));
-    let mut c = Command::new("bash");
-    c.arg("-c").arg(program).arg("bash").args(rest);
-    exec_or_status(c)
-}
-
 // ---- GS 6.0 plugin.toml dispatch (T1 exec / T2 invoke) ----
 //
-// plugin.toml plugins take precedence over the legacy router.json path. T1
-// (declarative) renders its `run` template to an argv and execs it (no shell,
-// capability-gated); T2 (script) speaks JSON-RPC over stdio via the one-shot
-// transport. Spec: tmp/phase0-plugin-protocol.md §5 / §6 #7.
+// T1 (declarative) renders its `run` template to an argv and execs it (no
+// shell, capability-gated); T2/T3 speak JSON-RPC over stdio via the one-shot
+// or resident-daemon transport. Spec: docs/protocol.md §5 / §6.
 
 /// Plugin-discovery roots for the engine (`$GS_ROOT/plugins`; examples are opt-in).
 fn engine_roots() -> Vec<PathBuf> {
@@ -1374,34 +1308,6 @@ fn invoke_t2(p: &LoadedManifest, cmd: &CommandSpec, argv: &[String], locale: &st
     }
 }
 
-/// Hand the full argv to the existing Python CLI.
-fn delegate_python(args: &[String]) -> i32 {
-    let root = std::env::var("GS_ROOT").unwrap_or_else(|_| ".".to_string());
-    let mut c = Command::new("uv");
-    c.arg("run")
-        .arg("--directory")
-        .arg(root)
-        .arg("python")
-        .arg("-m")
-        .arg("gscripts.cli.main")
-        .args(args);
-    exec_or_status(c)
-}
-
-/// Use the entry path as-is if it exists, else resolve it under `$GS_ROOT`.
-fn resolve_entry_path(entry: &str) -> String {
-    if std::path::Path::new(entry).is_file() {
-        return entry.to_string();
-    }
-    if let Ok(root) = std::env::var("GS_ROOT") {
-        let alt = std::path::Path::new(&root).join(entry);
-        if alt.is_file() {
-            return alt.to_string_lossy().into_owned();
-        }
-    }
-    entry.to_string()
-}
-
 /// Single-quote a string for safe embedding in a `sh`/`bash -c` program.
 fn shell_quote(s: &str) -> String {
     format!("'{}'", s.replace('\'', "'\\''"))
@@ -1444,13 +1350,7 @@ fn program_name(cmd: &Command) -> String {
 
 // ---- GS 6.0 plugin management --------------------------------------------
 
-fn legacy_command_count(name: &str) -> usize {
-    match name {
-        _ => 0,
-    }
-}
-
-/// List GS 6.0 manifests and legacy router entries without requiring Python.
+/// List the `plugin.toml` plugins with their command counts and descriptions.
 fn cmd_plugin_list(_args: &[String]) -> i32 {
     #[derive(tabled::Tabled)]
     struct Row {
@@ -1463,11 +1363,6 @@ fn cmd_plugin_list(_args: &[String]) -> i32 {
     }
 
     let registry = Registry::discover(&engine_roots());
-    let formal_names: std::collections::BTreeSet<&str> = registry
-        .plugins
-        .iter()
-        .map(|plugin| plugin.manifest.name.as_str())
-        .collect();
     let locale = detect_locale();
     // A plugin's command tree may need a process (T2/T3 `describe`), so the
     // first listing after an edit can take a moment: say so instead of hanging.
@@ -1496,51 +1391,6 @@ fn cmd_plugin_list(_args: &[String]) -> i32 {
             )
         })
         .collect();
-    if let Some(root) = std::env::var_os("GS_ROOT") {
-        let legacy_dir = PathBuf::from(root).join("legacy");
-        if let Ok(entries) = std::fs::read_dir(legacy_dir) {
-            for entry in entries.flatten() {
-                let path = entry.path();
-                if path.extension().and_then(|e| e.to_str()) != Some("json") {
-                    continue;
-                }
-                let Ok(text) = std::fs::read_to_string(&path) else {
-                    continue;
-                };
-                let Ok(value) = serde_json::from_str::<serde_json::Value>(&text) else {
-                    continue;
-                };
-                let Some(name) = value.get("name").and_then(|v| v.as_str()) else {
-                    continue;
-                };
-                if formal_names.contains(name) {
-                    continue;
-                }
-                let desc = value
-                    .get("description")
-                    .and_then(|v| {
-                        v.as_object()
-                            .and_then(|m| {
-                                m.get(&locale)
-                                    .or_else(|| m.get("zh"))
-                                    .or_else(|| m.get("en"))
-                            })
-                            .and_then(|v| v.as_str())
-                    })
-                    .unwrap_or("");
-                rows.push((
-                    value.get("priority").and_then(|v| v.as_i64()).unwrap_or(50),
-                    name.into(),
-                    Row {
-                        name: name.into(),
-                        commands: legacy_command_count(name).to_string(),
-                        description: format!("{desc}（未迁移）"),
-                    },
-                    true,
-                ));
-            }
-        }
-    }
     progress.finish_and_clear();
     // A list is for finding things, so read it alphabetically; priority order
     // stays where it actually matters (completion ranking).
@@ -1553,7 +1403,6 @@ fn cmd_plugin_list(_args: &[String]) -> i32 {
     let enabled = rows.iter().filter(|r| r.3).count();
     let disabled = rows.len().saturating_sub(enabled);
     let formal = registry.plugins.len();
-    let legacy = rows.len().saturating_sub(formal);
     let command_count: usize = registry
         .plugins
         .iter()
@@ -1596,28 +1445,19 @@ fn cmd_plugin_list(_args: &[String]) -> i32 {
         },
         Stat {
             item: "插件库存".into(),
-            total: rows_total(formal, legacy),
-            detail: format!("正式 {formal} · legacy {legacy} · menubar 已移除"),
+            total: formal.to_string(),
+            detail: format!("正式插件 {formal} 个 · 全部为 plugin.toml"),
         },
         Stat {
             item: "GS6 可执行命令".into(),
             total: command_count.to_string(),
             detail: "来自正式 plugin.toml/describe".into(),
         },
-        Stat {
-            item: "GS5.2 命令基线".into(),
-            total: "260".into(),
-            detail: "兼容性对照基线".into(),
-        },
     ];
     let mut stats = ui::table(stats);
     ui::right(&mut stats, 1);
     ui::print(&stats);
     0
-}
-
-fn rows_total(formal: usize, legacy: usize) -> String {
-    (formal + legacy).to_string()
 }
 
 /// The version shared by the formal plugins, or a short "mixed" summary when
@@ -1750,62 +1590,12 @@ fn cmd_plugin_toggle(args: &[String], enabled: bool) -> i32 {
         eprintln!("错误: 写入 {} 失败：{e}", manifest_path.display());
         return 1;
     }
-    if let Err(e) = sync_legacy_config(&p.dir, name, enabled) {
-        eprintln!("警告: plugin.toml 已更新，但旧版配置同步失败：{e}");
-    }
     println!(
         "插件 '{}' 已{}",
         name,
         if enabled { "启用" } else { "禁用" }
     );
     0
-}
-
-/// Keep the legacy Python CLI's config view aligned while migration is ongoing.
-/// The manifest remains authoritative for Rust dispatch; this mirror prevents
-/// the Python fallback from showing stale state.
-fn sync_legacy_config(plugin_dir: &Path, name: &str, enabled: bool) -> Result<(), String> {
-    let mut candidates = Vec::new();
-    if let Some(explicit) = std::env::var_os("GS_CONFIG_FILE") {
-        candidates.push(PathBuf::from(explicit));
-    }
-    if let Some(home) = gs_core::home_dir() {
-        candidates.push(home.join(".config/global-scripts/config/gs.json"));
-    }
-    if let Some(root) = std::env::var_os("GS_ROOT") {
-        candidates.push(PathBuf::from(root).join("config/gs.json"));
-    }
-    let Some(path) = candidates.into_iter().find(|p| p.is_file()) else {
-        return Ok(());
-    };
-    sync_legacy_config_file(&path, plugin_dir, name, enabled)
-}
-
-fn sync_legacy_config_file(
-    path: &Path,
-    plugin_dir: &Path,
-    name: &str,
-    enabled: bool,
-) -> Result<(), String> {
-    let text = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
-    let mut value: serde_json::Value = serde_json::from_str(&text).map_err(|e| e.to_string())?;
-    let object = value
-        .as_object_mut()
-        .ok_or_else(|| "配置根节点不是 JSON 对象".to_string())?;
-    let section = if plugin_dir.components().any(|c| c.as_os_str() == "custom") {
-        "custom_plugins"
-    } else {
-        "system_plugins"
-    };
-    let map = object
-        .entry(section)
-        .or_insert_with(|| serde_json::json!({}));
-    let map = map
-        .as_object_mut()
-        .ok_or_else(|| format!("配置字段 {section} 不是对象"))?;
-    map.insert(name.to_string(), serde_json::Value::Bool(enabled));
-    let serialized = serde_json::to_string_pretty(&value).map_err(|e| e.to_string())? + "\n";
-    std::fs::write(path, serialized).map_err(|e| e.to_string())
 }
 
 fn set_manifest_enabled(text: &str, enabled: bool) -> String {
@@ -2022,9 +1812,6 @@ fn cmd_complete(completed: &[String]) -> i32 {
     use gs_core::engine;
     let locale = detect_locale();
     let registry = Registry::discover(&engine_roots());
-    let router = router_index_path()
-        .and_then(|p| load_router(&p).ok())
-        .unwrap_or_default();
 
     // `plugin info <plugin> <group>` is a management command, but its final
     // argument should complete from the same manifest command tree as direct
@@ -2120,30 +1907,6 @@ fn cmd_complete(completed: &[String]) -> i32 {
 
     // Engine: front-door commands + plugin.toml plugins (+ dynamic arg rules).
     let mut comp = engine::complete(&registry, SYSTEM_CMDS, completed, &locale);
-
-    // Merge in legacy router.json plugins so old-style plugins still complete.
-    match completed {
-        [] => {
-            let have: std::collections::BTreeSet<String> =
-                comp.candidates.iter().map(|c| c.value.clone()).collect();
-            for cand in gs_core::completion::complete(&router, SYSTEM_CMDS, completed, &locale) {
-                if !have.contains(&cand.value) {
-                    comp.candidates.push(cand);
-                }
-            }
-        }
-        [head, ..] => {
-            // First token is neither a front-door command nor a plugin.toml
-            // plugin → defer to legacy router completion for that plugin.
-            let is_system = SYSTEM_CMDS.iter().any(|(c, _, _)| c == head);
-            let is_manifest = registry.enabled().any(|p| &p.manifest.name == head);
-            if !is_system && !is_manifest {
-                comp.candidates =
-                    gs_core::completion::complete(&router, SYSTEM_CMDS, completed, &locale);
-                comp.directive = engine::directive::NO_FILE;
-            }
-        }
-    }
 
     comp.candidates.sort_by(|a, b| a.value.cmp(&b.value));
     comp.candidates.dedup_by(|a, b| a.value == b.value);
@@ -2380,7 +2143,7 @@ fn cmd_shell_init(args: &[String]) -> i32 {
 
 #[cfg(test)]
 mod tests {
-    use super::{distribution_root_from_exe, set_manifest_enabled, sync_legacy_config_file};
+    use super::{distribution_root_from_exe, set_manifest_enabled};
 
     #[test]
     fn set_manifest_enabled_inserts_before_sections() {
@@ -2396,18 +2159,6 @@ mod tests {
         let output = set_manifest_enabled(input, true);
         assert!(output.contains("enabled = true"));
         assert!(!output.contains("enabled = false"));
-    }
-
-    #[test]
-    fn syncs_legacy_config_for_manifest_toggle() {
-        let root = std::env::temp_dir().join(format!("gs-config-sync-{}", std::process::id()));
-        let _ = std::fs::create_dir_all(root.join("config"));
-        let config = root.join("config/gs.json");
-        std::fs::write(&config, r#"{"system_plugins":{}}"#).unwrap();
-        sync_legacy_config_file(&config, &root.join("plugins/demo"), "demo", false).unwrap();
-        let value: serde_json::Value =
-            serde_json::from_str(&std::fs::read_to_string(config).unwrap()).unwrap();
-        assert_eq!(value["system_plugins"]["demo"], false);
     }
 
     #[test]

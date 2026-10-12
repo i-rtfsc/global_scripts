@@ -298,11 +298,13 @@ fn search_path(prog: &str) -> Option<PathBuf> {
 ///   2. `$GS_ROOT/plugins` — the repo / dev tree. `$GS_ROOT/examples` is only
 ///      included when `GS_INCLUDE_EXAMPLES=1`.
 ///   3. `~/.config/global-scripts/plugins` — user-installed plugins, used when
-///      no `GS_ROOT` is set or `GS_ALLOW_LEGACY=1` explicitly opts in.
+///      no `GS_ROOT` is set, or when `GS_ALLOW_EXTERNAL_PLUGINS=1` explicitly
+///      opts in (a `GS_ROOT` checkout is otherwise isolated from the user's).
 pub fn default_roots() -> Vec<PathBuf> {
     let mut roots = Vec::new();
     let isolated = std::env::var_os("GS_ROOT").is_some()
-        && std::env::var_os("GS_ALLOW_LEGACY").as_deref() != Some(std::ffi::OsStr::new("1"));
+        && std::env::var_os("GS_ALLOW_EXTERNAL_PLUGINS").as_deref()
+            != Some(std::ffi::OsStr::new("1"));
     if !isolated {
         if let Some(pp) = std::env::var_os("GS_PLUGIN_PATH") {
             roots.extend(std::env::split_paths(&pp));
@@ -569,9 +571,9 @@ mod tests {
     fn default_roots_puts_explicit_path_first() {
         let _g = crate::cache::test_isolate("index-roots");
         let old_root = std::env::var_os("GS_ROOT");
-        let old_legacy = std::env::var_os("GS_ALLOW_LEGACY");
+        let old_external = std::env::var_os("GS_ALLOW_EXTERNAL_PLUGINS");
         std::env::remove_var("GS_ROOT");
-        std::env::remove_var("GS_ALLOW_LEGACY");
+        std::env::remove_var("GS_ALLOW_EXTERNAL_PLUGINS");
         std::env::set_var("GS_PLUGIN_PATH", "/opt/gs-plugins");
         let roots = default_roots();
         assert_eq!(roots.first(), Some(&PathBuf::from("/opt/gs-plugins")));
@@ -579,8 +581,8 @@ mod tests {
         if let Some(value) = old_root {
             std::env::set_var("GS_ROOT", value);
         }
-        if let Some(value) = old_legacy {
-            std::env::set_var("GS_ALLOW_LEGACY", value);
+        if let Some(value) = old_external {
+            std::env::set_var("GS_ALLOW_EXTERNAL_PLUGINS", value);
         }
     }
 }

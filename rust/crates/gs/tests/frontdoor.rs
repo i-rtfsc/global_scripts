@@ -465,11 +465,12 @@ fn examples_are_not_part_of_the_default_plugin_surface() {
     assert!(text.contains("android"));
     // The list no longer repeats the version on every row; the inventory stats
     // below it are what a caller checks.
-    assert!(has_row(&text, "插件库存", "正式 13 · legacy 0"));
+    assert!(has_row(&text, "插件库存", "13"));
+    assert!(has_row(&text, "插件库存", "全部为 plugin.toml"));
 }
 
 #[test]
-fn gs_root_isolates_user_plugins_and_legacy_router() {
+fn gs_root_isolates_user_plugins() {
     let home =
         std::env::temp_dir().join(format!("gs-frontdoor-isolated-home-{}", std::process::id()));
     let plugin = home.join(".config/global-scripts/plugins/user-only");
@@ -499,65 +500,36 @@ fn gs_root_isolates_user_plugins_and_legacy_router() {
     assert!(!text.contains("user-only"));
     assert!(!text.contains("user-path"));
 
-    let router = home.join("router.json");
-    fs::write(&router, r#"{"schema_version":"2.0","plugins":{}}"#).unwrap();
     let status = Command::new(gs_bin())
         .arg("status")
         .env("GS_ROOT", repo_root())
-        .env("ROUTER_INDEX", &router)
-        .env_remove("GS_ALLOW_LEGACY")
+        .env_remove("GS_ALLOW_EXTERNAL_PLUGINS")
         .output()
         .unwrap();
     assert!(status.status.success());
-    assert!(has_row(
-        &stdout(&status),
-        "router.json",
-        "未发现（不影响 GS 6.0 插件）"
-    ));
+    assert!(has_row(&stdout(&status), "manifest 插件", "13"));
 }
 
 #[test]
-fn explicit_legacy_opt_in_keeps_external_plugin_discovery() {
-    let root = std::env::temp_dir().join(format!("gs-frontdoor-legacy-{}", std::process::id()));
-    let external = root.join("external").join("legacy-only");
+fn explicit_opt_in_keeps_external_plugin_discovery() {
+    let root = std::env::temp_dir().join(format!("gs-frontdoor-external-{}", std::process::id()));
+    let external = root.join("external").join("external-only");
     fs::create_dir_all(&external).unwrap();
     fs::write(
         external.join("plugin.toml"),
-        "name=\"legacy-only\"\nversion=\"1.0.0\"\ntier=\"declarative\"\n",
+        "name=\"external-only\"\nversion=\"1.0.0\"\ntier=\"declarative\"\n",
     )
     .unwrap();
     let list = Command::new(gs_bin())
         .args(["plugin", "list"])
         .env("GS_ROOT", repo_root())
-        .env("GS_ALLOW_LEGACY", "1")
+        .env("GS_ALLOW_EXTERNAL_PLUGINS", "1")
         .env("GS_PLUGIN_PATH", root.join("external"))
         .env("GS_CACHE_DIR", root.join("cache"))
         .output()
         .unwrap();
     assert!(list.status.success());
-    assert!(stdout(&list).contains("legacy-only"));
-}
-
-#[test]
-fn explicit_legacy_opt_in_keeps_router_fallback() {
-    let root = std::env::temp_dir().join(format!("gs-frontdoor-router-{}", std::process::id()));
-    fs::create_dir_all(&root).unwrap();
-    let router = root.join("router.json");
-    fs::write(
-        &router,
-        r#"{"version":"2.0","plugins":{"legacy-only":{"enabled":true,"description":{"zh":"legacy"}}}}"#,
-    )
-    .unwrap();
-    let status = Command::new(gs_bin())
-        .arg("status")
-        .env("GS_ROOT", repo_root())
-        .env("GS_ALLOW_LEGACY", "1")
-        .env("ROUTER_INDEX", &router)
-        .env("GS_CACHE_DIR", root.join("cache"))
-        .output()
-        .unwrap();
-    assert!(status.status.success());
-    assert!(has_row(&stdout(&status), "legacy 插件", "1 个"));
+    assert!(stdout(&list).contains("external-only"));
 }
 
 #[test]
@@ -1011,12 +983,13 @@ fn android_uses_formal_plugin_name_after_in_place_merge() {
 }
 
 #[test]
-fn release_excludes_legacy_menubar_plugin() {
+fn plugin_list_has_no_legacy_entries() {
     let list = run(&["plugin", "list"]);
     assert!(list.status.success());
     let text = stdout(&list);
-    assert!(text.contains("menubar 已移除"));
     assert!(!text.lines().any(|line| line.contains("│ menubar")));
+    assert!(!text.contains("legacy"));
+    assert!(!text.contains("GS5.2"));
 }
 
 #[test]
@@ -1170,16 +1143,12 @@ run="echo toggle-ok"
 "#,
     )
     .unwrap();
-    let config = root.join("gs.json");
-    fs::write(&config, r#"{"system_plugins":{},"custom_plugins":{}}"#).unwrap();
-
     let base = |args: &[&str]| {
         Command::new(gs_bin())
             .args(args)
             .env("GS_ROOT", repo_root())
-            .env("GS_ALLOW_LEGACY", "1")
+            .env("GS_ALLOW_EXTERNAL_PLUGINS", "1")
             .env("GS_PLUGIN_PATH", &plugins)
-            .env("GS_CONFIG_FILE", &config)
             .output()
             .expect("run isolated gs")
     };

@@ -80,7 +80,12 @@ def run(binary: Path, root: Path, cache: Path, *args: str) -> subprocess.Complet
             "GS_LANGUAGE": "zh",
         }
     )
-    for name in ("GS_ROOT", "GS_COMMAND_NAME", "GS_COMMAND_PATH", "GS_ALLOW_LEGACY"):
+    for name in (
+        "GS_ROOT",
+        "GS_COMMAND_NAME",
+        "GS_COMMAND_PATH",
+        "GS_ALLOW_EXTERNAL_PLUGINS",
+    ):
         env.pop(name, None)
     return subprocess.run(
         [str(binary), *args],
@@ -112,7 +117,7 @@ def verify_runtime(root: Path, binary: Path, expected_version: str) -> None:
             fail("doctor did not pass")
 
         inventory = require_success(run(binary, root, cache, "plugin", "list"), "plugin list")
-        for expected in ("插件库存", "正式 13", "legacy 0"):
+        for expected in ("插件库存", "正式插件 13", "全部为 plugin.toml"):
             if expected not in inventory:
                 fail("plugin inventory is missing {!r}".format(expected))
 
