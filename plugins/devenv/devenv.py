@@ -147,7 +147,7 @@ def list_tools(ctx):
         if (req_only and not is_req) or (opt_only and is_req):
             continue
         rows.append([
-            "✅ 必选" if is_req else "⭐ 可选", name,
+            "必选" if is_req else "可选", name,
             t.get("name", name), t.get("category", ""), _desc(t.get("description")),
         ])
     out = _table(["类型", "工具ID", "名称", "分类", "描述"], rows)
@@ -176,8 +176,8 @@ def status(ctx):
             ctx.emit_output("stderr", "未找到工具: {}\n".format(one))
             return 1
         ok = _check_installed(t)
-        ctx.emit_output("stdout", "{} {} - {}\n".format(
-            "✅" if ok else "❌", t.get("name", one), "已安装" if ok else "未安装"))
+        ctx.emit_output("stdout", "{} - {}\n".format(
+            t.get("name", one), "已安装" if ok else "未安装"))
         return 0
     req_only, opt_only = _flag(ctx, "required"), _flag(ctx, "optional")
     rows = []
@@ -186,7 +186,7 @@ def status(ctx):
         if (req_only and not is_req) or (opt_only and is_req):
             continue
         ok = _check_installed(t)
-        rows.append(["✅ 必选" if is_req else "⭐ 可选", "✅" if ok else "❌",
+        rows.append(["必选" if is_req else "可选", "已安装" if ok else "未安装",
                      name, t.get("name", name), "已安装" if ok else "未安装"])
     ctx.emit_output("stdout", _table(["类型", "状态", "工具ID", "名称", "安装状态"], rows) + "\n")
     return 0
@@ -208,17 +208,17 @@ def check(ctx):
         installed = _check_installed(t)
         is_req = t.get("required", False)
         (ok_req if is_req else ok_opt).append(name) if installed else (miss_req if is_req else miss_opt).append(name)
-    parts = ["📍 平台: {}".format(osname), "📦 包管理器: {}".format(pm), ""]
+    parts = ["平台: {}".format(osname), "包管理器: {}".format(pm), ""]
     if ok_req or miss_req:
-        rows = [["✅", t, "已安装"] for t in sorted(ok_req)] + [["❌", t, "未安装"] for t in sorted(miss_req)]
-        parts.append("✅ 必选工具状态:")
-        parts.append(_table(["状态", "工具ID", "备注"], rows))
+        rows = [[t, "已安装"] for t in sorted(ok_req)] + [[t, "未安装"] for t in sorted(miss_req)]
+        parts.append("必选工具状态:")
+        parts.append(_table(["工具ID", "状态"], rows))
         parts.append("")
-    parts.append("📊 必选工具: {}/{} 已安装".format(len(ok_req), len(ok_req) + len(miss_req)))
+    parts.append("必选工具: {}/{} 已安装".format(len(ok_req), len(ok_req) + len(miss_req)))
     if _flag(ctx, "all") and (ok_opt or miss_opt):
-        rows = [["✅", t, "已安装"] for t in sorted(ok_opt)] + [["❌", t, "未安装"] for t in sorted(miss_opt)]
-        parts += ["", "⭐ 可选工具状态:", _table(["状态", "工具ID", "备注"], rows), ""]
-        parts.append("📊 可选工具: {}/{} 已安装".format(len(ok_opt), len(ok_opt) + len(miss_opt)))
+        rows = [[t, "已安装"] for t in sorted(ok_opt)] + [[t, "未安装"] for t in sorted(miss_opt)]
+        parts += ["", "可选工具状态:", _table(["工具ID", "状态"], rows), ""]
+        parts.append("可选工具: {}/{} 已安装".format(len(ok_opt), len(ok_opt) + len(miss_opt)))
     ctx.emit_output("stdout", "\n".join(parts) + "\n")
     return 0 if not miss_req else 1
 
@@ -238,7 +238,7 @@ def presets(ctx):
             content = "{}个工具".format(len(p["tools"]))
         else:
             content = "N/A"
-        rows.append(["✅ 必选" if p.get("required") else "⭐ 可选", name,
+        rows.append(["必选" if p.get("required") else "可选", name,
                      p.get("name", name), _desc(p.get("description")), content])
     ctx.emit_output("stdout", _table(["类型", "预设名称", "显示名称", "描述", "包含内容"], rows) + "\n")
     return 0
@@ -251,7 +251,7 @@ def _install_tool(ctx, name, execute=False):
         ctx.emit_output("stderr", "工具 '{}' 不存在\n".format(name))
         return 1
     if _check_installed(t):
-        ctx.emit_output("stdout", "✅ {} 已安装\n".format(t.get("name", name)))
+        ctx.emit_output("stdout", "{} 已安装\n".format(t.get("name", name)))
         return 0
     osname, _ = _platform()
     pconf = t.get(osname)
@@ -260,7 +260,7 @@ def _install_tool(ctx, name, execute=False):
         return 1
     method = pconf.get("method")
     if method == "preinstalled":
-        ctx.emit_output("stdout", "⚠️  {} 为系统自带工具\n".format(t.get("name", name)))
+        ctx.emit_output("stdout", "警告: {} 为系统自带工具\n".format(t.get("name", name)))
         return 0
     if method == "brew":
         cmd = "brew install {}{}".format("--cask " if pconf.get("cask") else "", pconf.get("package", ""))
@@ -352,11 +352,11 @@ def validate(ctx):
     errors, warnings = [], []
     for name, t in tools.items():
         if "name" not in t:
-            errors.append("❌ {}: 缺少 'name'".format(name))
+            errors.append("{}: 缺少 'name'".format(name))
         if "description" not in t:
-            errors.append("❌ {}: 缺少 'description'".format(name))
+            errors.append("{}: 缺少 'description'".format(name))
         if "category" not in t:
-            warnings.append("⚠️  {}: 缺少 'category'".format(name))
+            warnings.append("警告: {}: 缺少 'category'".format(name))
         has_platform = False
         for osname in ("macos", "linux"):
             if osname not in t:
@@ -365,35 +365,35 @@ def validate(ctx):
             pconf = t[osname]
             method = pconf.get("method")
             if method not in ("brew", "apt", "script", "preinstalled"):
-                errors.append("❌ {}.{}: 非法 method '{}'".format(name, osname, method))
+                errors.append("{}.{}: 非法 method '{}'".format(name, osname, method))
             if "check" not in pconf:
-                errors.append("❌ {}.{}: 缺少 'check'".format(name, osname))
+                errors.append("{}.{}: 缺少 'check'".format(name, osname))
             if method in ("brew", "apt") and "package" not in pconf:
-                errors.append("❌ {}.{}: {} 缺少 'package'".format(name, osname, method))
+                errors.append("{}.{}: {} 缺少 'package'".format(name, osname, method))
             if method == "script" and "install_script" not in pconf:
-                errors.append("❌ {}.{}: script 缺少 'install_script'".format(name, osname))
+                errors.append("{}.{}: script 缺少 'install_script'".format(name, osname))
         if not has_platform:
-            errors.append("❌ {}: 无任何平台配置".format(name))
+            errors.append("{}: 无任何平台配置".format(name))
     for name, p in presets_map.items():
         if "name" not in p:
-            errors.append("❌ preset '{}': 缺少 'name'".format(name))
+            errors.append("preset '{}': 缺少 'name'".format(name))
         for tool_name in p.get("tools", []):
             if tool_name not in tools:
-                errors.append("❌ preset '{}': 引用不存在的工具 '{}'".format(name, tool_name))
+                errors.append("preset '{}': 引用不存在的工具 '{}'".format(name, tool_name))
         for sub in p.get("includes", []):
             if sub not in presets_map:
-                errors.append("❌ preset '{}': 引用不存在的预设 '{}'".format(name, sub))
+                errors.append("preset '{}': 引用不存在的预设 '{}'".format(name, sub))
         if "tools" not in p and "includes" not in p:
-            errors.append("❌ preset '{}': 无 'tools' 或 'includes'".format(name))
-    parts = ["🔍 配置验证报告", "=" * 40, "",
-             "📦 已验证工具: {} 个".format(len(tools)),
-             "🎨 已验证预设: {} 个".format(len(presets_map)),
-             "🔴 错误: {}".format(len(errors)), "🟡 警告: {}".format(len(warnings)), ""]
+            errors.append("preset '{}': 无 'tools' 或 'includes'".format(name))
+    parts = ["配置验证报告", "=" * 40, "",
+             "已验证工具: {} 个".format(len(tools)),
+             "已验证预设: {} 个".format(len(presets_map)),
+             "错误: {}".format(len(errors)), "警告: {}".format(len(warnings)), ""]
     if errors:
-        parts += ["🔴 错误列表:"] + errors + [""]
+        parts += ["错误列表:"] + errors + [""]
     if warnings and (_flag(ctx, "verbose") or not errors):
-        parts += ["🟡 警告列表:"] + warnings + [""]
-    parts.append("✅ 验证通过！" if not errors else "❌ 验证失败：{} 个错误".format(len(errors)))
+        parts += ["警告列表:"] + warnings + [""]
+    parts.append("验证通过！" if not errors else "验证失败：{} 个错误".format(len(errors)))
     ctx.emit_output("stdout", "\n".join(parts) + "\n")
     return 0 if not errors else 1
 

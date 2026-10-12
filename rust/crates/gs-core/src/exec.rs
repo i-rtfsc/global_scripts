@@ -1,6 +1,6 @@
 //! T1 declarative executor: bind a command's argv to its [`ArgSpec`]s and render
 //! the `run` template into a concrete **argv** (exec form — no shell), gated by
-//! the `exec` capability. Spec: phase0-plugin-protocol.md §1.3 (`run`), §6 #7.
+//! the `exec` capability. Spec: docs/protocol.md §5 (`run`).
 //!
 //! Exec-form on purpose: the template is split into argv tokens and a bare
 //! `{name}` placeholder expands to the bound value(s) as *separate* argv

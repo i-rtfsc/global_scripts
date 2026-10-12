@@ -50,7 +50,7 @@ def _classify(target: str):
 )
 def info(ctx):
     del ctx
-    return {"stdout": "🕷️ Spider6\n平台: 简书、博客园、CSDN\n抓取: 受控联网，20 秒超时，5 MiB 上限\n"}
+    return {"stdout": "Spider\n平台: 简书、博客园、CSDN\n抓取: 受控联网，20 秒超时，5 MiB 上限\n"}
 
 
 @plugin.command(
@@ -91,7 +91,7 @@ def check_deps(ctx):
     lines = []
     for package, module in DEPS.items():
         ok = importlib.util.find_spec(module) is not None
-        lines.append("{} {}".format("✅" if ok else "❌", package))
+        lines.append("{} {}".format("已安装" if ok else "缺失", package))
         if not ok:
             missing.append(package)
     lines.append("\n缺少依赖: " + ", ".join(missing) if missing else "\n所有可选依赖均已安装")

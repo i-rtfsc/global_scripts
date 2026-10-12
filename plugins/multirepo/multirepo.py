@@ -196,15 +196,15 @@ def projects_status(ctx):
         project_path = root / project["path"]
         if not (project_path / ".git").exists():
             missing += 1
-            lines.append("  ❌ {} [{}]".format(project["path"], "missing"))
+            lines.append("  缺失 {} [missing]".format(project["path"]))
             continue
         state = _git_status(project_path)
         if state.get("state") == "clean":
             clean += 1
-            marker = "✅"
+            marker = "干净"
         else:
             modified += 1
-            marker = "⚠️"
+            marker = "修改"
         lines.append("  {} {} [{}] {}".format(marker, project["path"], state.get("state"), state.get("branch", "")))
     lines.append("汇总: clean={} modified={} missing={}".format(clean, modified, missing))
     return {"stdout": "\n".join(lines) + "\n"}

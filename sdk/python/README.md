@@ -2,7 +2,7 @@
 
 A stdlib-only (Python 3.9+) helper for writing **T2 "script" tier** plugins
 for Global Scripts 6.0. It implements the plugin wire protocol from
-`tmp/phase0-plugin-protocol.md`: JSON-RPC 2.0 over stdio with LSP-style
+`docs/protocol.md`: JSON-RPC 2.0 over stdio with LSP-style
 `Content-Length` framing. The Rust core spawns your plugin process and talks
 to it over stdin/stdout.
 

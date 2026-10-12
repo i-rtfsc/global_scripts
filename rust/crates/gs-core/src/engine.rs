@@ -1,6 +1,6 @@
 //! Front-door **completion engine** for `plugin.toml` plugins — the F8 core
 //! (and, with [`crate::exec`], the dispatch decision). Spec:
-//! tmp/phase0-plugin-protocol.md §3–§4.
+//! docs/protocol.md §3.3 and §9.
 //!
 //! Input is the words already completed after `gs` (the shell tokenizes — we
 //! deliberately consume pre-split words rather than re-parse a raw `COMP_LINE`,

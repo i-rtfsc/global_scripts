@@ -449,7 +449,7 @@ def device_screencap(ctx):
         return result.returncode
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_bytes(result.stdout)
-    ctx.emit_output("stdout", "✅ 截屏已保存: {}\n".format(out))
+    ctx.emit_output("stdout", "截屏已保存: {}\n".format(out))
     return 0
 
 
@@ -617,8 +617,8 @@ def emulator_list(ctx):
         ctx.emit_output("stderr", "未找到 AVD（先在 Android Studio 创建）\n")
         return 1
     running = _running_emulators()
-    lines = ["📱 可用模拟器:"] + ["  • {}".format(a) for a in avds]
-    lines.append("\n🟢 运行中: {}".format(", ".join(running)) if running else "\n⚪ 无运行中的模拟器")
+    lines = ["可用模拟器:"] + ["  • {}".format(a) for a in avds]
+    lines.append("\n运行中: {}".format(", ".join(running)) if running else "\n无运行中的模拟器")
     ctx.emit_output("stdout", "\n".join(lines) + "\n")
     return 0
 
@@ -748,11 +748,11 @@ def emulator_status(ctx):
         ctx.emit_output("stderr", "未找到 emulator\n")
         return 1
     avds, running = _list_avds(), _running_emulators()
-    lines = ["📱 模拟器状态:", "   路径: {}".format(emu),
+    lines = ["模拟器状态:", "   路径: {}".format(emu),
              "   AVD 总数: {}".format(len(avds)), "   运行中: {}".format(len(running))]
     if avds:
-        lines += ["\n📋 可用 AVD:"] + ["   • {}".format(a) for a in avds]
-    lines += (["\n🟢 运行中:"] + ["   • {}".format(s) for s in running]) if running else ["\n⚪ 无运行中的模拟器"]
+        lines += ["\n可用 AVD:"] + ["   • {}".format(a) for a in avds]
+    lines += (["\n运行中:"] + ["   • {}".format(s) for s in running]) if running else ["\n无运行中的模拟器"]
     ctx.emit_output("stdout", "\n".join(lines) + "\n")
     return 0
 
@@ -1018,7 +1018,7 @@ def input_screenrecord(ctx):
     local = _resolve_out(ctx, fn + ".mp4")
     rc2 = _run_adb(ctx, ["pull", device_path, local])
     if rc2 == 0:
-        ctx.emit_output("stdout", "✅ 已保存 {}\n".format(local))
+        ctx.emit_output("stdout", "已保存 {}\n".format(local))
     return rc2
 
 
@@ -2043,17 +2043,17 @@ def _winscope_start(ctx, html_name):
     except Exception as e:  # noqa: BLE001
         ctx.emit_output("stderr", "启动 Winscope 失败: {}\n".format(e))
         return 1
-    ctx.emit_output("stdout", "✅ Winscope 已启动: {}\n".format(html_path))
+    ctx.emit_output("stdout", "Winscope 已启动: {}\n".format(html_path))
     proxy = os.path.join(_legacy_dir("winscope"), "winscope_proxy.py")
     if os.path.exists(proxy):
         try:
             subprocess.Popen([sys.executable, proxy], stdout=subprocess.DEVNULL,
                              stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL)
-            ctx.emit_output("stdout", "🌐 代理服务器已启动\n")
+            ctx.emit_output("stdout", "代理服务器已启动\n")
         except Exception as e:  # noqa: BLE001
-            ctx.emit_output("stdout", "⚠️ 代理服务器启动失败: {}\n".format(e))
+            ctx.emit_output("stdout", "警告: 代理服务器启动失败: {}\n".format(e))
     else:
-        ctx.emit_output("stdout", "⚠️ 未找到代理脚本，部分功能不可用\n")
+        ctx.emit_output("stdout", "警告: 未找到代理脚本，部分功能不可用\n")
     return 0
 
 
@@ -2121,21 +2121,21 @@ def winscope_proxy(ctx):
 def winscope_files(ctx):
     cwd = ctx.cwd or os.getcwd()
     wdir = _legacy_dir("winscope")
-    lines = ["📁 可用的 Winscope HTML 文件:", "=" * 35, "", "📁 当前目录 ({}):".format(cwd)]
+    lines = ["可用的 Winscope HTML 文件:", "=" * 35, "", "当前目录 ({}):".format(cwd)]
     cwd_htmls = _list_files(cwd, ".html")
     if cwd_htmls:
         for h in cwd_htmls:
             lines.append("  • {} ({})".format(h, _human_size(os.path.getsize(os.path.join(cwd, h)))))
     else:
-        lines.append("  📭 未找到 HTML 文件")
-    lines += ["", "📁 插件目录 ({}):".format(wdir)]
+        lines.append("  未找到 HTML 文件")
+    lines += ["", "插件目录 ({}):".format(wdir)]
     pdir_htmls = _list_files(wdir, ".html")
     if pdir_htmls:
         for h in pdir_htmls:
             tag = " (AOSP 版)" if "aosp" in h.lower() else ""
             lines.append("  • {} ({}){}".format(h, _human_size(os.path.getsize(os.path.join(wdir, h))), tag))
     else:
-        lines.append("  📭 未找到 HTML 文件")
+        lines.append("  未找到 HTML 文件")
     ctx.emit_output("stdout", "\n".join(lines) + "\n")
     return 0
 
@@ -2150,12 +2150,12 @@ def winscope_status(ctx):
     wdir = _legacy_dir("winscope")
     proxy = os.path.join(wdir, "winscope_proxy.py")
     oc = _open_command()
-    lines = ["🔍 Winscope 环境状态:", "=" * 30,
-             ("✅ 浏览器打开命令: {}".format(oc) if oc else "❌ 未找到浏览器打开命令"),
-             "✅ Python: {}".format(sys.version.split()[0]),
-             "✅ 插件目录 HTML 文件数: {}".format(len(_list_files(wdir, ".html"))),
-             ("✅ 代理脚本可用" if os.path.exists(proxy) else "⚠️ 未找到代理脚本"),
-             ("✅ adb 可用" if _adb_exists() else "⚠️ 未找到 adb")]
+    lines = ["Winscope 环境状态:", "=" * 30,
+             ("浏览器打开命令: {}".format(oc) if oc else "未找到浏览器打开命令"),
+             "Python: {}".format(sys.version.split()[0]),
+             "插件目录 HTML 文件数: {}".format(len(_list_files(wdir, ".html"))),
+             ("代理脚本可用" if os.path.exists(proxy) else "警告: 未找到代理脚本"),
+             ("adb 可用" if _adb_exists() else "警告: 未找到 adb")]
     ctx.emit_output("stdout", "\n".join(lines) + "\n")
     return 0
 
@@ -2285,18 +2285,18 @@ def frida_server(ctx):
         # Redirect device-side stdio so `&` truly detaches (else adb holds the
         # connection open and the one-shot call hangs).
         _adb_capture(["shell", "/data/local/frida/frida-server >/dev/null 2>&1 &"], timeout=10)
-        ctx.emit_output("stdout", "✅ frida-server 已启动\n")
+        ctx.emit_output("stdout", "frida-server 已启动\n")
         return 0
     if action in ("stop", "kill"):
         _run_adb(ctx, ["shell", "pkill", "frida"])
-        ctx.emit_output("stdout", "✅ frida-server 已停止\n")
+        ctx.emit_output("stdout", "frida-server 已停止\n")
         return 0
     if action == "status":
         rc, out, _ = _adb_capture(["shell", "pgrep", "frida-server"])
         if rc == 0 and out.strip():
-            ctx.emit_output("stdout", "✅ frida-server 运行中 (PID: {})\n".format(", ".join(out.split())))
+            ctx.emit_output("stdout", "frida-server 运行中 (PID: {})\n".format(", ".join(out.split())))
         else:
-            ctx.emit_output("stdout", "⚠️ frida-server 未运行\n")
+            ctx.emit_output("stdout", "警告: frida-server 未运行\n")
         return 0
     ctx.emit_output("stderr", "未知操作: {}\n可用: start, stop, status\n".format(action))
     return 2
@@ -2311,7 +2311,7 @@ def frida_server(ctx):
 def frida_scripts(ctx):
     cwd = ctx.cwd or os.getcwd()
     fdir = _legacy_dir("frida")
-    lines = ["📜 可用的 Frida JavaScript 脚本:", "=" * 40, "", "📁 当前目录 ({}):".format(cwd)]
+    lines = ["可用的 Frida JavaScript 脚本:", "=" * 40, "", "当前目录 ({}):".format(cwd)]
     cjs = _list_files(cwd, ".js")
     if cjs:
         for j in cjs:
@@ -2321,8 +2321,8 @@ def frida_scripts(ctx):
             if d:
                 lines.append("    └─ {}".format(d))
     else:
-        lines.append("  📭 未找到 JavaScript 文件")
-    lines += ["", "📁 插件目录 ({}):".format(fdir)]
+        lines.append("  未找到 JavaScript 文件")
+    lines += ["", "插件目录 ({}):".format(fdir)]
     pjs = _list_files(fdir, ".js")
     if pjs:
         for j in pjs:
@@ -2332,7 +2332,7 @@ def frida_scripts(ctx):
             if d:
                 lines.append("    └─ {}".format(d))
     else:
-        lines.append("  📭 未找到 JavaScript 文件")
+        lines.append("  未找到 JavaScript 文件")
     ctx.emit_output("stdout", "\n".join(lines) + "\n")
     return 0
 
@@ -2344,27 +2344,27 @@ def frida_scripts(ctx):
     examples=["gs android frida.status"],
 )
 def frida_status(ctx):
-    lines = ["🔍 Frida 环境状态:", "=" * 30]
+    lines = ["Frida 环境状态:", "=" * 30]
     dev = _active_device()
     if dev:
-        lines.append("✅ 设备已连接: {}".format(dev))
+        lines.append("设备已连接: {}".format(dev))
         ib = _frida_inject_bin()
-        lines.append("✅ frida-inject 可用 ({})".format(_human_size(os.path.getsize(ib)))
-                     if os.path.exists(ib) else "❌ 未找到 frida-inject")
+        lines.append("frida-inject 可用 ({})".format(_human_size(os.path.getsize(ib)))
+                     if os.path.exists(ib) else "未找到 frida-inject")
         sb = _frida_server_bin()
-        lines.append("✅ frida-server 可用 ({})".format(_human_size(os.path.getsize(sb)))
-                     if os.path.exists(sb) else "⚠️ 未找到 frida-server")
+        lines.append("frida-server 可用 ({})".format(_human_size(os.path.getsize(sb)))
+                     if os.path.exists(sb) else "警告: 未找到 frida-server")
         rc, out, _ = _adb_capture(["shell", "pgrep", "frida-server"])
         if rc == 0 and out.strip():
-            lines.append("✅ 设备上 frida-server 运行中 (PID: {})".format(", ".join(out.split())))
+            lines.append("设备上 frida-server 运行中 (PID: {})".format(", ".join(out.split())))
         else:
-            lines.append("⚠️ 设备上 frida-server 未运行")
+            lines.append("警告: 设备上 frida-server 未运行")
         drc, _, _ = _adb_capture(["shell", "test", "-x", "/data/local/frida/frida-inject"])
-        lines.append("✅ 设备上已安装 frida-inject" if drc == 0 else "⚠️ 设备上未安装 frida-inject")
+        lines.append("设备上已安装 frida-inject" if drc == 0 else "警告: 设备上未安装 frida-inject")
     else:
-        lines.append("❌ 未检测到 Android 设备")
+        lines.append("未检测到 Android 设备")
     cwd = ctx.cwd or os.getcwd()
-    lines += ["", "📜 JavaScript 文件:",
+    lines += ["", "JavaScript 文件:",
               "  当前目录: {} 个".format(len(_list_files(cwd, ".js"))),
               "  插件目录: {} 个".format(len(_list_files(_legacy_dir("frida"), ".js")))]
     ctx.emit_output("stdout", "\n".join(lines) + "\n")

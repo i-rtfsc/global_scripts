@@ -1,7 +1,7 @@
 //! `plugin.toml` manifest schema + the normalized command/describe model.
 //!
-//! Spec: tmp/phase0-plugin-protocol.md §1 (manifest schema), §2 (describe — the
-//! runtime command tree is *isomorphic* to the manifest's).
+//! Spec: docs/protocol.md §2 (manifest schema) and §6.2 (describe — the runtime
+//! command tree is *isomorphic* to the manifest's).
 //!
 //! A plugin's `plugin.toml` is the single source of truth, replacing the old
 //! `plugin.json` + `commands.json` + `@plugin_function` decorators. For a **T1

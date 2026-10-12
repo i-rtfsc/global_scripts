@@ -407,14 +407,9 @@ mod unix_transport {
         let (req_tx, req_rx) = mpsc::channel::<Option<Value>>();
         std::thread::spawn(move || {
             let mut reader = BufReader::new(stream);
-            loop {
-                match rpc::read_message(&mut reader) {
-                    Ok(Some(req)) => {
-                        if req_tx.send(Some(req)).is_err() {
-                            return;
-                        }
-                    }
-                    _ => break,
+            while let Ok(Some(req)) = rpc::read_message(&mut reader) {
+                if req_tx.send(Some(req)).is_err() {
+                    return;
                 }
             }
             let _ = req_tx.send(None); // EOF marker

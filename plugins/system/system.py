@@ -143,7 +143,7 @@ def _proxy_change(ctx, enabled):
         return {"stdout": "代理变更计划（dry-run）\nAction: {}\n不会修改当前 shell\n".format("on" if enabled else "off")}
     return {
         "env": changes,
-        "stdout": ("✅ 已开启代理: {}\n".format(PROXY_URL) if enabled else "❌ 已关闭代理\n"),
+        "stdout": ("已开启代理: {}\n".format(PROXY_URL) if enabled else "已关闭代理\n"),
     }
 
 
@@ -154,7 +154,7 @@ def _repo_change(ctx, source):
     name, url = REPO_SOURCES[source]
     if mode == "dry-run":
         return {"stdout": "Repo 源变更计划（dry-run）\nSource: {}\nREPO_URL: {}\n不会修改当前 shell\n".format(name, url)}
-    return {"env": {"REPO_URL": url}, "stdout": "✅ 已切换到 {}\n🔗 REPO_URL: {}\n".format(name, url)}
+    return {"env": {"REPO_URL": url}, "stdout": "已切换到 {}\nREPO_URL: {}\n".format(name, url)}
 
 
 def _brew_change(ctx, source):
@@ -198,7 +198,7 @@ def _brew_change(ctx, source):
         return {"exit_code": 1, "stderr": "切换 Homebrew 镜像失败: {}\n".format(exc)}
     return {
         "env": {"HOMEBREW_BOTTLE_DOMAIN": mirror["bottles"]},
-        "stdout": "✅ 已切换到 {}\n".format(mirror["name"]),
+        "stdout": "已切换到 {}\n".format(mirror["name"]),
     }
 
 
@@ -227,8 +227,8 @@ def proxy_status(ctx):
     ]
     active = [(name, _env(ctx, name)) for name in names if _env(ctx, name)]
     if not active:
-        return {"stdout": "🚫 当前代理状态: 已禁用\n"}
-    lines = ["🌐 当前代理状态: 已启用"]
+        return {"stdout": "当前代理状态: 已禁用\n"}
+    lines = ["当前代理状态: 已启用"]
     lines.extend("  {}: {}".format(name, value) for name, value in active)
     return {"stdout": "\n".join(lines) + "\n"}
 
@@ -242,7 +242,7 @@ def proxy_config(ctx):
     del ctx
     return {
         "stdout": (
-            "⚙️  代理配置信息:\n"
+            "代理配置信息:\n"
             "  代理地址: 127.0.0.1\n"
             "  代理端口: 7890\n"
             "  代理URL:  http://127.0.0.1:7890\n"
@@ -265,7 +265,7 @@ def brew_remote(ctx):
             ["git", "-C", brew_root, "remote", "-v"],
             capture_output=True, text=True, timeout=5, check=True,
         ).stdout.strip()
-        return {"stdout": "📦 brew.git:\n{}\n".format(remote or "  未配置 remote")}
+        return {"stdout": "brew.git:\n{}\n".format(remote or "  未配置 remote")}
     except FileNotFoundError as exc:
         return {"exit_code": 127, "stderr": "命令不存在: {}\n".format(exc.filename)}
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
@@ -300,13 +300,13 @@ def brew_aliyun(ctx):
 def repo_status(ctx):
     url = _env(ctx, "REPO_URL")
     if not url:
-        return {"stdout": "🚫 未设置 REPO_URL，将使用默认源\n"}
+        return {"stdout": "未设置 REPO_URL，将使用默认源\n"}
     known = {
         "https://gerrit.googlesource.com/git-repo": "Google 官方源",
         "https://gerrit.intel.com/git-repo": "Intel 镜像源",
         "https://mirrors.tuna.tsinghua.edu.cn/git/git-repo": "清华大学镜像源",
     }
-    return {"stdout": "🌐 当前Repo源: {}\n🔗 REPO_URL: {}\n".format(known.get(url, "自定义源"), url)}
+    return {"stdout": "当前Repo源: {}\nREPO_URL: {}\n".format(known.get(url, "自定义源"), url)}
 
 
 @plugin.command(name="repo.google", summary={"zh": "切换到 Google 官方源", "en": "Switch to the Google repo source"}, usage="gs system repo google <--dry-run|--yes>", args=_MODE_ARG)

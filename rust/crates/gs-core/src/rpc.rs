@@ -2,8 +2,8 @@
 //! UTF-8 JSON body), plus the **T2 one-shot transport** that spawns a plugin
 //! process, sends it request(s), and reads framed responses until EOF.
 //!
-//! Spec: tmp/phase0-plugin-protocol.md §2.1 (framing), §2.2 (describe), §3.2
-//! (complete), §5 (invoke / event). The matching Python side is `sdk/python`.
+//! Spec: docs/protocol.md §6 (framing / describe / complete / invoke / event).
+//! The matching Python side is `sdk/python`.
 //!
 //! Tiers: T2 (script) uses [`call_oneshot`] — one process per `gs` invocation
 //! that may answer 1–2 requests (e.g. `describe` then `complete`) before its

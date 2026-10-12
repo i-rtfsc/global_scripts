@@ -2,7 +2,7 @@
 
 A stdlib-only helper for writing T2 ("script" tier) plugins that speak
 JSON-RPC 2.0 over stdio with LSP-style ``Content-Length`` framing, as
-defined in ``tmp/phase0-plugin-protocol.md``.
+defined in ``docs/protocol.md``.
 
 Typical usage::
 
